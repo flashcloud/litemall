@@ -9,6 +9,7 @@ export default {
       dashboard: '首页',
       user: '用户管理',
       user_user: '会员管理',
+      user_trader: '交易企业',
       user_address: '收货地址',
       user_collect: '会员收藏',
       user_footprint: '会员足迹',
@@ -151,6 +152,29 @@ export default {
       gender: '请选择',
       user_level: '请选择',
       status: '请选择'
+    }
+  },
+  user_trader: {
+    table: {
+      name: '交易企业名称',
+      taxid: '税号',
+      address: '注册地址',
+      phoneNum: '联系电话',
+      desc: '说明',
+      actions: '操作'
+    },
+    dialog: {
+      permission: '交易企业信息'
+    },
+    form: {
+      name: '企业名称',
+      taxid: '税号',
+      address: '注册地址',
+      phoneNum: '联系电话',
+      desc: '说明'
+    },
+    placeholder: {
+      filter_name: '请输入交易企业名称'
     }
   },
   user_address: {

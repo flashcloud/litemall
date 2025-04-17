@@ -795,6 +795,33 @@ CREATE TABLE `litemall_topic` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `litemall_trader`
+--
+
+DROP TABLE IF EXISTS `litemall_trader`
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `litemall_trader` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `parent_id` int(11) DEFAULT '0' COMMENT '上级单位',
+  `region_id` int(11) DEFAULT '0' COMMENT '行政区域',
+  `taxid` varchar(255) NOT NULL DEFAULT '' COMMENT '税号',
+  `company_name` varchar(63) NOT NULL COMMENT '公司名称',
+  `nickname` varchar(255) NOT NULL DEFAULT '' COMMENT '公司简称',
+  `phone_num` varchar(20) NOT NULL DEFAULT '' COMMENT '预留手机号',
+  `address` varchar(255) NOT NULL DEFAULT '' COMMENT '联系地址',
+  `level` tinyint(3) NOT NULL DEFAULT '0' COMMENT '0 意向客户, 1 普通客户, 2 重要客户, 3 VIP客户',
+  `status` tinyint(3) NOT NULL DEFAULT '0' COMMENT '0 可用, 1 禁用, 2 注销',
+  `user_id` int(11) DEFAULT '0' COMMENT '负责用户',
+  `add_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `taxid` (`taxid`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='交易商户'
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `litemall_user`
 --
 
@@ -819,10 +846,17 @@ CREATE TABLE `litemall_user` (
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
+  `trader_ids` varchar(255) DEFAULT '[]' COMMENT '所属交易商户列表',
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_name` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+ALTER TABLE `litemall_order` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
+
+ALTER TABLE `litemall_notice` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
+
+ALTER TABLE `litemall_comment` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

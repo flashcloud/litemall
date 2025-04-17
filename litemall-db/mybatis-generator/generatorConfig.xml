@@ -142,6 +142,9 @@
         </table>
         <table tableName="litemall_user">
             <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+            <columnOverride column="role_ids" javaType="java.lang.Integer[]"
+                            typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler"/>
+
         </table>
         <table tableName="litemall_system">
             <generatedKey column="id" sqlStatement="MySql" identity="true"/>
@@ -181,5 +184,9 @@
             <columnOverride column="pictures" javaType="java.lang.String[]"
                             typeHandler="org.linlinjava.litemall.db.mybatis.JsonStringArrayTypeHandler"/>
         </table>
+        <!-- 如果数据库表有改动，在控制台进入项目litemall-db目录，运行mvn clean mybatis-generator:generate -->
+        <table tableName="litemall_trader">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>         
     </context>
 </generatorConfiguration>

@@ -94,6 +94,16 @@ export const asyncRoutes = [
         }
       },
       {
+        path: 'trader',
+        component: () => import('@/views/user/trader'),
+        name: 'trader',
+        meta: {
+          perms: ['GET /admin/trader/list'],
+          title: 'app.menu.user_trader',
+          noCache: true
+        }
+      },
+      {
         path: 'address',
         component: () => import('@/views/user/address'),
         name: 'address',

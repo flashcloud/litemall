@@ -9,6 +9,7 @@ export default {
       dashboard: 'Dashboard',
       user: 'Users',
       user_user: 'Users',
+      user_trader: 'Traders',
       user_address: 'Addresses',
       user_collect: 'Favorites',
       user_footprint: 'Footprints',
@@ -151,6 +152,29 @@ export default {
       gender: 'Please choose',
       user_level: 'Please choose',
       status: 'Please choose'
+    }
+  },
+  user_trader: {
+    table: {
+      name: 'Company Name',
+      taxid: 'Tax ID',
+      address: 'Address',
+      phoneNum: 'Phone',
+      desc: 'Description',
+      actions: 'Actions'
+    },
+    dialog: {
+      permission: 'Trader Info'
+    },
+    form: {
+      name: 'Company Name',
+      taxid: 'Tax ID',
+      address: 'Address',
+      phoneNum: 'Phone',
+      desc: 'Description'
+    },
+    placeholder: {
+      filter_name: 'Name'
     }
   },
   user_address: {
