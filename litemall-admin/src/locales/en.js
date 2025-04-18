@@ -126,6 +126,7 @@ export default {
     table: {
       id: 'ID',
       nickname: 'Nickname',
+      trader_ids: 'Trader',
       avatar: 'Avatar',
       mobile: 'Mobile',
       gender: 'Gender',
@@ -143,6 +144,7 @@ export default {
       mobile: 'Mobile',
       gender: 'Gender',
       user_level: 'Level',
+      trader_ids: 'Trader',
       status: 'Status'
     },
     placeholder: {
@@ -151,6 +153,7 @@ export default {
       filter_mobile: 'Mobile',
       gender: 'Please choose',
       user_level: 'Please choose',
+      trader_ids: 'Trader',
       status: 'Please choose'
     }
   },

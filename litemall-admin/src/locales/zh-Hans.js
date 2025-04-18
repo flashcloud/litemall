@@ -126,6 +126,7 @@ export default {
     table: {
       id: '用户ID',
       nickname: '用户昵称',
+      trader_ids: '所属企业',
       avatar: '用户头像',
       mobile: '手机号码',
       gender: '性别',
@@ -143,6 +144,7 @@ export default {
       mobile: '用户手机',
       gender: '用户性别',
       user_level: '用户等级',
+      trader_ids: '所属企业',
       status: '状态'
     },
     placeholder: {
@@ -151,6 +153,7 @@ export default {
       filter_mobile: '请输入手机号',
       gender: '请选择',
       user_level: '请选择',
+      trader_ids: '所属企业',
       status: '请选择'
     }
   },

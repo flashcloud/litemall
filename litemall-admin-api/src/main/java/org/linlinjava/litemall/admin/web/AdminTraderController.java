@@ -41,10 +41,6 @@ public class AdminTraderController {
 
     @Autowired
     private LitemallTraderService traderService;
-    @Autowired
-    private LitemallPermissionService permissionService;
-    @Autowired
-    private LitemallAdminService adminService;
 
     @RequiresPermissions("admin:trader:list")
     @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "交易企业查询")
@@ -56,7 +52,24 @@ public class AdminTraderController {
                        @Order @RequestParam(defaultValue = "desc") String order) {
         List<LitemallTrader> roleList = traderService.querySelective(name, page, limit, sort, order);
         return ResponseUtil.okList(roleList);
-    }  
+    }
+
+    @RequiresPermissions("admin:trader:list")
+    @GetMapping("/dropdownList")
+    @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "交易企业下拉列表")
+    public Object dropdownList() {
+        List<LitemallTrader> traderList = traderService.queryAll();
+
+        List<Map<String, Object>> data = new ArrayList<>(traderList.size());
+        for (LitemallTrader trader : traderList) {
+            Map<String, Object> item = new HashMap<>(2);
+            item.put("value", trader.getId());
+            item.put("label", trader.getNickname());
+            data.add(item);
+        }
+
+        return ResponseUtil.okList(data);
+    }    
     
     @RequiresPermissions("admin:role:create")
     @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "新增交易企业")

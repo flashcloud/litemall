@@ -40,9 +40,9 @@ export function deleteTrader(data) {
   })
 }
 
-export function traderOptions(query) {
+export function dropdownList(query) {
   return request({
-    url: '/trader/options',
+    url: '/trader/dropdownList',
     method: 'get',
     params: query
   })

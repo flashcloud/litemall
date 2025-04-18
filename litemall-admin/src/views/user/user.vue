@@ -3,9 +3,9 @@
 
     <!-- 查询和其他操作 -->
     <div class="filter-container">
-      <el-input v-model="listQuery.username" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_username')"/>
-      <el-input v-model="listQuery.userId" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_user_id')"/>
-      <el-input v-model="listQuery.mobile" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_mobile')"/>
+      <el-input v-model="listQuery.username" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_username')" />
+      <el-input v-model="listQuery.userId" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_user_id')" />
+      <el-input v-model="listQuery.mobile" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_mobile')" />
       <el-button class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">{{ $t('app.button.search') }}</el-button>
       <el-button :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">{{ $t('app.button.download') }}</el-button>
     </div>
@@ -15,6 +15,11 @@
       <el-table-column align="center" width="100px" :label="$t('user_user.table.id')" prop="id" sortable />
 
       <el-table-column align="center" :label="$t('user_user.table.nickname')" prop="nickname" />
+      <el-table-column align="center" :label="$t('user_user.table.trader_ids')" prop="traderIds">
+        <template slot-scope="scope">
+          <el-tag v-for="traderId in scope.row.traderIds" :key="traderId" type="primary" style="margin-right: 20px;"> {{ formatTrader(traderId) }} </el-tag>
+        </template>
+      </el-table-column>
 
       <el-table-column align="center" :label="$t('user_user.table.avatar')" width="80">
         <template slot-scope="scope">
@@ -26,7 +31,7 @@
 
       <el-table-column align="center" :label="$t('user_user.table.gender')" prop="gender">
         <template slot-scope="scope">
-          <el-tag >{{ genderDic[scope.row.gender] }}</el-tag>
+          <el-tag>{{ genderDic[scope.row.gender] }}</el-tag>
         </template>
       </el-table-column>
 
@@ -34,7 +39,7 @@
 
       <el-table-column align="center" :label="$t('user_user.table.user_level')" prop="userLevel">
         <template slot-scope="scope">
-          <el-tag >{{ levelDic[scope.row.userLevel] }}</el-tag>
+          <el-tag>{{ levelDic[scope.row.userLevel] }}</el-tag>
         </template>
       </el-table-column>
 
@@ -72,6 +77,16 @@
         <el-form-item :label="$t('user_user.form.status')" prop="status">
           <el-select v-model="userDetail.status" :placeholder="$t('user_user.placeholder.status')"><el-option v-for="(item, index) in statusDic" :key="index" :label="item" :value="index" /></el-select>
         </el-form-item>
+        <el-form-item :label="$t('user_user.form.trader_ids')" prop="traderIds">
+          <el-select v-model="userDetail.traderIds" multiple :placeholder="$t('user_user.placeholder.trader_ids')">
+            <el-option
+              v-for="item in traderDropdownList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="userDialogVisible = false">{{ $t('app.button.cancel') }}</el-button>
@@ -82,8 +97,9 @@
 </template>
 
 <script>
-import { fetchList ,userDetail ,updateUser } from '@/api/user'
+import { fetchList, userDetail, updateUser } from '@/api/user'
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
+import { dropdownList } from '@/api/trader'
 
 export default {
   name: 'User',
@@ -92,6 +108,7 @@ export default {
     return {
       list: null,
       total: 0,
+      traderDropdownList: null,
       listLoading: true,
       listQuery: {
         page: 1,
@@ -107,24 +124,39 @@ export default {
       levelDic: ['普通用户', 'VIP用户', '高级VIP用户'],
       statusDic: ['可用', '禁用', '注销'],
       userDialogVisible: false,
-      userDetail:{
+      userDetail: {
       }
     }
   },
   created() {
     this.getList()
+
+    dropdownList()
+      .then(response => {
+        debugger
+        this.traderDropdownList = response.data.data.list
+      })
   },
   methods: {
+    formatTrader(traderId) {
+      debugger
+      for (let i = 0; i < this.traderDropdownList.length; i++) {
+        if (traderId === this.traderDropdownList[i].value) {
+          return this.traderDropdownList[i].label
+        }
+      }
+      return ''
+    },
     getList() {
       this.listLoading = true
-      if(this.listQuery.userId){
+      if (this.listQuery.userId) {
         userDetail(this.listQuery.userId).then(response => {
-          this.list = [];
-          if(response.data.data){
+          this.list = []
+          if (response.data.data) {
             this.list.push(response.data.data)
             this.total = 1
             this.listLoading = false
-          }else{
+          } else {
             this.list = []
             this.total = 0
             this.listLoading = false
@@ -134,7 +166,7 @@ export default {
           this.total = 0
           this.listLoading = false
         })
-      }else{
+      } else {
         fetchList(this.listQuery).then(response => {
           this.list = response.data.data.list
           this.total = response.data.data.total
@@ -163,8 +195,8 @@ export default {
       this.userDetail = row
       this.userDialogVisible = true
     },
-    handleUserUpdate(){
-     updateUser(this.userDetail)
+    handleUserUpdate() {
+      updateUser(this.userDetail)
         .then((response) => {
           this.userDialogVisible = false
           this.$notify.success({

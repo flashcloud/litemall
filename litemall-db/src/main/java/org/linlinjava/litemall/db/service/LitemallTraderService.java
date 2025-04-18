@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.linlinjava.litemall.db.domain.LitemallRole;
 import org.linlinjava.litemall.db.domain.LitemallRoleExample;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
-
 import com.alibaba.druid.util.StringUtils;
 import com.github.pagehelper.PageHelper;
 
@@ -49,7 +48,13 @@ public class LitemallTraderService {
 
     public void deleteById(Integer id) {
         traderMapper.logicalDeleteByPrimaryKey(id);
-    }    
+    }
+
+    public List<LitemallTrader> queryAll() {
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andDeletedEqualTo(false);
+        return traderMapper.selectByExample(example);
+    }
 
     public boolean checkCompanyExist(String name) {
         LitemallTraderExample example = new LitemallTraderExample();
