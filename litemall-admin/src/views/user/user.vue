@@ -133,13 +133,11 @@ export default {
 
     dropdownList()
       .then(response => {
-        debugger
         this.traderDropdownList = response.data.data.list
       })
   },
   methods: {
     formatTrader(traderId) {
-      debugger
       for (let i = 0; i < this.traderDropdownList.length; i++) {
         if (traderId === this.traderDropdownList[i].value) {
           return this.traderDropdownList[i].label
