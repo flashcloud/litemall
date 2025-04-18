@@ -94,7 +94,7 @@ public class AdminTraderController {
     }
 
     @RequiresPermissions("admin:role:update")
-    @RequiresPermissionsDesc(menu = {"系统管理", "角色管理"}, button = "角色编辑")
+    @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "编辑交易企业")
     @PostMapping("/update")
     public Object update(@RequestBody LitemallTrader trader) {
         Object error = validate(trader);
@@ -107,7 +107,7 @@ public class AdminTraderController {
     }
 
     @RequiresPermissions("admin:role:delete")
-    @RequiresPermissionsDesc(menu = {"系统管理", "角色管理"}, button = "角色删除")
+    @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "删除交易企业")
     @PostMapping("/delete")
     public Object delete(@RequestBody LitemallTrader role) {
         Integer id = role.getId();
