@@ -222,6 +222,8 @@ CREATE TABLE `litemall_comment` (
   `content` varchar(1023) DEFAULT '' COMMENT '评论内容',
   `admin_content` varchar(511) DEFAULT '' COMMENT '管理员回复内容',
   `user_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表的用户ID',
+  `trader_id` int(11) DEFAULT '0' COMMENT '交易商户',
+  `trader_name` varchar(255) NOT NULL COMMENT '交易商户名称',
   `has_picture` tinyint(1) DEFAULT '0' COMMENT '是否含有图片',
   `pic_urls` varchar(1023) DEFAULT NULL COMMENT '图片地址列表，采用JSON数组格式',
   `star` smallint(6) DEFAULT '1' COMMENT '评分， 1-5',
@@ -554,6 +556,8 @@ CREATE TABLE `litemall_notice` (
   `title` varchar(63) DEFAULT NULL COMMENT '通知标题',
   `content` varchar(511) DEFAULT NULL COMMENT '通知内容',
   `admin_id` int(11) DEFAULT '0' COMMENT '创建通知的管理员ID，如果是系统内置通知则是0.',
+  `trader_id` int(11) DEFAULT '0' COMMENT '针对指定商户的通知',
+  `trader_name` varchar(255) NOT NULL COMMENT '交易商户名称',
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
@@ -591,6 +595,8 @@ DROP TABLE IF EXISTS `litemall_order`;
 CREATE TABLE `litemall_order` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL COMMENT '用户表的用户ID',
+  `trader_id` int(11) DEFAULT '0' COMMENT '交易商户',
+  `trader_name` varchar(255) NOT NULL COMMENT '交易商户名称',
   `order_sn` varchar(63) NOT NULL COMMENT '订单编号',
   `order_status` smallint(6) NOT NULL COMMENT '订单状态',
   `aftersale_status` smallint(6) DEFAULT '0' COMMENT '售后状态，0是可申请，1是用户已申请，2是管理员审核通过，3是管理员退款成功，4是管理员审核拒绝，5是用户已取消',
@@ -806,13 +812,15 @@ CREATE TABLE `litemall_trader` (
   `parent_id` int(11) DEFAULT '0' COMMENT '上级单位',
   `region_id` int(11) DEFAULT '0' COMMENT '行政区域',
   `taxid` varchar(255) NOT NULL DEFAULT '' COMMENT '税号',
-  `company_name` varchar(63) NOT NULL COMMENT '公司名称',
+  `company_name` varchar(255) NOT NULL COMMENT '公司名称',
   `nickname` varchar(255) NOT NULL DEFAULT '' COMMENT '公司简称',
   `phone_num` varchar(20) NOT NULL DEFAULT '' COMMENT '预留手机号',
   `address` varchar(255) NOT NULL DEFAULT '' COMMENT '联系地址',
   `level` tinyint(3) NOT NULL DEFAULT '0' COMMENT '0 意向客户, 1 普通客户, 2 重要客户, 3 VIP客户',
   `status` tinyint(3) NOT NULL DEFAULT '0' COMMENT '0 可用, 1 禁用, 2 注销',
   `user_id` int(11) DEFAULT '0' COMMENT '负责用户',
+  `creator_id` int(11) DEFAULT '0' COMMENT '创建用户，如果为0则是admin创建',
+  `comment` varchar(511) DEFAULT '' COMMENT '说明',
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
@@ -847,16 +855,11 @@ CREATE TABLE `litemall_user` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
   `trader_ids` varchar(255) DEFAULT '[]' COMMENT '所属交易商户列表',
+  `default_trader_id` int(11) DEFAULT '0' COMMENT '默认的所属交易商户',
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_name` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
-ALTER TABLE `litemall_order` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
-
-ALTER TABLE `litemall_notice` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
-
-ALTER TABLE `litemall_comment` ADD COLUMN `trader_id` INT COMMENT '交易商户' DEFAULT 0
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

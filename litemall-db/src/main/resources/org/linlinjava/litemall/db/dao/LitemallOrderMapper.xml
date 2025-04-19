@@ -38,6 +38,7 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
     <result column="deleted" jdbcType="BIT" property="deleted" />
     <result column="trader_id" jdbcType="INTEGER" property="traderId" />
+    <result column="trader_name" jdbcType="VARCHAR" property="traderName" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -114,7 +115,7 @@
     message, goods_price, freight_price, coupon_price, integral_price, groupon_price, 
     order_price, actual_price, pay_id, pay_time, ship_sn, ship_channel, ship_time, refund_amount, 
     refund_type, refund_content, refund_time, confirm_time, comments, end_time, add_time, 
-    update_time, deleted, trader_id
+    update_time, deleted, trader_id, trader_name
   </sql>
   <select id="selectByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderExample" resultMap="BaseResultMap">
     <!--
@@ -245,7 +246,7 @@
       refund_type, refund_content, refund_time, 
       confirm_time, comments, end_time, 
       add_time, update_time, deleted, 
-      trader_id)
+      trader_id, trader_name)
     values (#{userId,jdbcType=INTEGER}, #{orderSn,jdbcType=VARCHAR}, #{orderStatus,jdbcType=SMALLINT}, 
       #{aftersaleStatus,jdbcType=SMALLINT}, #{consignee,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, 
       #{address,jdbcType=VARCHAR}, #{message,jdbcType=VARCHAR}, #{goodsPrice,jdbcType=DECIMAL}, 
@@ -256,7 +257,7 @@
       #{refundType,jdbcType=VARCHAR}, #{refundContent,jdbcType=VARCHAR}, #{refundTime,jdbcType=TIMESTAMP}, 
       #{confirmTime,jdbcType=TIMESTAMP}, #{comments,jdbcType=SMALLINT}, #{endTime,jdbcType=TIMESTAMP}, 
       #{addTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{deleted,jdbcType=BIT}, 
-      #{traderId,jdbcType=INTEGER})
+      #{traderId,jdbcType=INTEGER}, #{traderName,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallOrder">
     <!--
@@ -361,6 +362,9 @@
       <if test="traderId != null">
         trader_id,
       </if>
+      <if test="traderName != null">
+        trader_name,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="userId != null">
@@ -455,6 +459,9 @@
       </if>
       <if test="traderId != null">
         #{traderId,jdbcType=INTEGER},
+      </if>
+      <if test="traderName != null">
+        #{traderName,jdbcType=VARCHAR},
       </if>
     </trim>
   </insert>
@@ -571,6 +578,9 @@
       <if test="record.traderId != null">
         trader_id = #{record.traderId,jdbcType=INTEGER},
       </if>
+      <if test="record.traderName != null">
+        trader_name = #{record.traderName,jdbcType=VARCHAR},
+      </if>
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -613,7 +623,8 @@
       add_time = #{record.addTime,jdbcType=TIMESTAMP},
       update_time = #{record.updateTime,jdbcType=TIMESTAMP},
       deleted = #{record.deleted,jdbcType=BIT},
-      trader_id = #{record.traderId,jdbcType=INTEGER}
+      trader_id = #{record.traderId,jdbcType=INTEGER},
+      trader_name = #{record.traderName,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -718,6 +729,9 @@
       <if test="traderId != null">
         trader_id = #{traderId,jdbcType=INTEGER},
       </if>
+      <if test="traderName != null">
+        trader_name = #{traderName,jdbcType=VARCHAR},
+      </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -757,7 +771,8 @@
       add_time = #{addTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
       deleted = #{deleted,jdbcType=BIT},
-      trader_id = #{traderId,jdbcType=INTEGER}
+      trader_id = #{traderId,jdbcType=INTEGER},
+      trader_name = #{traderName,jdbcType=VARCHAR}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderExample" resultMap="BaseResultMap">
