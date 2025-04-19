@@ -1,38 +1,22 @@
 package org.linlinjava.litemall.admin.web;
 
-import io.swagger.models.auth.In;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.shiro.SecurityUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.apache.shiro.subject.Subject;
 import org.linlinjava.litemall.admin.annotation.RequiresPermissionsDesc;
-import org.linlinjava.litemall.admin.util.AdminResponseCode;
-import org.linlinjava.litemall.admin.util.Permission;
-import org.linlinjava.litemall.admin.util.PermissionUtil;
-import org.linlinjava.litemall.admin.vo.PermVo;
-import org.linlinjava.litemall.core.util.JacksonUtil;
+import org.linlinjava.litemall.core.util.ResponseCode;
+import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
-import org.linlinjava.litemall.db.domain.LitemallAdmin;
-import org.linlinjava.litemall.db.domain.LitemallPermission;
-import org.linlinjava.litemall.db.domain.LitemallRole;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
-import org.linlinjava.litemall.db.service.LitemallAdminService;
-import org.linlinjava.litemall.db.service.LitemallPermissionService;
+import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.constraints.NotNull;
-import java.security.Security;
 import java.util.*;
-
-import static org.linlinjava.litemall.admin.util.AdminResponseCode.*;
 
 @RestController
 @RequestMapping("/admin/trader")
@@ -42,6 +26,9 @@ public class AdminTraderController {
     @Autowired
     private LitemallTraderService traderService;
 
+    @Autowired
+    private LitemallOrderService orderService;
+
     @RequiresPermissions("admin:trader:list")
     @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "交易企业查询")
     @GetMapping("/list")
@@ -50,8 +37,18 @@ public class AdminTraderController {
                        @RequestParam(defaultValue = "10") Integer limit,
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
                        @Order @RequestParam(defaultValue = "desc") String order) {
-        List<LitemallTrader> roleList = traderService.querySelective(name, page, limit, sort, order);
-        return ResponseUtil.okList(roleList);
+        List<LitemallTrader> traderList = traderService.querySelective(name, page, limit, sort, order);
+
+        //添加交易企业下面绑定的用户
+        for (LitemallTrader trader : traderList) {
+            List<LitemallUser> userList = traderService.usedTraderByUsers(trader.getId());
+            if (userList != null && userList.size() > 0) {
+                trader.setUserIds(traderService.usedTraderByUserIds(trader.getId()));
+            } else {
+                trader.setUserIds(new Integer[0]);
+            }
+        }
+        return ResponseUtil.okList(traderList);
     }
 
     @RequiresPermissions("admin:trader:list")
@@ -69,24 +66,28 @@ public class AdminTraderController {
         }
 
         return ResponseUtil.okList(data);
-    }    
+    }
     
     @RequiresPermissions("admin:role:create")
     @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "新增交易企业")
     @PostMapping("/create")
     public Object create(@RequestBody LitemallTrader trader) {
+        if (traderService.checkCompanyExist(trader.getCompanyName())) {
+            return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "企业名称已经存在");
+        }
+
+        if (traderService.checkTaxidExist(trader.getTaxid())) {
+            return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
+        }
+
+        if (StringUtils.isNotBlank(trader.getPhoneNum()) && !RegexUtil.isPhoneOrMobile(trader.getPhoneNum())) {
+            return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
+        }
+
         Object error = validate(trader);
         if (error != null) {
             return error;
         }
-
-        if (traderService.checkCompanyExist(trader.getCompanyName())) {
-            return ResponseUtil.fail(TRADER_NAME_EXIST, "交易企业名称已经存在");
-        }
-
-        if (traderService.checkTaxidExist(trader.getTaxid())) {
-            return ResponseUtil.fail(TRADER_TAXID_EXIST, "该税号已经存在");
-        }        
 
         traderService.add(trader);
 
@@ -97,9 +98,21 @@ public class AdminTraderController {
     @RequiresPermissionsDesc(menu = {"用户管理", "交易企业管理"}, button = "编辑交易企业")
     @PostMapping("/update")
     public Object update(@RequestBody LitemallTrader trader) {
+        if (StringUtils.isNotBlank(trader.getPhoneNum()) && !RegexUtil.isPhoneOrMobile(trader.getPhoneNum())) {
+            return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
+        }
+
         Object error = validate(trader);
         if (error != null) {
             return error;
+        }
+
+        if (traderService.checkCompanyExist(trader.getCompanyName(), trader.getId())) {
+            return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "企业名称已经存在");
+        }
+        
+        if (traderService.checkTaxidExist(trader.getTaxid(), trader.getId())) {
+            return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
         }
 
         traderService.updateById(trader);
@@ -115,32 +128,22 @@ public class AdminTraderController {
             return ResponseUtil.badArgument();
         }
 
-        // TODO： 检查当前商户是否还有用户，有用户则不能删除
-        /*List<LitemallAdmin> adminList = adminService.all();
-        for (LitemallAdmin admin : adminList) {
-            Integer[] roleIds = admin.getRoleIds();
-            for (Integer roleId : roleIds) {
-                if (id.equals(roleId)) {
-                    return ResponseUtil.fail(ROLE_USER_EXIST, "当前角色存在管理员，不能删除");
-                }
+        if (traderService.isTraderUsed(id)) {
+            List<LitemallUser> userList = traderService.usedTraderByUsers(id);
+            if (userList != null && userList.size() > 0) {
+                return ResponseUtil.fail(ResponseCode.TRADER_REFERED_BY_USERS, "这些用户正在使用当前交易企业，不能删除:" + traderService.usedTraderUsersString(userList));
             }
-        }*/
+        }
+
+        if (orderService.countByTrader(id) > 0) return ResponseUtil.fail(ResponseCode.TRADER_HAS_ORDERS, "当前交易企业有订单，不能删除");
+        
 
         traderService.deleteById(id);
         return ResponseUtil.ok();
     }
     
     private Object validate(LitemallTrader trader) {
-        String name = trader.getCompanyName();
-        if (StringUtils.isEmpty(name)) {
-            return ResponseUtil.badArgument();
-        }
-
-        String taxid = trader.getTaxid();
-        if (StringUtils.isEmpty(taxid)) {
-            return ResponseUtil.badArgument();
-        }
-
+        if (!traderService.validate(trader)) return ResponseUtil.badArgument();
         return null;
-    }    
+	}
 }

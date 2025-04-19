@@ -3,9 +3,9 @@
 
     <!-- 查询和其他操作 -->
     <div class="filter-container">
-      <el-input v-model="listQuery.username" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_username')" />
-      <el-input v-model="listQuery.userId" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_user_id')" />
-      <el-input v-model="listQuery.mobile" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_mobile')" />
+      <el-input v-model="listQuery.username" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_username')" />&nbsp;&nbsp;
+      <el-input v-model="listQuery.userId" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_user_id')" />&nbsp;&nbsp;
+      <el-input v-model="listQuery.mobile" clearable class="filter-item" style="width: 200px;" :placeholder="$t('user_user.placeholder.filter_mobile')" />&nbsp;&nbsp;
       <el-button class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">{{ $t('app.button.search') }}</el-button>
       <el-button :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">{{ $t('app.button.download') }}</el-button>
     </div>
@@ -14,12 +14,15 @@
     <el-table v-loading="listLoading" :data="list" :element-loading-text="$t('app.message.list_loading')" border fit highlight-current-row>
       <el-table-column align="center" width="100px" :label="$t('user_user.table.id')" prop="id" sortable />
 
-      <el-table-column align="center" :label="$t('user_user.table.nickname')" prop="nickname" />
       <el-table-column align="center" :label="$t('user_user.table.trader_ids')" prop="traderIds">
         <template slot-scope="scope">
-          <el-tag v-for="traderId in scope.row.traderIds" :key="traderId" type="primary" style="margin-right: 20px;"> {{ formatTrader(traderId) }} </el-tag>
+          <!-- <el-tag v-for="traderId in scope.row.traderIds" :key="traderId" type="primary" style="margin-right: 20px;"> {{ formatTrader(traderId) }} </el-tag> -->
+          <el-link v-for="traderId in scope.row.traderIds" :key="traderId" type="primary" style="margin-right: 20px;" :style="{ 'display': scope.row.traderIds.length > 1 ? 'block' : '' }"> {{ formatTrader(traderId) }} </el-link>
         </template>
       </el-table-column>
+
+      <el-table-column align="center" :label="$t('user_user.form.username')" prop="username" />
+      <el-table-column align="center" :label="$t('user_user.table.nickname')" prop="nickname" />
 
       <el-table-column align="center" :label="$t('user_user.table.avatar')" width="80">
         <template slot-scope="scope">
@@ -99,7 +102,7 @@
 <script>
 import { fetchList, userDetail, updateUser } from '@/api/user'
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
-import { dropdownList } from '@/api/trader'
+import { dropdownList as tradersData } from '@/api/trader'
 
 export default {
   name: 'User',
@@ -131,7 +134,7 @@ export default {
   created() {
     this.getList()
 
-    dropdownList()
+    tradersData()
       .then(response => {
         this.traderDropdownList = response.data.data.list
       })

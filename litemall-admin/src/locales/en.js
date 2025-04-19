@@ -160,9 +160,11 @@ export default {
   user_trader: {
     table: {
       name: 'Company Name',
+      nickname: 'Nickname',
       taxid: 'Tax ID',
       address: 'Address',
       phoneNum: 'Phone',
+      user_ids: 'Bund Users',
       desc: 'Description',
       actions: 'Actions'
     },
@@ -171,9 +173,11 @@ export default {
     },
     form: {
       name: 'Company Name',
+      nickname: 'Nickname',
       taxid: 'Tax ID',
       address: 'Address',
       phoneNum: 'Phone',
+      user_ids: 'Bund Users',
       desc: 'Description'
     },
     placeholder: {

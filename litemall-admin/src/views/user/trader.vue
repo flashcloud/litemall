@@ -12,8 +12,15 @@
     <el-table v-loading="listLoading" :data="list" :element-loading-text="$t('app.message.list_loading')" border fit highlight-current-row>
       <el-table-column align="center" :label="$t('user_trader.table.taxid')" prop="taxid" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.name')" prop="companyName" sortable />
+      <el-table-column align="center" :label="$t('user_trader.table.nickname')" prop="nickname" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.address')" prop="address" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.phoneNum')" prop="phoneNum" sortable />
+
+      <el-table-column align="center" :label="$t('user_trader.table.user_ids')" prop="userIds">
+        <template slot-scope="scope">
+          <el-link v-for="userId in scope.row.userIds" :key="userId" type="primary" style="margin-right: 20px;"> {{ formatUsers(userId) }} </el-link>
+        </template>
+      </el-table-column>
 
       <el-table-column align="center" :label="$t('user_trader.table.desc')" prop="desc" />
 
@@ -35,6 +42,9 @@
         </el-form-item>
         <el-form-item :label="$t('user_trader.form.name')" prop="companyName">
           <el-input v-model="dataForm.companyName" />
+        </el-form-item>
+        <el-form-item :label="$t('user_trader.form.nickname')" prop="nickname">
+          <el-input v-model="dataForm.nickname" />
         </el-form-item>
         <el-form-item :label="$t('user_trader.form.address')" prop="address">
           <el-input v-model="dataForm.address" />
@@ -58,6 +68,7 @@
 
 <script>
 import { listTrader, createTrader, updateTrader, deleteTrader } from '@/api/trader'
+import { dropdownList as usersData } from '@/api/user'
 import Pagination from '@/components/Pagination'
 export default {
   name: 'Trader',
@@ -66,6 +77,7 @@ export default {
     return {
       list: null,
       total: 0,
+      userDropdownList: null,
       listLoading: true,
       listQuery: {
         page: 1,
@@ -104,8 +116,21 @@ export default {
   },
   created() {
     this.getList()
+
+    usersData()
+      .then(response => {
+        this.userDropdownList = response.data.data.list
+      })
   },
   methods: {
+    formatUsers(userId) {
+      for (let i = 0; i < this.userDropdownList.length; i++) {
+        if (userId === this.userDropdownList[i].value) {
+          return this.userDropdownList[i].label
+        }
+      }
+      return ''
+    },
     getList() {
       this.listLoading = true
       listTrader(this.listQuery)
@@ -196,20 +221,36 @@ export default {
       })
     },
     handleDelete(row) {
-      deleteTrader(row)
-        .then(response => {
-          this.$notify.success({
-            title: '成功',
-            message: '删除交易企业成功'
+      this.$confirm('此操作将删除该交易企业, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteTrader(row)
+          .then(response => {
+            this.$notify.success({
+              title: '成功',
+              message: '删除交易企业成功'
+            })
+            this.getList()
           })
-          this.getList()
-        })
-        .catch(response => {
-          this.$notify.error({
-            title: '失败',
-            message: response.data.errmsg
+          .catch(response => {
+            this.$notify.error({
+              title: '失败',
+              message: response.data.errmsg,
+              dangerouslyUseHTMLString: true
+            })
           })
-        })
+        // this.$message({
+        //     type: 'success',
+        //     message: '删除成功!'
+        // })
+      }).catch(() => {
+        // this.$message({
+        //     type: 'info',
+        //     message: '已取消删除'
+        // })
+      })
     }
   }
 }

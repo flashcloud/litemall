@@ -12,7 +12,7 @@ export function userDetail(id) {
   return request({
     url: '/user/detail',
     method: 'get',
-    params: {id}
+    params: { id }
   })
 }
 
@@ -59,6 +59,14 @@ export function listFootprint(query) {
 export function listHistory(query) {
   return request({
     url: '/history/list',
+    method: 'get',
+    params: query
+  })
+}
+
+export function dropdownList(query) {
+  return request({
+    url: '/user/dropdownList',
     method: 'get',
     params: query
   })
