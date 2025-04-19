@@ -36,7 +36,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "2.4.0",
-  "appid": "wxa5b486c6b918ecfb",
+  "appid": "wxce6ef5262b10e90b",
   "projectname": "litemall-wx",
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},
@@ -222,6 +222,18 @@
         },
         {
           "id": -1,
+          "name": "我的公司",
+          "pathName": "pages/ucenter/trader/trader",
+          "query": ""
+        },
+        {
+          "id": -1,
+          "name": "添加我的公司",
+          "pathName": "pages/ucenter/traderAdd/traderAdd",
+          "query": ""
+        },
+        {
+          "id": -1,
           "name": "登录",
           "pathName": "pages/auth/login/login",
           "query": ""
@@ -323,5 +335,13 @@
         }
       ]
     }
+  },
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
   }
 }

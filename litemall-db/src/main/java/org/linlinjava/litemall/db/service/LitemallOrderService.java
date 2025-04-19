@@ -36,6 +36,12 @@ public class LitemallOrderService {
         return (int) litemallOrderMapper.countByExample(example);
     }
 
+    public int countByTrader(Integer traderId) {
+        LitemallOrderExample example = new LitemallOrderExample();
+        example.or().andTraderIdEqualTo(traderId).andDeletedEqualTo(false);
+        return (int) litemallOrderMapper.countByExample(example);
+    }
+
     public LitemallOrder findById(Integer orderId) {
         return litemallOrderMapper.selectByPrimaryKey(orderId);
     }

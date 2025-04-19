@@ -73,6 +73,23 @@ public class LitemallUserService {
         return (int) userMapper.countByExample(example);
     }
 
+    public List<LitemallUser> all() {
+        LitemallUserExample example = new LitemallUserExample();
+        example.or().andDeletedEqualTo(false);
+        return userMapper.selectByExample(example);
+    }
+
+    /**
+     * 查询除当前用户外的所有用户
+     * @param userId
+     * @return
+     */
+    public List<LitemallUser> queryOtherUsers(Integer userId) {
+        LitemallUserExample example = new LitemallUserExample();
+        example.or().andIdNotEqualTo(userId).andDeletedEqualTo(false);
+        return userMapper.selectByExample(example);
+    }    
+
     public List<LitemallUser> queryByUsername(String username) {
         LitemallUserExample example = new LitemallUserExample();
         example.or().andUsernameEqualTo(username).andDeletedEqualTo(false);

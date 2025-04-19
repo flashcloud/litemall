@@ -70,6 +70,11 @@
       <image class='user_column_item_image' src='/static/images/address.png'></image>
       <view class='user_column_item_text'>地址管理</view>
     </view>
+
+    <view class='user_column_item' bindtap='goTrader'>
+      <image class='user_column_item_image' src='/static/images/address.png'></image>
+      <view class='user_column_item_text'>我的公司</view>
+    </view>    
   </view>
   <view class='separate'></view>
 

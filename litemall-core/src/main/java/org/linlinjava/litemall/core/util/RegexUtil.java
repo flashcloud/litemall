@@ -129,6 +129,9 @@ public class RegexUtil {
     // If u want more please visit http://toutiao.com/i6231678548520731137
     ///////////////////////////////////////////////////////////////////////////
 
+    public static boolean isPhoneOrMobile(CharSequence  phoneNum) {
+		return isMobileSimple(phoneNum)  || isTel(phoneNum);
+    }
     /**
      * Return whether input matches regex of simple mobile.
      *

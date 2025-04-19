@@ -60,7 +60,12 @@ module.exports = {
   AddressList: WxApiRoot + 'address/list', //收货地址列表
   AddressDetail: WxApiRoot + 'address/detail', //收货地址详情
   AddressSave: WxApiRoot + 'address/save', //保存收货地址
-  AddressDelete: WxApiRoot + 'address/delete', //保存收货地址
+  AddressDelete: WxApiRoot + 'address/delete', //删除收货地址
+
+  TraderList: WxApiRoot + 'trader/list', //用户所在的交易商户列表
+  TraderDetail: WxApiRoot + 'trader/detail', //用户所在的交易商户详情
+  TraderSave: WxApiRoot + 'trader/save', //保存交易商户
+  TraderDelete: WxApiRoot + 'trader/delete', //删除交易商户  
 
   ExpressQuery: WxApiRoot + 'express/query', //物流查询
 

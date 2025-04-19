@@ -1,0 +1,27 @@
+<view class="add-address">
+  <view class="add-form">
+    <view class="form-item">
+      <input class="input" bindinput="bindinputTaxid" placeholder="税号(统一社会信用代码)" value="{{trader.taxid}}" auto-focus/>
+    </view>
+    <view class="form-item">
+      <input class="input" bindinput="bindinputCompanyName" placeholder="公司名称" value="{{trader.companyName}}"/>
+    </view>
+    <view class="form-item">
+      <input class="input" bindinput="bindinputNickname" value="{{trader.nickname}}" placeholder="公司简称" />
+    </view>    
+    <view class="form-item">
+      <input class="input" bindinput="bindinputPhoneNum" value="{{trader.phoneNum}}" placeholder="电话号码" />
+    </view>
+    <view class="form-item">
+      <input class="input" bindinput="bindinputAddress" value="{{trader.address}}" placeholder="公司注册地址" />
+    </view>
+    <!-- <view class="form-default">
+      <van-checkbox value="{{ 1 == 1 }}" bind:change="bindIsDefault">设为默认地址</van-checkbox>
+    </view> -->
+  </view>
+
+  <view class="btns">
+    <button class="cannel" bindtap="cancelTrader">取消</button>
+    <button class="save" bindtap="saveTrader">保存</button>
+  </view>
+</view>

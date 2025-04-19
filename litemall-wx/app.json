@@ -7,6 +7,8 @@
     "pages/ucenter/index/index",
     "pages/ucenter/address/address",
     "pages/ucenter/addressAdd/addressAdd",
+    "pages/ucenter/trader/trader", 
+    "pages/ucenter/traderAdd/traderAdd",
     "pages/ucenter/feedback/feedback",
     "pages/ucenter/footprint/footprint",
     "pages/ucenter/order/order",
@@ -100,7 +102,8 @@
     "van-tag": "./lib/vant-weapp/tag/index",
     "van-icon": "./lib/vant-weapp/icon/index",
     "van-checkbox": "./lib/vant-weapp/checkbox/index",
-    "van-steps": "./lib/vant-weapp/steps/index"
+    "van-steps": "./lib/vant-weapp/steps/index",
+    "van-toast": "./lib/vant-weapp/toast/index"
   },
   "sitemapLocation": "sitemap.json"
 }

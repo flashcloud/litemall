@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="address-list" wx:if="{{ traderList.length > 0 }}">
+    <view class="item" wx:for="{{traderList}}" wx:key="id" bindtap="traderAddOrUpdate" data-trader-id="{{item.id}}">
+      <view class="l">
+        <view class="default" wx:if="{{true}}">默认</view>
+      </view>
+      <view class="c">
+        <view class="name">{{item.companyName}} {{item.nickname}}</view>
+        <view class="mobile">{{item.phoneNum}}</view>
+        <view class="address">{{item.address}}</view>
+      </view>
+      <view class="r">
+        <van-icon catchtap="deleteTrader" data-trader-id="{{item.id}}" class="del" name="delete"/>
+      </view>
+    </view>
+  </view>
+  <view class="empty-view" wx:if="{{ traderList.length <= 0 }}">
+    <text class="text">还没有您的公司~~~</text>
+  </view>
+  <view class="add-address" bindtap="traderAddOrUpdate" data-trader-id="0">新建</view>
+</view>
