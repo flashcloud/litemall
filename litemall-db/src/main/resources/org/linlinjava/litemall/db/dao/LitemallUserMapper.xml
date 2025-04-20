@@ -23,7 +23,7 @@
     <result column="add_time" jdbcType="TIMESTAMP" property="addTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
     <result column="deleted" jdbcType="BIT" property="deleted" />
-    <result column="trader_ids" jdbcType="VARCHAR" property="traderIds" />
+    <result column="trader_ids" jdbcType="VARCHAR" property="traderIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
     <result column="default_trader_id" jdbcType="INTEGER" property="defaultTraderId" />
   </resultMap>
   <sql id="Example_Where_Clause">
@@ -54,6 +54,25 @@
                 </when>
               </choose>
             </foreach>
+            <foreach collection="criteria.traderIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
+              </foreach>
           </trim>
         </if>
       </foreach>
@@ -87,6 +106,25 @@
                 </when>
               </choose>
             </foreach>
+            <foreach collection="criteria.traderIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
+              </foreach>
           </trim>
         </if>
       </foreach>
@@ -232,7 +270,7 @@
       #{userLevel,jdbcType=TINYINT}, #{nickname,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, 
       #{avatar,jdbcType=VARCHAR}, #{weixinOpenid,jdbcType=VARCHAR}, #{sessionKey,jdbcType=VARCHAR}, 
       #{status,jdbcType=TINYINT}, #{addTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
-      #{deleted,jdbcType=BIT}, #{traderIds,jdbcType=VARCHAR}, #{defaultTraderId,jdbcType=INTEGER}
+      #{deleted,jdbcType=BIT}, #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}, #{defaultTraderId,jdbcType=INTEGER}
       )
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallUser">
@@ -350,7 +388,7 @@
         #{deleted,jdbcType=BIT},
       </if>
       <if test="traderIds != null">
-        #{traderIds,jdbcType=VARCHAR},
+        #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
       </if>
       <if test="defaultTraderId != null">
         #{defaultTraderId,jdbcType=INTEGER},
@@ -426,7 +464,7 @@
         deleted = #{record.deleted,jdbcType=BIT},
       </if>
       <if test="record.traderIds != null">
-        trader_ids = #{record.traderIds,jdbcType=VARCHAR},
+        trader_ids = #{record.traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
       </if>
       <if test="record.defaultTraderId != null">
         default_trader_id = #{record.defaultTraderId,jdbcType=INTEGER},
@@ -459,7 +497,7 @@
       add_time = #{record.addTime,jdbcType=TIMESTAMP},
       update_time = #{record.updateTime,jdbcType=TIMESTAMP},
       deleted = #{record.deleted,jdbcType=BIT},
-      trader_ids = #{record.traderIds,jdbcType=VARCHAR},
+      trader_ids = #{record.traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
       default_trader_id = #{record.defaultTraderId,jdbcType=INTEGER}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -521,7 +559,7 @@
         deleted = #{deleted,jdbcType=BIT},
       </if>
       <if test="traderIds != null">
-        trader_ids = #{traderIds,jdbcType=VARCHAR},
+        trader_ids = #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
       </if>
       <if test="defaultTraderId != null">
         default_trader_id = #{defaultTraderId,jdbcType=INTEGER},
@@ -551,7 +589,7 @@
       add_time = #{addTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
       deleted = #{deleted,jdbcType=BIT},
-      trader_ids = #{traderIds,jdbcType=VARCHAR},
+      trader_ids = #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
       default_trader_id = #{defaultTraderId,jdbcType=INTEGER}
     where id = #{id,jdbcType=INTEGER}
   </update>

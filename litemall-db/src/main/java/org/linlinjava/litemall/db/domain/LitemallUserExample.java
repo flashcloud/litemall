@@ -224,19 +224,50 @@ public class LitemallUserExample {
      * @mbg.generated
      */
     protected abstract static class GeneratedCriteria {
+        protected List<Criterion> traderIdsCriteria;
+
+        protected List<Criterion> allCriteria;
+
         protected List<Criterion> criteria;
 
         protected GeneratedCriteria() {
             super();
             criteria = new ArrayList<Criterion>();
+            traderIdsCriteria = new ArrayList<Criterion>();
         }
 
+        public List<Criterion> gettraderIdsCriteria() {
+            return traderIdsCriteria;
+        }
+
+        protected void addtraderIdsCriterion(String condition, Object value, String property) {
+            if (value == null) {
+                throw new RuntimeException("Value for " + property + " cannot be null");
+            }
+            traderIdsCriteria.add(new Criterion(condition, value, "org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler"));
+            allCriteria = null;
+        }   
+        
+        protected void addtraderIdsCriterion(String condition, Integer[] value1, Integer[] value2, String property) {
+            if (value1 == null || value2 == null) {
+                throw new RuntimeException("Between values for " + property + " cannot be null");
+            }
+            traderIdsCriteria.add(new Criterion(condition, value1, value2, "org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler"));
+            allCriteria = null;
+        }        
+
         public boolean isValid() {
-            return criteria.size() > 0;
+            return criteria.size() > 0
+            || traderIdsCriteria.size() > 0;
         }
 
         public List<Criterion> getAllCriteria() {
-            return criteria;
+            if (allCriteria == null) {
+                allCriteria = new ArrayList<Criterion>();
+                allCriteria.addAll(criteria);
+                allCriteria.addAll(traderIdsCriteria);
+            }
+            return allCriteria;
         }
 
         public List<Criterion> getCriteria() {
@@ -248,6 +279,7 @@ public class LitemallUserExample {
                 throw new RuntimeException("Value for condition cannot be null");
             }
             criteria.add(new Criterion(condition));
+            allCriteria = null;
         }
 
         protected void addCriterion(String condition, Object value, String property) {
@@ -255,6 +287,7 @@ public class LitemallUserExample {
                 throw new RuntimeException("Value for " + property + " cannot be null");
             }
             criteria.add(new Criterion(condition, value));
+            allCriteria = null;
         }
 
         protected void addCriterion(String condition, Object value1, Object value2, String property) {
@@ -262,6 +295,7 @@ public class LitemallUserExample {
                 throw new RuntimeException("Between values for " + property + " cannot be null");
             }
             criteria.add(new Criterion(condition, value1, value2));
+            allCriteria = null;
         }
 
         public Criteria andIdIsNull() {

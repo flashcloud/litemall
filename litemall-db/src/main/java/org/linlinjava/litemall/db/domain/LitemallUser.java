@@ -182,7 +182,7 @@ public class LitemallUser {
      *
      * @mbg.generated
      */
-    private String traderIds;
+    private Integer[] traderIds;
 
     /**
      *
@@ -619,7 +619,7 @@ public class LitemallUser {
      *
      * @mbg.generated
      */
-    public String getTraderIds() {
+    public Integer[] getTraderIds() {
         return traderIds;
     }
 
@@ -631,7 +631,7 @@ public class LitemallUser {
      *
      * @mbg.generated
      */
-    public void setTraderIds(String traderIds) {
+    public void setTraderIds(Integer[] traderIds) {
         this.traderIds = traderIds;
     }
 
