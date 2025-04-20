@@ -22,7 +22,8 @@
         </template>
       </el-table-column>
 
-      <el-table-column align="center" :label="$t('user_trader.table.desc')" prop="desc" />
+      <el-table-column align="center" :label="$t('user_trader.table.creatorName')" prop="creatorName" />
+      <el-table-column align="center" :label="$t('user_trader.table.directorName')" prop="directorName" />
 
       <el-table-column align="center" :label="$t('user_trader.table.actions')" class-name="small-padding fixed-width">
         <template slot-scope="scope">

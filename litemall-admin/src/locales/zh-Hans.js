@@ -165,6 +165,8 @@ export default {
       address: '注册地址',
       phoneNum: '联系电话',
       user_ids: '绑定的用户',
+      creatorName: '创建人',
+      directorName: '负责人',
       desc: '说明',
       actions: '操作'
     },

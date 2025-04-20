@@ -165,6 +165,8 @@ export default {
       address: 'Address',
       phoneNum: 'Phone',
       user_ids: 'Bund Users',
+      creatorName: 'Creator',
+      directorName: 'Director',
       desc: 'Description',
       actions: 'Actions'
     },
