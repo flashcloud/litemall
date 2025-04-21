@@ -53,8 +53,7 @@ Page({
   },
   bindIsDefault() {
     let trader = this.data.trader;
-    //TODO: trader.isDefault = !trader.isDefault;
-    trader.isDefault = !true;
+    trader.isDefault = !trader.isDefault;
     this.setData({
       trader: trader
     });
@@ -97,7 +96,11 @@ Page({
     if (trader.taxid == '') {
       util.showErrorToast('请输入税号');
       return false;
-    }       
+    }  
+    if (trader.taxid.length != 18) {
+      util.showErrorToast('税号长度为18位');
+      return false;
+    }          
     if (trader.companyName == '') {
       util.showErrorToast('请输入公司名称');
       return false;
@@ -114,8 +117,8 @@ Page({
       nickname: trader.nickname,
       taxid: trader.taxid,
       phoneNum: trader.phoneNum,
-      address: trader.address
-      // isDefault: address.isDefault
+      address: trader.address,
+      isDefault: trader.isDefault
     }, 'POST').then(function(res) {
       if (res.errno === 0) {
         //返回之前，先取出上一页对象，并设置addressId

@@ -46,11 +46,16 @@
         </template>
       </el-table-column>
 
+      <el-table-column align="center" :label="$t('user_user.table.default_trader')" prop="defaultTraderName" />
+
       <el-table-column align="center" :label="$t('user_user.table.status')" prop="status">
         <template slot-scope="scope">
           <el-tag>{{ statusDic[scope.row.status] }}</el-tag>
         </template>
       </el-table-column>
+
+      <el-table-column align="center" :label="$t('common_config.update_time')" prop="updateTime" />
+
       <el-table-column align="center" :label="$t('user_user.table.actions')" width="250" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button type="primary" size="mini" @click="handleDetail(scope.row)">{{ $t('app.button.detail') }}</el-button>

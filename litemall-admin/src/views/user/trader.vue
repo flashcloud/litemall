@@ -16,14 +16,24 @@
       <el-table-column align="center" :label="$t('user_trader.table.address')" prop="address" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.phoneNum')" prop="phoneNum" sortable />
 
-      <el-table-column align="center" :label="$t('user_trader.table.user_ids')" prop="userIds">
+      <el-table-column align="center" :label="$t('user_trader.table.creatorName')" prop="creatorName">
         <template slot-scope="scope">
+          <span>{{ formatUsers(scope.row.creatorId, true) }}</span>
+        </template>
+
+      </el-table-column>
+      <el-table-column align="center" :label="$t('user_trader.table.directorName')" prop="directorName" />
+
+      <el-table-column align="center" :label="$t('user_trader.table.user_ids')" prop="userIds">
+        <!-- <template slot-scope="scope">
           <el-link v-for="userId in scope.row.userIds" :key="userId" type="primary" style="margin-right: 20px;"> {{ formatUsers(userId) }} </el-link>
+        </template> -->
+        <template slot-scope="scope">
+          <span v-for="userId in scope.row.userIds" :key="userId" type="primary" style="margin-right: 20px; display: block;"> {{ formatUsers(userId) }} </span>
         </template>
       </el-table-column>
 
-      <el-table-column align="center" :label="$t('user_trader.table.creatorName')" prop="creatorName" />
-      <el-table-column align="center" :label="$t('user_trader.table.directorName')" prop="directorName" />
+      <el-table-column align="center" :label="$t('common_config.update_time')" prop="updateTime" />
 
       <el-table-column align="center" :label="$t('user_trader.table.actions')" class-name="small-padding fixed-width">
         <template slot-scope="scope">
@@ -52,6 +62,11 @@
         </el-form-item>
         <el-form-item :label="$t('user_trader.form.phoneNum')" prop="phoneNum">
           <el-input v-model="dataForm.phoneNum" />
+        </el-form-item>
+        <el-form-item :label="$t('user_trader.form.directorName')">
+          <el-select v-model="dataForm.userId" clearable filterable @change="handleDirectorChange">
+            <el-option v-for="item in userDropdownList" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
         </el-form-item>
         <el-form-item :label="$t('user_trader.form.desc')" prop="desc">
           <el-input v-model="dataForm.desc" />
@@ -102,8 +117,15 @@ export default {
         create: '创建'
       },
       rules: {
-        name: [
+        taxid: [
+          { required: true, message: '税号不能为空', trigger: 'blur' },
+          { min: 18, max: 18, message: '税号长度为18位', trigger: 'blur' }
+        ],
+        companyName: [
           { required: true, message: '交易企业名称不能为空', trigger: 'blur' }
+        ],
+        nickname: [
+          { required: true, message: '交易企业简称不能为空', trigger: 'blur' }
         ]
       },
       permissionDialogFormVisible: false,
@@ -124,7 +146,10 @@ export default {
       })
   },
   methods: {
-    formatUsers(userId) {
+    formatUsers(userId, isAdmin) {
+      if (userId === 0) {
+        return isAdmin === true ? '管理员' : ''
+      }
       for (let i = 0; i < this.userDropdownList.length; i++) {
         if (userId === this.userDropdownList[i].value) {
           return this.userDropdownList[i].label
@@ -220,6 +245,14 @@ export default {
             })
         }
       })
+    },
+    handleDirectorChange(value) {
+      for (let i = 0; i < this.userDropdownList.length; i++) {
+        if (value === this.userDropdownList[i].value) {
+          this.dataForm.directorName = this.userDropdownList[i].label
+          break
+        }
+      }
     },
     handleDelete(row) {
       this.$confirm('此操作将删除该交易企业, 是否继续?', '提示', {

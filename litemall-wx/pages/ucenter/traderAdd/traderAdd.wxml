@@ -1,23 +1,28 @@
 <view class="add-address">
   <view class="add-form">
     <view class="form-item">
-      <input class="input" bindinput="bindinputTaxid" placeholder="税号(统一社会信用代码)" value="{{trader.taxid}}" auto-focus/>
+      <text  decode="true">税&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;号</text><label style="color: red;">*</label>：
+      <input class="input" bindinput="bindinputTaxid" placeholder="请填写税号(统一社会信用代码)。必填" value="{{trader.taxid}}" auto-focus placeholder-class="placeholder-style"/>
     </view>
     <view class="form-item">
-      <input class="input" bindinput="bindinputCompanyName" placeholder="公司名称" value="{{trader.companyName}}"/>
+      <span>公司名称<label style="color: red;">*</label>：</span>
+      <input class="input" bindinput="bindinputCompanyName" placeholder="请填写你的公司名称。必填" value="{{trader.companyName}}" placeholder-class="placeholder-style"/>
     </view>
     <view class="form-item">
-      <input class="input" bindinput="bindinputNickname" value="{{trader.nickname}}" placeholder="公司简称" />
+      <span>公司简称<label style="color: red;">*</label>：</span>
+      <input class="input" bindinput="bindinputNickname" value="{{trader.nickname}}" placeholder="请填写公司简称。必填" placeholder-class="placeholder-style"/>
     </view>    
     <view class="form-item">
-      <input class="input" bindinput="bindinputPhoneNum" value="{{trader.phoneNum}}" placeholder="电话号码" />
+      <label>联系电话：</label>
+      <input class="input" bindinput="bindinputPhoneNum" value="{{trader.phoneNum}}" placeholder="请填写移动电话或座机电话。非必填" placeholder-class="placeholder-style"/>
     </view>
     <view class="form-item">
-      <input class="input" bindinput="bindinputAddress" value="{{trader.address}}" placeholder="公司注册地址" />
+      <label>注册地址：</label>
+      <input class="input" bindinput="bindinputAddress" value="{{trader.address}}" placeholder="请填写公司注册地址。非必填"  placeholder-class="placeholder-style"/>
     </view>
-    <!-- <view class="form-default">
-      <van-checkbox value="{{ 1 == 1 }}" bind:change="bindIsDefault">设为默认地址</van-checkbox>
-    </view> -->
+    <view class="form-default">
+      <van-checkbox value="{{ trader.isDefault == 1 }}" bind:change="bindIsDefault">设为默认公司</van-checkbox>
+    </view>
   </view>
 
   <view class="btns">

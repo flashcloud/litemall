@@ -57,7 +57,7 @@ public class AdminUserController {
         for (LitemallUser user : traderList) {
             Map<String, Object> item = new HashMap<>(2);
             item.put("value", user.getId());
-            item.put("label", user.getUsername() + "(" + user.getNickname() + ")" );
+            item.put("label", userService.getUserFullName(user.getId()));
             data.add(item);
         }
 

@@ -13,6 +13,14 @@ public class LitemallTrader {
     public void setUserIds(Integer[] userIds) {
         this.userIds = userIds;
     }
+
+    private boolean isDefault;
+    public boolean getIsDefault() {
+        return isDefault;
+    }
+    public void setIsDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
     
     private String creatorName;
     public String getCreatorName() {

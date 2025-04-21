@@ -122,6 +122,10 @@ export default {
       order_total: '订单数量'
     }
   },
+  common_config: {
+    add_time: '添加时间',
+    update_time: '更新时间'
+  },
   user_user: {
     table: {
       id: '用户ID',
@@ -132,6 +136,7 @@ export default {
       gender: '性别',
       birthday: '生日',
       user_level: '用户等级',
+      default_trader: '默认企业',
       status: '状态',
       actions: '操作'
     },
@@ -180,6 +185,7 @@ export default {
       address: '注册地址',
       phoneNum: '联系电话',
       user_ids: '绑定的用户',
+      directorName: '负责人',
       desc: '说明'
     },
     placeholder: {

@@ -17,6 +17,9 @@ import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.linlinjava.litemall.db.domain.LitemallAddress;
+import org.linlinjava.litemall.db.domain.LitemallAddressExample;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -68,6 +71,7 @@ public class LitemallTraderService {
         return traders;
     }
 
+    @Transactional
     public void add(LitemallTrader trader) {
         trader.setAddTime(LocalDateTime.now());
         trader.setUpdateTime(LocalDateTime.now());
@@ -81,23 +85,38 @@ public class LitemallTraderService {
                 traderIds = Arrays.copyOf(traderIds, traderIds.length + 1);
                 traderIds[traderIds.length - 1] = trader.getId();
                 user.setTraderIds(traderIds);
+                if (trader.getIsDefault() || traderIds.length == 0) {
+                    user.setDefaultTraderId(trader.getId());
+                }
                 userService.updateById(user);
             }
         }
     }
 
-    public int updateById(LitemallTrader trader) {
+    @Transactional
+    public int updateById(Integer userId, LitemallTrader trader) {
+        if (userId > 0) {
+            LitemallUser user = userService.findById(userId);
+            if (user != null) {
+                if (trader.getIsDefault()) {
+                    user.setDefaultTraderId(trader.getId());
+                }
+                userService.updateById(user);
+            }
+        }
+
         trader.setUpdateTime(LocalDateTime.now());
         return traderMapper.updateByPrimaryKeySelective(trader);
     }
 
+    @Transactional
     public void deleteById(Integer id) {
         // 如果该商户有用户在使用，不能删除
         if (isTraderUsed(id)) {
             return;
         }
 
-        deleteHlp(id);
+        deleteHlp(0, id);
     }
 
     /**
@@ -105,7 +124,9 @@ public class LitemallTraderService {
      * @param loginUserId
      * @param id
      */
+    @Transactional
     public void deleteByUser(Integer loginUserId, Integer id) {
+        // 如果该商户有用户在使用，不能删除
         if (isTraderUsedByOtherUsers(loginUserId, id)) {
             return;
         }
@@ -124,10 +145,34 @@ public class LitemallTraderService {
             //TODO: 设置默认商户
         }
 
-        deleteHlp(id);
+        deleteHlp(loginUserId, id);
     }
 
-    private void deleteHlp(Integer id) {
+/**
+     * 获取用户的商户列表
+     * @param userId 用户ID
+     * @return 商户列表
+     */
+    public List<LitemallTrader> getTraders(Integer userId) {
+        List<LitemallTrader> traders = new  LinkedList<LitemallTrader>();
+        if(userId == 0){
+            return traders;
+        }
+
+        LitemallUser user = userService.findById(userId);
+        traders = queryByIds(user.getTraderIds());
+        
+        // 设置默认商户
+        for (LitemallTrader trader : traders) {
+            boolean isDefault = trader.getId() == user.getDefaultTraderId();
+            trader.setIsDefault(isDefault);
+            if (isDefault)  break;
+        }
+
+        return traders;
+    }
+
+    private void deleteHlp(Integer userId, Integer id) {
         //如果当前商户有订单，不能删除
         if (orderService.countByTrader(id) > 0)  return;
 
@@ -137,9 +182,11 @@ public class LitemallTraderService {
             return;
         }
         trader.setTaxid(trader.getTaxid() + "--@@--" + RandomStringUtils.randomAlphanumeric(20));
-        updateById(trader);
-
+        updateById(userId, trader);
         traderMapper.logicalDeleteByPrimaryKey(id);
+
+        //删除商户后，查找所有默认商户是该商户的所有用户，把它们的默认商户设置为0
+        resetDefaultTrader(trader);
     }
 
     /**
@@ -187,7 +234,7 @@ public class LitemallTraderService {
         if (userList != null && userList.size() > 0) {
             for (LitemallUser user : userList) {
                 //如果是最后一个用户，不要加逗号
-                sb.append(user.getUsername()).append('(').append(user.getNickname()).append(')');
+                sb.append(userService.getUserFullName(user.getId()));
                 if (userList.indexOf(user) != userList.size() - 1) {
                     sb.append(", ");
                 }
@@ -317,5 +364,21 @@ public class LitemallTraderService {
 		// 	return ResponseUtil.badArgument();
 		// }
 		return true;
-	}    
+	}
+
+    private void resetDefaultTrader(LitemallTrader trader) {
+        if (trader == null) {
+            return;
+        }
+        List<LitemallUser> users = userService.queryAllByDefaultTrader(trader);
+        for (LitemallUser user : users) {
+            List<LitemallTrader> traders =  getTraders(user.getId());
+            if (traders == null || traders.size() == 0) {
+                user.setDefaultTraderId(0);
+            } else  {
+                user.setDefaultTraderId(traders.get(0).getId());
+            }
+            userService.updateById(user);
+        }
+    }
 }

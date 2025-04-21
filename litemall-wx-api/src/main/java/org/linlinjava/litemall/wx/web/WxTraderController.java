@@ -8,6 +8,7 @@ import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
+import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.UserInfoService;
 import org.linlinjava.litemall.core.util.ResponseCode;
@@ -30,6 +31,9 @@ public class WxTraderController {
 
 	@Autowired
 	private UserInfoService userInfoService;
+
+	@Autowired
+	private LitemallUserService userService;    
 
 	@Autowired
 	private LitemallTraderService traderService;
@@ -93,6 +97,10 @@ public class WxTraderController {
 			return ResponseUtil.badArgumentValue();
 		}
 
+        if (litemallTrader.getUserId() != userId) {
+            return ResponseUtil.fail(ResponseCode.TRADER_DEL_BY_OTHERS, "只能由公司的负责人(" + userService.getUserFullName(litemallTrader.getUserId()) + ")删除");
+        }
+
         // 如果该商户有用户在使用，不能删除
         if (traderService.isTraderUsedByOtherUsers(userId, id)) {
             List<LitemallUser> userList = traderService.usedTraderByOtherUsers(userId, id);
@@ -125,12 +133,6 @@ public class WxTraderController {
         }
 
 		if (trader.getId() == null || trader.getId().equals(0)) {
-            // TODO: 交易商户的默认选项
-			// if (trader.getIsDefault()) {
-			// 	// 重置其他收货地址的默认选项
-			// 	traderService.resetDefault(userId);
-			// }
-
             if (traderService.checkCompanyExist(trader.getCompanyName())) {
                 return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "企业名称已经存在");
             }
@@ -146,6 +148,7 @@ public class WxTraderController {
 
 			trader.setId(null);
 			trader.setUserId(userId);
+            trader.setCreatorId(userId);
 			traderService.add(trader);
 		} else {
 			LitemallTrader litemallTrader = userInfoService.getTrader(userId, trader.getId() );
@@ -166,14 +169,7 @@ public class WxTraderController {
                 return error;
             }            
 
-            // TODO: 交易商户的默认选项
-			// if (trader.getIsDefault()) {
-			// 	// 重置其他收货地址的默认选项
-			// 	addressService.resetDefault(userId);
-			// }
-
-			trader.setUserId(userId);
-			traderService.updateById(trader);
+			traderService.updateById(userId, trader);
 		}
 		return ResponseUtil.ok(trader.getId());
 	}

@@ -35,15 +35,7 @@ public class UserInfoService {
      * @return 商户列表
      */
     public List<LitemallTrader> getTraders(Integer userId) {
-        List<LitemallTrader> traders = new  LinkedList<LitemallTrader>();
-        if(userId == 0){
-            return traders;
-        }
-
-        LitemallUser user = userService.findById(userId);
-        traders = traderService.queryByIds(user.getTraderIds());
-
-        return traders;
+        return traderService.getTraders(userId);
     }
 
     public LitemallTrader getTrader(Integer userId, Integer  traderId) {

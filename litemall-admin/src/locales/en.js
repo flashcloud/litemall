@@ -122,6 +122,10 @@ export default {
       order_total: 'Orders'
     }
   },
+  common_config: {
+    add_time: 'Add time',
+    update_time: 'Update time'
+  },
   user_user: {
     table: {
       id: 'ID',
@@ -132,6 +136,7 @@ export default {
       gender: 'Gender',
       birthday: 'Birthday',
       user_level: 'Level',
+      default_trader: 'Default Trader',
       status: 'Status',
       actions: 'Actions'
     },
@@ -180,6 +185,7 @@ export default {
       address: 'Address',
       phoneNum: 'Phone',
       user_ids: 'Bund Users',
+      directorName: 'Director',
       desc: 'Description'
     },
     placeholder: {

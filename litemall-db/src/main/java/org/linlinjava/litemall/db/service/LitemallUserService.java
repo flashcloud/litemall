@@ -2,6 +2,7 @@ package org.linlinjava.litemall.db.service;
 
 import com.github.pagehelper.PageHelper;
 import org.linlinjava.litemall.db.dao.LitemallUserMapper;
+import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.UserVo;
@@ -19,6 +20,28 @@ public class LitemallUserService {
 
     public LitemallUser findById(Integer userId) {
         return userMapper.selectByPrimaryKey(userId);
+    }
+
+    public String getUserFullName(Integer userId) {
+        LitemallUser user = findById(userId);
+        if (user == null) {
+            return "";
+        }
+        StringBuilder fullName = new StringBuilder();
+        if (!StringUtils.isEmpty(user.getUsername())) {
+            fullName.append(user.getNickname());
+        }
+        if (!StringUtils.isEmpty(user.getUsername())) {
+            fullName.append(" (").append(user.getUsername()).append(")");
+        }
+        return fullName.toString();
+    }
+
+
+    public List<LitemallUser> queryAllByDefaultTrader(LitemallTrader trader) {
+        LitemallUserExample example = new LitemallUserExample();
+        example.or().andDefaultTraderIdEqualTo(trader.getId()).andDeletedEqualTo(false);
+        return userMapper.selectByExample(example);
     }
 
     public UserVo findUserVoById(Integer userId) {

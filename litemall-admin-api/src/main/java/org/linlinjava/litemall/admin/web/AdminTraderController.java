@@ -115,7 +115,7 @@ public class AdminTraderController {
             return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
         }
 
-        traderService.updateById(trader);
+        traderService.updateById(0, trader);
         return ResponseUtil.ok();
     }
 
