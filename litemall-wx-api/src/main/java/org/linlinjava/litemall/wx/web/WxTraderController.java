@@ -73,6 +73,8 @@ public class WxTraderController {
         if (trader == null) {
             return ResponseUtil.badArgumentValue();
         }
+
+        trader.setDisableUpdate(!traderService.checkCanEditTrader(userId, id));
         return ResponseUtil.ok(trader);
 	}
 
@@ -96,6 +98,10 @@ public class WxTraderController {
 		if (litemallTrader == null) {
 			return ResponseUtil.badArgumentValue();
 		}
+
+        if (!traderService.checkCanEditTrader(userId, trader.getId())) {
+            return ResponseUtil.fail(ResponseCode.TRADER_UPDATE_REJECT, "无权删除该项目");
+        }        
 
         if (litemallTrader.getUserId() != userId) {
             return ResponseUtil.fail(ResponseCode.TRADER_DEL_BY_OTHERS, "只能由公司的负责人(" + userService.getUserFullName(litemallTrader.getUserId()) + ")删除");
@@ -156,11 +162,18 @@ public class WxTraderController {
 				return ResponseUtil.badArgumentValue();
 			}
 
-            if (traderService.checkCompanyExist(trader.getCompanyName(), trader.getId())) {
+            if (!traderService.checkCanEditTrader(userId, trader.getId())) {
+                if (trader.getIsDefault() &&  !litemallTrader.getIsDefault()) {
+                    traderService.updateDefaultTrader(userId, trader);
+                }
+                return ResponseUtil.fail(ResponseCode.TRADER_UPDATE_REJECT, "仅能修改默认项");
+            }
+
+            if (traderService.checkCompanyExist(litemallTrader.getCompanyName(), trader.getId())) {
                 return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "企业名称已经存在");
             }
             
-            if (traderService.checkTaxidExist(trader.getTaxid(), trader.getId())) {
+            if (traderService.checkTaxidExist(litemallTrader.getTaxid(), trader.getId())) {
                 return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
             }
 

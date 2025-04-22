@@ -3,6 +3,7 @@ package org.linlinjava.litemall.wx.web;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.util.RegexUtil;
+import org.linlinjava.litemall.core.util.ResponseCode;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.LitemallAddress;
 import org.linlinjava.litemall.db.service.LitemallAddressService;
@@ -79,7 +80,7 @@ public class WxAddressController extends GetRegionService {
 		if (StringUtils.isEmpty(mobile)) {
 			return ResponseUtil.badArgument();
 		}
-		if (!RegexUtil.isMobileSimple(mobile)) {
+		if (!RegexUtil.isPhoneOrMobile(mobile)) {
 			return ResponseUtil.badArgument();
 		}
 
@@ -128,6 +129,11 @@ public class WxAddressController extends GetRegionService {
 		if (userId == null) {
 			return ResponseUtil.unlogin();
 		}
+
+        if (org.apache.commons.lang3.StringUtils.isNotBlank(address.getTel()) && !RegexUtil.isPhoneOrMobile(address.getTel())) {
+            return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
+        }
+
 		Object error = validate(address);
 		if (error != null) {
 			return error;

@@ -139,7 +139,10 @@ Page({
         }
         wx.navigateBack();
       } else {
-        util.showErrorToast(res.errmsg);
+        if (res.errno == 10006)
+          wx.navigateBack();
+        else
+          util.showErrorToast(res.errmsg);
       }
     });
 
