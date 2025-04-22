@@ -1,6 +1,6 @@
 <template>
   <div>
-    <van-nav-bar title="编辑地址" left-text="返回" left-arrow @click-left="goback"/>
+    <van-nav-bar title="编辑地址" @click-left="goback"/>
     <van-address-edit
       style="background-color: #fff;"
       :areaList="areaList"
@@ -46,6 +46,9 @@ export default {
       addressSave(content).then(res => {
         this.$toast('成功');
         this.$router.go(-1);
+      }).catch(err => {
+        debugger
+        this.$toast.fail('失败。' + err.data === undefined ? err : err.data.errmsg);
       });
     },
     onDelete(content) {

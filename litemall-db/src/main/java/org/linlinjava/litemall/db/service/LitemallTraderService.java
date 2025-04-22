@@ -93,20 +93,64 @@ public class LitemallTraderService {
         }
     }
 
+    public boolean checkCanEditTrader(Integer userId, Integer traderId) {
+        LitemallTrader traderOld = queryById(traderId);
+        // 如果userId > 0，则只能更新用户自己创建的商户，或公司的负责人才能更新
+        if (!(traderOld.getUserId().equals(userId) || traderOld.getCreatorId().equals(userId))) {
+            return false;
+        }
+        return true;
+    }
+
     @Transactional
     public int updateById(Integer userId, LitemallTrader trader) {
         if (userId > 0) {
-            LitemallUser user = userService.findById(userId);
+            if (!checkCanEditTrader(userId, trader.getId())) {
+                return 0;
+            }
+
+            //禁止修改商户的负责人和创建人
+            LitemallTrader traderOld = queryById(trader.getId());
+            trader.setUserId(traderOld.getUserId());
+            trader.setCreatorId(traderOld.getCreatorId());
+            //禁止修改商户的创建时间
+            trader.setAddTime(traderOld.getAddTime());
+
+            // 如果设置了默认商户，更新用户的默认商户
+            updateDefaultTrader(userId, trader);
+        }
+
+        //如果当前商户设置了负责人，更新负责人的商户列表
+        if (trader.getUserId() != null) {
+            LitemallUser user = userService.findById(trader.getUserId());
             if (user != null) {
-                if (trader.getIsDefault()) {
-                    user.setDefaultTraderId(trader.getId());
+                Integer[] traderIds = user.getTraderIds();
+                if (traderIds == null) {
+                    traderIds = new Integer[0];
                 }
-                userService.updateById(user);
+                List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
+                if (!traderIdList.contains(trader.getId())) {
+                    traderIdList.add(trader.getId());
+                    traderIds = traderIdList.toArray(new Integer[0]);
+                    user.setTraderIds(traderIds);
+                    userService.updateById(user);
+                }
             }
         }
 
+        if (trader.getUserId() == null) trader.setUserId(0);
         trader.setUpdateTime(LocalDateTime.now());
         return traderMapper.updateByPrimaryKeySelective(trader);
+    }
+
+    public void updateDefaultTrader(Integer userId, LitemallTrader trader) {
+        LitemallUser user = userService.findById(userId);
+        if (user != null) {
+            if (trader.getIsDefault()) {
+                user.setDefaultTraderId(trader.getId());
+                userService.updateById(user);
+            }
+        }
     }
 
     @Transactional

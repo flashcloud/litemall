@@ -7,4 +7,5 @@ public class ResponseCode {
     public static final Integer PHONE_ERR = 10003;
     public static final Integer TRADER_HAS_ORDERS = 10004;
     public static final Integer TRADER_DEL_BY_OTHERS = 10005;
+    public static final Integer TRADER_UPDATE_REJECT = 10006;
 }

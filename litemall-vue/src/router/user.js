@@ -6,6 +6,9 @@ const UserServer = () => import('@/views/user/module-server');
 const UserHelp = () => import('@/views/user/module-help');
 const UserFeedback = () => import('@/views/user/module-feedback');
 
+const UserTrader = () => import('@/views/user/module-trader');
+const UserTraderEdit = () => import('@/views/user/module-trader-edit');
+
 const UserInformation = () => import('@/views/user/user-information-set');
 const UserInfo_SetMobile = () => import('@/views/user/user-information-set/set-mobile');
 const UserInfo_SetNickname = () => import('@/views/user/user-information-set/set-nickname');
@@ -53,6 +56,23 @@ export default [
       login: true
     },
     component: UserAddressEdit
+  },
+  {
+    path: '/trader/list',
+    name: 'trader',
+    meta: {
+      login: true
+    },
+    component: UserTrader
+  },
+  {
+    path: '/user/trader/edit',
+    name: 'trader-edit',
+    props: true,
+    meta: {
+      login: true
+    },
+    component: UserTraderEdit
   },
   {
     path: '/user/server',

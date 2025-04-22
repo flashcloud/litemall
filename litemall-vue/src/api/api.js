@@ -289,6 +289,40 @@ export function addressDelete(data) {
   })
 }
 
+const TraderList='/trader/list'; //我的公司列表
+export function traderList(query) {
+  return request({
+    url: TraderList,
+    method: 'get',
+    params: query
+  })
+}
+
+const TraderDetail='/trader/detail'; //我的公司详情
+export function traderDetail(query) {
+  return request({
+    url: TraderDetail,
+    method: 'get',
+    params: query
+  })
+}
+const TradarSave='/trader/save'; //保存公司信息
+export function traderSave(data) {
+  return request({
+    url: TradarSave,
+    method: 'post',
+    data
+  })
+}
+const TraderDelete='/trader/delete'; //删除公司
+export function traderDelete(data) {
+  return request({
+    url: TraderDelete,
+    method: 'post',
+    data
+  })
+}
+
 const ExpressQuery='/express/query'; //物流查询
 
 const OrderSubmit='/order/submit'; // 提交订单

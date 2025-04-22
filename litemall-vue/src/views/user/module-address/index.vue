@@ -6,6 +6,7 @@
 
 <script>
 import { addressList, addressDetail, addressSave, addressDelete } from '@/api/api';
+import { loadAddressIcons } from '@/utils/common';
 import { AddressList, NavBar } from 'vant';
 import { setLocalStorage } from '@/utils/local-storage';
 
@@ -20,6 +21,7 @@ export default {
   created() {
     this.loadAddress();
   },
+
   methods: {
     onAdd() {
       this.$router.push({ name: 'address-edit', query: { addressId: -1 } });
@@ -43,9 +45,11 @@ export default {
             id: item.id,
             name: item.name,
             tel: item.tel,
-            address: item.province + item.city + item.county + " " + item.addressDetail
+            address: item.province + item.city + item.county + " " + item.addressDetail,
+            isDefault: item.isDefault
           })
         }
+        loadAddressIcons(this.addressList);
       })
     }
   },
@@ -64,6 +68,11 @@ export default {
   &:last-child {
     margin-bottom: 0;
   }
+}
+
+.van-address-item__edit {
+    font-size: 12px;
+    padding-left: 10px;
 }
 
 .bottom_btn {
