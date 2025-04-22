@@ -247,6 +247,10 @@ export default {
       })
     },
     handleDirectorChange(value) {
+      if (!value || value === '') {
+        this.dataForm.directorName = ''
+        return
+      }
       for (let i = 0; i < this.userDropdownList.length; i++) {
         if (value === this.userDropdownList[i].value) {
           this.dataForm.directorName = this.userDropdownList[i].label
