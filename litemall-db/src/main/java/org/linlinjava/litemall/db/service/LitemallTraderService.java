@@ -156,9 +156,38 @@ public class LitemallTraderService {
      * @param trader
      */
     private void updateUsersTraders(LitemallTrader trader) {
-        if (trader.getUserIds() != null &&  trader.getUserIds().length > 0) {
-            // 如果绑定了用户ID，则更新用户的商户列表
-            for (Integer userId : trader.getUserIds()) {
+        //编辑后的绑定用户组ID
+        Integer[] modifiedUserIds = trader.getUserIds();
+        // 原来的绑定用户组ID
+        Integer[] oldUserIds = null;
+        if (trader.getId() > 0) {
+            LitemallTrader traderOld = queryById(trader.getId());
+            if (traderOld != null) {
+                oldUserIds = usedTraderByUserIds(trader.getId());
+            }
+        }
+        if (oldUserIds == null) {
+            oldUserIds = new Integer[0];
+        }
+
+        // 通过比较modifiedUserIds和oldUserIds，找出需要添加和删除的用户ID
+        List<Integer> addUserIds = new ArrayList<>();
+        List<Integer> removeUserIds = new ArrayList<>();
+        if (modifiedUserIds != null) {
+            for (Integer userId : modifiedUserIds) {
+                if (!Arrays.asList(oldUserIds).contains(userId)) {
+                    addUserIds.add(userId);
+                }
+            }
+        }
+        for (Integer userId : oldUserIds) {
+            if (modifiedUserIds == null || !Arrays.asList(modifiedUserIds).contains(userId)) {
+                removeUserIds.add(userId);
+            }
+        }
+        // 添加新的用户ID
+        if (addUserIds.size() > 0) {
+            for (Integer userId : addUserIds) {
                 LitemallUser user = userService.findById(userId);
                 if (user != null) {
                     Integer[] traderIds = user.getTraderIds();
@@ -174,17 +203,20 @@ public class LitemallTraderService {
                     }
                 }
             }
-        } else if (trader.getId() > 0 && trader.getUserIds() != null && trader.getUserIds().length == 0) {
-            // 如果不是新增商户，而是编辑商户，在没有设置绑定的用户ID的情况下，则从用户已绑定该商户中解除绑定
-            List<LitemallUser> users = usedTraderByUsers(trader.getId());
-            for (LitemallUser user : users) {
-                Integer[] traderIds = user.getTraderIds();
-                if (traderIds != null) {
-                    List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
-                    traderIdList.remove(trader.getId());
-                    traderIds = traderIdList.toArray(new Integer[0]);
-                    user.setTraderIds(traderIds);
-                    userService.updateById(user);
+        }
+        // 删除不需要的用户ID
+        if (removeUserIds.size() > 0) {
+            for (Integer userId : removeUserIds) {
+                LitemallUser user = userService.findById(userId);
+                if (user != null) {
+                    Integer[] traderIds = user.getTraderIds();
+                    if (traderIds != null) {
+                        List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
+                        traderIdList.remove(trader.getId());
+                        traderIds = traderIdList.toArray(new Integer[0]);
+                        user.setTraderIds(traderIds);
+                        userService.updateById(user);
+                    }
                 }
             }
         }
