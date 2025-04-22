@@ -91,6 +91,9 @@ public class LitemallTraderService {
                 userService.updateById(user);
             }
         }
+
+        //更新用户绑定的商户
+        updateUsersTraders(trader);
     }
 
     public boolean checkCanEditTrader(Integer userId, Integer traderId) {
@@ -138,9 +141,53 @@ public class LitemallTraderService {
             }
         }
 
+        //更新用户绑定的商户
+        updateUsersTraders(trader);
+
         if (trader.getUserId() == null) trader.setUserId(0);
         trader.setUpdateTime(LocalDateTime.now());
         return traderMapper.updateByPrimaryKeySelective(trader);
+    }
+
+    /**
+     * 更新用户绑定的商户
+     * @param userId
+     * @param trader
+     * @param trader
+     */
+    private void updateUsersTraders(LitemallTrader trader) {
+        if (trader.getUserIds() != null &&  trader.getUserIds().length > 0) {
+            // 如果绑定了用户ID，则更新用户的商户列表
+            for (Integer userId : trader.getUserIds()) {
+                LitemallUser user = userService.findById(userId);
+                if (user != null) {
+                    Integer[] traderIds = user.getTraderIds();
+                    if (traderIds == null) {
+                        traderIds = new Integer[0];
+                    }
+                    List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
+                    if (!traderIdList.contains(trader.getId())) {
+                        traderIdList.add(trader.getId());
+                        traderIds = traderIdList.toArray(new Integer[0]);
+                        user.setTraderIds(traderIds);
+                        userService.updateById(user);
+                    }
+                }
+            }
+        } else if (trader.getId() > 0 && trader.getUserIds() != null && trader.getUserIds().length == 0) {
+            // 如果不是新增商户，而是编辑商户，在没有设置绑定的用户ID的情况下，则从用户已绑定该商户中解除绑定
+            List<LitemallUser> users = usedTraderByUsers(trader.getId());
+            for (LitemallUser user : users) {
+                Integer[] traderIds = user.getTraderIds();
+                if (traderIds != null) {
+                    List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
+                    traderIdList.remove(trader.getId());
+                    traderIds = traderIdList.toArray(new Integer[0]);
+                    user.setTraderIds(traderIds);
+                    userService.updateById(user);
+                }
+            }
+        }
     }
 
     public void updateDefaultTrader(Integer userId, LitemallTrader trader) {

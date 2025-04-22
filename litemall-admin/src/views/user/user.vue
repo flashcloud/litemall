@@ -86,7 +86,7 @@
           <el-select v-model="userDetail.status" :placeholder="$t('user_user.placeholder.status')"><el-option v-for="(item, index) in statusDic" :key="index" :label="item" :value="index" /></el-select>
         </el-form-item>
         <el-form-item :label="$t('user_user.form.trader_ids')" prop="traderIds">
-          <el-select v-model="userDetail.traderIds" multiple :placeholder="$t('user_user.placeholder.trader_ids')">
+          <el-select v-model="userDetail.traderIds" multiple filterable :placeholder="$t('user_user.placeholder.trader_ids')">
             <el-option
               v-for="item in traderDropdownList"
               :key="item.value"

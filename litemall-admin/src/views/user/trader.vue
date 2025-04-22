@@ -68,6 +68,16 @@
             <el-option v-for="item in userDropdownList" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
+        <el-form-item :label="$t('user_trader.table.user_ids')" prop="userIds">
+          <el-select v-model="dataForm.userIds" multiple filterable>
+            <el-option
+              v-for="item in userDropdownList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item :label="$t('user_trader.form.desc')" prop="desc">
           <el-input v-model="dataForm.desc" />
         </el-form-item>

@@ -3,14 +3,18 @@ package org.linlinjava.litemall.db.service;
 import com.github.pagehelper.PageHelper;
 import org.linlinjava.litemall.db.dao.LitemallUserMapper;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
+import org.linlinjava.litemall.db.domain.LitemallTraderExample;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.UserVo;
+import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -101,6 +105,19 @@ public class LitemallUserService {
         example.or().andDeletedEqualTo(false);
         return userMapper.selectByExample(example);
     }
+
+    public List<LitemallUser> queryByIds(Integer[] userIds) {
+        List<LitemallUser> users = new  LinkedList<LitemallUser>();
+        if(userIds.length == 0){
+            return users;
+        }
+
+        LitemallUserExample example = new LitemallUserExample();
+        example.or().andIdIn(Arrays.asList(userIds)).andStatusEqualTo(CommonStatusConstant.STATUS_ENABLE).andDeletedEqualTo(false);
+        users = userMapper.selectByExample(example);
+
+        return users;
+    }    
 
     /**
      * 查询除当前用户外的所有用户
