@@ -155,7 +155,7 @@ public class WxTraderController {
 			trader.setId(null);
 			trader.setUserId(userId);
             trader.setCreatorId(userId);
-			traderService.add(trader);
+			traderService.add(userId, trader);
 		} else {
 			LitemallTrader litemallTrader = userInfoService.getTrader(userId, trader.getId() );
 			if (litemallTrader == null) {

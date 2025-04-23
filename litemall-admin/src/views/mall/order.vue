@@ -50,6 +50,8 @@
         </template>
       </el-table-column>
 
+      <el-table-column align="center" :label="$t('mall_order.table.trader_id')" prop="traderId" />
+      <el-table-column align="center" :label="$t('mall_order.table.trader_info')" prop="traderName" />
       <el-table-column align="center" :label="$t('mall_order.table.user_name')" prop="userName" />
 
       <el-table-column align="center" :label="$t('mall_order.table.add_time')" prop="addTime" min-width="100">
@@ -111,6 +113,12 @@
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_order_status')">
             <el-tag>{{ orderDetail.order.orderStatus | orderStatusFilter }}</el-tag>
+          </el-form-item>
+          <el-form-item :label="$t('mall_order.form.detail_order_trader_id')">
+            <span>{{ orderDetail.order.traderId }}</span>
+          </el-form-item>
+          <el-form-item :label="$t('mall_order.form.detail_order_trader_name')">
+            <span>{{ orderDetail.order.traderName }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_user_nickname')">
             <span>{{ orderDetail.user.nickname }}</span>
@@ -283,6 +291,10 @@
 
 .num {
   width: 120px;
+}
+
+.el-form-item span {
+    border-bottom: 1px solid #bababb;
 }
 </style>
 

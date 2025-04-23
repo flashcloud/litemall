@@ -336,6 +336,8 @@ export default {
     table: {
       order_sn: '订单编号',
       avatar: '用户头像',
+      trader_id: '下单企业ID',
+      trader_info: '下单企业',
       user_name: '下单用户',
       add_time: '下单时间',
       order_status: '订单状态',
@@ -366,6 +368,8 @@ export default {
     form: {
       detail_order_sn: '订单编号',
       detail_order_status: '订单状态',
+      detail_order_trader_id: '订货企业ID',
+      detail_order_trader_name: '订货企业',
       detail_user_nickname: '订单用户',
       detail_message: '用户留言',
       detail_receiving_info: '收货信息',

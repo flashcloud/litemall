@@ -33,7 +33,6 @@ import org.linlinjava.litemall.wx.task.OrderUnpaidTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -71,6 +70,8 @@ public class WxOrderService {
 
     @Autowired
     private LitemallUserService userService;
+    @Autowired
+    private UserInfoService userInfoService;    
     @Autowired
     private LitemallOrderService orderService;
     @Autowired
@@ -187,6 +188,31 @@ public class WxOrderService {
         if (!order.getUserId().equals(userId)) {
             return ResponseUtil.fail(ORDER_INVALID, "不是当前用户的订单");
         }
+
+        Integer traderId = order.getTraderId();
+        if (traderId == null || traderId == 0) {
+            return ResponseUtil.badArgument();
+        }
+        //验证trderId是否是当前用户的已绑定商户
+        Object checkedResult = checkTrader(userId, traderId);
+        LitemallTrader checkedTrader = null;
+        if (checkedResult instanceof LitemallTrader) {
+            checkedTrader = (LitemallTrader)checkedResult;
+        } else {
+            return checkedResult;
+        }
+
+        String[] traderInfo = checkedTrader.parseFullInfo(order.getTraderName());
+        String traderName = "";
+        String traderNickname = "";
+        String traderTaxid = "";
+        if (traderInfo.length == 3) {
+            traderName = traderInfo[0];
+            traderNickname = traderInfo[1];
+            traderTaxid = traderInfo[2];
+        } else 
+            traderName =traderInfo[0];
+
         Map<String, Object> orderVo = new HashMap<String, Object>();
         orderVo.put("id", order.getId());
         orderVo.put("orderSn", order.getOrderSn());
@@ -195,6 +221,9 @@ public class WxOrderService {
         orderVo.put("consignee", order.getConsignee());
         orderVo.put("mobile", order.getMobile());
         orderVo.put("address", order.getAddress());
+        orderVo.put("traderName", traderName);
+        orderVo.put("traderNickname", traderNickname);
+        orderVo.put("traderTaxid", traderTaxid);
         orderVo.put("goodsPrice", order.getGoodsPrice());
         orderVo.put("couponPrice", order.getCouponPrice());
         orderVo.put("freightPrice", order.getFreightPrice());
@@ -254,6 +283,7 @@ public class WxOrderService {
         }
         Integer cartId = JacksonUtil.parseInteger(body, "cartId");
         Integer addressId = JacksonUtil.parseInteger(body, "addressId");
+        Integer traderId = JacksonUtil.parseInteger(body, "traderId");
         Integer couponId = JacksonUtil.parseInteger(body, "couponId");
         Integer userCouponId = JacksonUtil.parseInteger(body, "userCouponId");
         String message = JacksonUtil.parseString(body, "message");
@@ -309,6 +339,15 @@ public class WxOrderService {
         LitemallAddress checkedAddress = addressService.query(userId, addressId);
         if (checkedAddress == null) {
             return ResponseUtil.badArgument();
+        }
+
+        //验证trderId是否是当前用户的已绑定商户
+        Object checkedResult = checkTrader(userId, traderId);
+        LitemallTrader checkedTrader = null;
+        if (checkedResult instanceof LitemallTrader) {
+            checkedTrader = (LitemallTrader)checkedResult;
+        } else {
+            return checkedResult;
         }
 
         // 团购优惠
@@ -379,6 +418,8 @@ public class WxOrderService {
         order.setMessage(message);
         String detailedAddress = checkedAddress.getProvince() + checkedAddress.getCity() + checkedAddress.getCounty() + " " + checkedAddress.getAddressDetail();
         order.setAddress(detailedAddress);
+        order.setTraderId(checkedTrader.getId());
+        order.setTraderName(checkedTrader.getFullInfo());
         order.setGoodsPrice(checkedGoodsPrice);
         order.setFreightPrice(freightPrice);
         order.setCouponPrice(couponPrice);
@@ -1068,5 +1109,23 @@ public class WxOrderService {
             couponUser.setUpdateTime(LocalDateTime.now());
             couponUserService.update(couponUser);
         }
+    }
+
+    private Object checkTrader(Integer userId, Integer traderId) {
+        // 验证trderId是否是当前用户的已绑定商户
+        LitemallTrader checkedTrader = null;
+        if (traderId == null || traderId == 0) {
+            return ResponseUtil.badArgument();
+        } else {
+            LitemallUser user = userService.findById(userId);
+            if (user == null) {
+                return ResponseUtil.badArgument();
+            }
+            checkedTrader = userInfoService.getTrader(user.getId(), traderId);
+        }
+        if (checkedTrader == null) {
+            return ResponseUtil.fail(ORDER_TRADER_REJECT, "无效的购买公司!");
+        } else 
+            return checkedTrader;
     }
 }

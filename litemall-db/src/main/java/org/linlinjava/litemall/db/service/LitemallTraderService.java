@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,8 +17,6 @@ import org.linlinjava.litemall.core.util.RegexUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.linlinjava.litemall.db.domain.LitemallAddress;
-import org.linlinjava.litemall.db.domain.LitemallAddressExample;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,7 +56,7 @@ public class LitemallTraderService {
     }
 
     public List<LitemallTrader> queryByIds(Integer[] traderIds) {
-        List<LitemallTrader> traders = new  LinkedList<LitemallTrader>();
+        List<LitemallTrader> traders = new  ArrayList<LitemallTrader>();
         if(traderIds.length == 0){
             return traders;
         }
@@ -72,7 +69,7 @@ public class LitemallTraderService {
     }
 
     @Transactional
-    public void add(LitemallTrader trader) {
+    public void add(Integer userId, LitemallTrader trader) {
         trader.setAddTime(LocalDateTime.now());
         trader.setUpdateTime(LocalDateTime.now());
         traderMapper.insertSelective(trader);
@@ -89,6 +86,16 @@ public class LitemallTraderService {
                     user.setDefaultTraderId(trader.getId());
                 }
                 userService.updateById(user);
+            }
+        }
+
+        if (userId > 0) {
+            //如果是用户添加的商户，绑定该用户到此商户
+            LitemallUser user = userService.findById(userId);
+            if (user != null) {
+                Integer[] userIds = new Integer[1];
+                userIds[0] = user.getId();
+                trader.setUserIds(userIds);
             }
         }
 
@@ -277,7 +284,7 @@ public class LitemallTraderService {
      * @return 商户列表
      */
     public List<LitemallTrader> getTraders(Integer userId) {
-        List<LitemallTrader> traders = new  LinkedList<LitemallTrader>();
+        List<LitemallTrader> traders = new  ArrayList<LitemallTrader>();
         if(userId == 0){
             return traders;
         }
@@ -293,6 +300,38 @@ public class LitemallTraderService {
         }
 
         return traders;
+    }
+
+    public LitemallTrader getTrader(Integer userId, Integer traderId) {
+        if (traderId == null || traderId == 0 || userId == null || userId == 0) {
+            return null;
+        }
+        List<LitemallTrader> traders = getTraders(userId);
+        if(traders == null || traders.size() == 0){
+            return null;
+        }
+        for (LitemallTrader trader : traders) {
+            if (trader.getId().equals(traderId)) {
+                return trader;
+            }
+        }
+        return null;
+    }
+
+    public LitemallTrader getDefaultTrader(Integer userId) {
+        if (userId == null || userId == 0) {
+            return null;
+        }
+        List<LitemallTrader> traders = getTraders(userId);
+        if(traders == null || traders.size() == 0){
+            return null;
+        }
+        for (LitemallTrader trader : traders) {
+            if (trader.getIsDefault()) {
+                return trader;
+            }
+        }
+        return null;
     }
 
     private void deleteHlp(Integer userId, Integer id) {

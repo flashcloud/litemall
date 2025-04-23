@@ -1,4 +1,28 @@
 <view class="container">
+  <view class="trader-box">
+    <view class="trader-item" bindtap="selectTradar" wx:if="{{checkedTrader.id > 0}}">
+      <view class="l">
+        <text class="name">{{checkedTrader.nickname}}</text>
+        <text class="default" wx:if="{{checkedTrader.isDefault}}">默认</text>
+      </view>
+      <view class="m">
+        <text class="address">{{checkedTrader.companyName}}</text>
+        <!-- <text class="address">{{checkedTrader.address}}</text> -->
+      </view>
+      <view class="r">
+        <van-icon name="arrow" />
+      </view>
+    </view>
+    <view class="trader-item trader-empty" bindtap="selectTradar" wx:else>
+      <view class="m">
+        购买企业没有，现在就去添加
+      </view>
+      <view class="r">
+        <van-icon name="arrow" />      
+      </view>
+    </view>
+  </view> 
+
   <view class="address-box">
     <view class="address-item" bindtap="selectAddress" wx:if="{{checkedAddress.id > 0}}">
       <view class="l">
@@ -15,7 +39,7 @@
     </view>
     <view class="address-item address-empty" bindtap="selectAddress" wx:else>
       <view class="m">
-        还没有收货地址，去添加
+        收货地址还没有，现在就去添加
       </view>
       <view class="r">
         <van-icon name="arrow" />      

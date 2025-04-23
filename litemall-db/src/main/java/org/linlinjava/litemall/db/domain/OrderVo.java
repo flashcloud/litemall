@@ -25,6 +25,22 @@ public class OrderVo {
     private LocalDateTime payTime;
     private List<OrderGoodsVo> goodsVoList;
 
+    private String traderName;
+    public String getTraderName() {
+        return traderName;
+    }
+    public void setTraderName(String traderName) {
+        this.traderName = traderName;
+    }
+
+    private Integer traderId;
+    public Integer getTraderId() {
+        return traderId;
+    }
+    public void setTraderId(Integer traderId) {
+        this.traderId = traderId;
+    }
+
     public LocalDateTime getPayTime() {
         return payTime;
     }

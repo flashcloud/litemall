@@ -336,6 +336,8 @@ export default {
     table: {
       order_sn: 'Order SN',
       avatar: 'Avatar',
+      trader_id: 'Trader ID',
+      trader_info: 'Trader info',
       user_name: 'User name',
       add_time: 'Time added',
       order_status: 'Status',
@@ -366,6 +368,8 @@ export default {
     form: {
       detail_order_sn: 'Order SN',
       detail_order_status: 'Status',
+      detail_order_trader_id: 'Trader ID',
+      detail_order_trader_name: 'Trader Name',
       detail_user_nickname: 'User nickname',
       detail_message: 'User message',
       detail_receiving_info: 'Receipt info',

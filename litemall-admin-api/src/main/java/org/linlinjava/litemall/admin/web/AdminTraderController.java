@@ -89,7 +89,7 @@ public class AdminTraderController {
             return error;
         }
 
-        traderService.add(trader);
+        traderService.add(0, trader);
 
         return ResponseUtil.ok(trader);
     }

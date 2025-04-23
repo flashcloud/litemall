@@ -38,6 +38,8 @@ public class WxCartController {
     @Autowired
     private LitemallAddressService addressService;
     @Autowired
+    private LitemallTraderService traderService;
+    @Autowired
     private LitemallGrouponRulesService grouponRulesService;
     @Autowired
     private LitemallCouponService couponService;
@@ -406,7 +408,7 @@ public class WxCartController {
      * @return 购物车操作结果
      */
     @GetMapping("checkout")
-    public Object checkout(@LoginUser Integer userId, Integer cartId, Integer addressId, Integer couponId, Integer userCouponId, Integer grouponRulesId) {
+    public Object checkout(@LoginUser Integer userId, Integer cartId, Integer addressId, Integer traderId, Integer couponId, Integer userCouponId, Integer grouponRulesId) {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
@@ -426,6 +428,24 @@ public class WxCartController {
                 addressId = 0;
             } else {
                 addressId = checkedAddress.getId();
+            }
+        }
+
+        //购买公司
+        LitemallTrader checkedTrader = null;
+        if (traderId != null && !traderId.equals(0)) {
+            checkedTrader = traderService.getTrader(userId, traderId);
+        }
+        if (checkedTrader == null) {
+            checkedTrader = traderService.getDefaultTrader(userId);
+            // 如果仍然没有公司，则是没有交易公司
+            // 返回一个空的公司id=0，这样前端则会提醒添加公司
+            if (checkedTrader == null) {
+                checkedTrader = new LitemallTrader();
+                checkedTrader.setId(0);
+                traderId = 0;
+            } else {
+                traderId = checkedTrader.getId();
             }
         }
 
@@ -522,12 +542,14 @@ public class WxCartController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("addressId", addressId);
+        data.put("traderId", traderId);
         data.put("couponId", couponId);
         data.put("userCouponId", userCouponId);
         data.put("cartId", cartId);
         data.put("grouponRulesId", grouponRulesId);
         data.put("grouponPrice", grouponPrice);
         data.put("checkedAddress", checkedAddress);
+        data.put("checkedTrader", checkedTrader);
         data.put("availableCouponLength", availableCouponLength);
         data.put("goodsTotalPrice", checkedGoodsPrice);
         data.put("freightPrice", freightPrice);

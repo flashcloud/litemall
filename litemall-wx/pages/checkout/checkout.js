@@ -7,6 +7,7 @@ Page({
   data: {
     checkedGoodsList: [],
     checkedAddress: {},
+    checkedTrader: {},
     availableCouponLength: 0, // 可用的优惠券数量
     goodsTotalPrice: 0.00, //商品总价
     freightPrice: 0.00, //快递费
@@ -16,6 +17,7 @@ Page({
     actualPrice: 0.00, //实际需要支付的总价
     cartId: 0,
     addressId: 0,
+    traderId: 0,
     couponId: 0,
     userCouponId: 0,
     message: '',
@@ -32,6 +34,7 @@ Page({
     util.request(api.CartCheckout, {
       cartId: that.data.cartId,
       addressId: that.data.addressId,
+      traderId: that.data.traderId,
       couponId: that.data.couponId,
       userCouponId: that.data.userCouponId,
       grouponRulesId: that.data.grouponRulesId
@@ -40,6 +43,7 @@ Page({
         that.setData({
           checkedGoodsList: res.data.checkedGoodsList,
           checkedAddress: res.data.checkedAddress,
+          checkedTrader: res.data.checkedTrader,
           availableCouponLength: res.data.availableCouponLength,
           actualPrice: res.data.actualPrice,
           couponPrice: res.data.couponPrice,
@@ -48,6 +52,7 @@ Page({
           goodsTotalPrice: res.data.goodsTotalPrice,
           orderTotalPrice: res.data.orderTotalPrice,
           addressId: res.data.addressId,
+          traderId: res.data.traderId,
           couponId: res.data.couponId,
           userCouponId: res.data.userCouponId,
           grouponRulesId: res.data.grouponRulesId,
@@ -61,6 +66,11 @@ Page({
       url: '/pages/ucenter/address/address',
     })
   },
+  selectTradar() {
+    wx.navigateTo({
+      url: '/pages/ucenter/trader/trader',
+    })
+  },  
   selectCoupon() {
     wx.navigateTo({
       url: '/pages/ucenter/couponSelect/couponSelect',
@@ -89,6 +99,10 @@ Page({
       if (addressId === "") {
         addressId = 0;
       }
+      var traderId = wx.getStorageSync('traderId');
+      if (traderId === "") {
+        traderId = 0;
+      }      
       var couponId = wx.getStorageSync('couponId');
       if (couponId === "") {
         couponId = 0;
@@ -109,6 +123,7 @@ Page({
       this.setData({
         cartId: cartId,
         addressId: addressId,
+        traderId: traderId,
         couponId: couponId,
         userCouponId: userCouponId,
         grouponRulesId: grouponRulesId,
@@ -135,9 +150,14 @@ Page({
       util.showErrorToast('请选择收货地址');
       return false;
     }
+    if (this.data.traderId <= 0) {
+      util.showErrorToast('请选择购买企业');
+      return false;
+    }    
     util.request(api.OrderSubmit, {
       cartId: this.data.cartId,
       addressId: this.data.addressId,
+      traderId: this.data.traderId,
       couponId: this.data.couponId,
       userCouponId: this.data.userCouponId,
       message: this.data.message,

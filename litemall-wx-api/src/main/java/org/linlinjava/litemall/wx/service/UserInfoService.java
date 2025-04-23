@@ -39,14 +39,6 @@ public class UserInfoService {
     }
 
     public LitemallTrader getTrader(Integer userId, Integer  traderId) {
-        List<LitemallTrader> traderList = getTraders(userId);
-        if (traderList == null || traderList.size() == 0) return null;
-
-        for (LitemallTrader trader : traderList) {
-            if (trader.getId().equals(traderId)) {
-                return trader;
-            }
-        }
-        return null;
+        return traderService.getTrader(userId, traderId);
     }
 }

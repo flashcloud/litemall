@@ -52,10 +52,17 @@
     </view>
 
     <view class="order-bottom">
+      <view class="trader">
+        <view class="t">
+          <text class="title">购买公司：</text>
+          <text class="name">{{orderInfo.traderName}}</text>
+        </view>
+        <view class="b">{{orderInfo.traderNickname}} {{orderInfo.traderTaxid}}</view>
+      </view>
       <view class="address">
         <view class="t">
-          <text class="name">{{orderInfo.consignee}}</text>
-          <text class="mobile">{{orderInfo.mobile}}</text>
+          <text class="name">收货地址：</text>
+          <text class="mobile"> {{orderInfo.consignee}} {{orderInfo.mobile}}</text>
         </view>
         <view class="b">{{orderInfo.address}}</view>
       </view>

@@ -183,12 +183,40 @@ page {
   background: #fff;
 }
 
+.order-bottom .trader .t {
+  height: 80rpx;
+  line-height: 80rpx;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #f4f4f4;
+}
+
+.order-bottom .trader .t .title {
+  width: 90px;
+}
+
+.order-bottom .trader .t .name {
+  font-weight: 600;
+}
+
+.order-bottom .trader .b {
+  height: 60rpx;
+  line-height: 60rpx;
+  font-size: 30rpx;
+  border-bottom: 1px solid #f4f4f4;
+  text-align: right;
+}
+
 .order-bottom .address .t {
   height: 80rpx;
   line-height: 80rpx;
   display: flex;
   justify-content: space-between;
   border-top: 1px solid #f4f4f4;
+}
+
+.order-bottom .address .t .name {
+  width: 90px;
 }
 
 .order-bottom .address .b {
