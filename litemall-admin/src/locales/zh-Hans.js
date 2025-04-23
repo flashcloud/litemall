@@ -348,6 +348,7 @@ export default {
       mobile: '收货电话',
       ship_sn: '物流单号',
       ship_channel: '物流渠道',
+      ship_goods_serial_number: '商品序列号',
       actions: '操作',
       detail_goods_name: '商品名称',
       detail_goods_sn: '商品编号',
@@ -392,7 +393,8 @@ export default {
       filter_time_start: '开始日期',
       filter_time_end: '结束日期',
       filter_order_status: '请选择订单状态',
-      ship_channel: '请选择'
+      ship_channel: '请选择',
+      ship_goods_serial_number: '请输入商品序列号'
     },
     message: {
       pay_confirm: '确认当前订单（订单编号 {order_sn} ) 已经完成线下收款  ？'

@@ -1,5 +1,9 @@
 package org.linlinjava.litemall.admin.service;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
 import com.github.binarywang.wxpay.bean.request.WxPayRefundRequest;
 import com.github.binarywang.wxpay.bean.result.WxPayRefundResult;
@@ -22,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -29,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.linlinjava.litemall.admin.util.AdminResponseCode.*;
-import static org.linlinjava.litemall.admin.util.AdminResponseCode.ORDER_PAY_FAILED;
 
 @Service
 
@@ -204,6 +208,24 @@ public class AdminOrderService {
             return ResponseUtil.badArgument();
         }
 
+        //设置产品的序列号
+        List<Map<String, Object>> goodsSerials = null;
+        try {
+            //利用ObjectMapper将JSon字符串body中的goodsList部分转换成Map结构
+            goodsSerials = parseOrderGoodsSerinalNum(body);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            return ResponseUtil.badArgument();
+        }
+        if (goodsSerials != null) {
+            // 打印结果
+            for (Map<String, Object> item : goodsSerials) {
+                System.out.println("detId: " + item.get("detId"));
+                System.out.println("serinalNum: " + item.get("serinalNum"));
+                System.out.println("---");
+            }
+        }
+
         // 如果订单不是已付款状态，则不能发货
         if (!order.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
             return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
@@ -314,5 +336,16 @@ public class AdminOrderService {
         }
 
         return ResponseUtil.ok();
+    }
+
+    private List<Map<String, Object>> parseOrderGoodsSerinalNum (String jsonStr) throws JsonParseException, JsonMappingException, IOException  {
+        // 1. 创建 ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 2. 解析整个 JSON 为 Map
+        Map<String, Object> rootMap = objectMapper.readValue(jsonStr, new TypeReference<Map<String, Object>>() {});
+        // 3. 提取 goodsInputList
+        List<Map<String, Object>> goodsInputMapList = (List<Map<String, Object>>) rootMap.get("goodsInputList");
+
+        return goodsInputMapList;
     }
 }

@@ -227,6 +227,27 @@
           <el-input v-model="shipForm.shipSn" />
         </el-form-item>
       </el-form>
+      <el-table :data="shipForm.goodsList">
+        <el-table-column property="goodsName" :label="$t('mall_order.table.pay_goods_name')" />
+        <el-table-column :label="$t('mall_order.table.pay_goods_specifications')">
+          <template slot-scope="scope">
+            {{ scope.row.specifications.join('-') }}
+          </template>
+        </el-table-column>
+        <el-table-column property="onumber" width="100" :label="$t('mall_order.table.pay_goods_number')" />
+        <el-table-column property="serinalNum" width="200" :label="$t('mall_order.table.ship_goods_serial_number')">
+          <template slot-scope="scope">
+            <!-- el-input不能编辑，BUG？ -->
+            <!-- <el-input v-model="scope.row.serinalNum" :placeholder="$t('mall_order.placeholder.ship_goods_serial_number')" /> -->
+            <input type="text" :value="scope.row.serinalNum" class="el-input__inner" :placeholder="$t('mall_order.placeholder.ship_goods_serial_number')" @input="handleGoodsSerialNum($event, scope.$index)">
+          </template>
+        </el-table-column>
+        <!-- <el-table-column label="实际数量" width="100">
+          <template slot-scope="scope">
+            <el-input-number v-model="scope.row.number" :min="0" :controls="false" />
+          </template>
+        </el-table-column> -->
+      </el-table>
       <div slot="footer" class="dialog-footer">
         <el-button @click="shipDialogVisible = false">{{ $t('app.button.cancel') }}</el-button>
         <el-button type="primary" @click="confirmShip">{{ $t('app.button.confirm') }}</el-button>
@@ -494,16 +515,34 @@ export default {
       this.shipForm.orderId = row.id
       this.shipForm.shipChannel = row.shipChannel
       this.shipForm.shipSn = row.shipSn
+      this.shipForm.goodsInputList = []
+      this.shipForm.goodsList = row.goodsVoList
+      this.shipForm.goodsList.forEach(element => {
+        element.onumber = element.number
+        element.serinalNum = ''
+        // 添加订单明细ID及对应的序列号
+        this.shipForm.goodsInputList.push({ detId: element.id, serinalNum: '' })
+      })
 
       this.shipDialogVisible = true
       this.$nextTick(() => {
         this.$refs['shipForm'].clearValidate()
       })
     },
+    // 更新订单明细中的产品序列号
+    handleGoodsSerialNum(e, rowIndex) {
+      const serinalNum = e.currentTarget.value
+      const goodsData = this.shipForm.goodsInputList[rowIndex]
+      goodsData.serinalNum = serinalNum
+      // console.log('goodsData', goodsData)
+    },
     confirmShip() {
       this.$refs['shipForm'].validate((valid) => {
         if (valid) {
+          const backupGoodsList = this.shipForm.goodsList
+          delete this.shipForm.goodsList
           shipOrder(this.shipForm).then(response => {
+            this.shipForm.goodsList = backupGoodsList
             this.shipDialogVisible = false
             this.$notify.success({
               title: '成功',
@@ -511,6 +550,7 @@ export default {
             })
             this.getList()
           }).catch(response => {
+            this.shipForm.goodsList = backupGoodsList
             this.$notify.error({
               title: '失败',
               message: response.data.errmsg

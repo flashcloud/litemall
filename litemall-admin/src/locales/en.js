@@ -348,6 +348,7 @@ export default {
       mobile: 'Mobile',
       ship_sn: 'Ship SN',
       ship_channel: 'Ship channel',
+      ship_goods_serial_number: 'Serial number',
       actions: 'Actions',
       detail_goods_name: 'Name',
       detail_goods_sn: 'Goods SN',
@@ -392,7 +393,8 @@ export default {
       filter_time_start: 'From date',
       filter_time_end: 'To date',
       filter_order_status: 'Status',
-      ship_channel: 'Please choose'
+      ship_channel: 'Please choose',
+      ship_goods_serial_number: 'Please enter serial number'
     },
     message: {
       pay_confirm: 'Confirm that the current order (order number {order_sn}) has been paid offline?'
