@@ -315,6 +315,7 @@ export default {
       date_range_separator: 'to',
       expand_goods_name: 'Goods name: {goods_name}',
       expand_specifications: 'Specifications: {specifications}',
+      expand_serial: 'Serial: {serial}',
       expand_unit_price: 'Unit price: {price} 元',
       expand_number: 'Quantity: {number}',
       expand_subtotal_price: 'Subtotal: {price} 元',

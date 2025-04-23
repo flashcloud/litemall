@@ -149,6 +149,7 @@
             <result column="goods_specifications" property="specifications" typeHandler="org.linlinjava.litemall.db.mybatis.JsonStringArrayTypeHandler"/>
             <result column="goods_number" property="number"/>
             <result column="goods_price" property="price"/>
+            <result column="serial" property="serial"/>
         </collection>
     </resultMap>
     <select id="getOrderList" resultMap="orderList">
@@ -156,7 +157,7 @@
         o.consignee, o.address, o.mobile, o.pay_time, o.order_price, o.ship_channel, o.ship_sn,
         u.id user_id, u.nickname user_name, u.avatar user_avatar, o.integral_price,
         og.id ogid, og.goods_id, og.product_id, og.goods_name, og.pic_url goods_picture,
-        og.specifications goods_specifications, og.number goods_number, og.price goods_price, o.trader_id, o.trader_name
+        og.specifications goods_specifications, og.number goods_number, og.price goods_price, o.trader_id, o.trader_name, og.serial
         from litemall_order o
         left join litemall_user u
         on o.user_id = u.id

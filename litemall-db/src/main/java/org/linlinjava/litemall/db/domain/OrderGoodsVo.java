@@ -85,4 +85,11 @@ public class OrderGoodsVo {
         this.price = price;
     }
 
+    private String serial;
+    public String getSerial() {
+        return serial;
+    }
+    public void setSerial(String value) {
+        this.serial = value;
+    }    
 }

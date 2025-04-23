@@ -29,6 +29,9 @@
             <div class="spec">
               {{ $t('mall_order.text.expand_specifications', { specifications: item.specifications.join('-') }) }}
             </div>
+            <div class="spec">
+              {{ $t('mall_order.text.expand_serial', { serial: item.serial }) }}
+            </div>
             <div class="price">
               {{ $t('mall_order.text.expand_unit_price', { price: item.price }) }}
             </div>
@@ -424,6 +427,7 @@ export default {
   methods: {
     checkPermission,
     getList() {
+      debugger
       this.listLoading = true
       if (this.listQuery.timeArray && this.listQuery.timeArray.length === 2) {
         this.listQuery.start = this.listQuery.timeArray[0]

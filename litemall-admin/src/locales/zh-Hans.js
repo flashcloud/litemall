@@ -315,6 +315,7 @@ export default {
       date_range_separator: '至',
       expand_goods_name: '商品名称：{goods_name}',
       expand_specifications: '规格：{specifications}',
+      expand_serial: '序列号: {serial}',
       expand_unit_price: '单价：{price} 元',
       expand_number: '数量：{number} 件',
       expand_subtotal_price: '小计：{price} 元',

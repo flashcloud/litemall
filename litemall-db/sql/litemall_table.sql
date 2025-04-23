@@ -647,6 +647,10 @@ CREATE TABLE `litemall_order_goods` (
   `number` smallint(5) NOT NULL DEFAULT '0' COMMENT '商品货品的购买数量',
   `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '商品货品的售价',
   `specifications` varchar(1023) NOT NULL COMMENT '商品货品的规格列表',
+  `lot` varchar(50) NOT NULL DEFAULT '' COMMENT '商品批号',
+  `serial` varchar(50) NOT NULL DEFAULT '' COMMENT '商品序列号',
+  `pd_date` datetime DEFAULT NULL COMMENT '商品生产日期'
+  `exp_date` datetime DEFAULT NULL COMMENT '商品失效期'
   `pic_url` varchar(255) NOT NULL DEFAULT '' COMMENT '商品货品图片或者商品图片',
   `comment` int(11) DEFAULT '0' COMMENT '订单商品评论，如果是-1，则超期不能评价；如果是0，则可以评价；如果其他值，则是comment表里面的评论ID。',
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',

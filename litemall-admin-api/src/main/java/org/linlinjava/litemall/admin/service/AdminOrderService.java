@@ -195,6 +195,7 @@ public class AdminOrderService {
      * 成功则 { errno: 0, errmsg: '成功' }
      * 失败则 { errno: XXX, errmsg: XXX }
      */
+    @Transactional
     public Object ship(String body) {
         Integer orderId = JacksonUtil.parseInteger(body, "orderId");
         String shipSn = JacksonUtil.parseString(body, "shipSn");
@@ -208,7 +209,12 @@ public class AdminOrderService {
             return ResponseUtil.badArgument();
         }
 
-        //设置产品的序列号
+        // 如果订单不是已付款状态，则不能发货
+        if (!order.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+            return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
+        }
+
+        //设置发货商品的序列号
         List<Map<String, Object>> goodsSerials = null;
         try {
             //利用ObjectMapper将JSon字符串body中的goodsList部分转换成Map结构
@@ -218,17 +224,15 @@ public class AdminOrderService {
             return ResponseUtil.badArgument();
         }
         if (goodsSerials != null) {
-            // 打印结果
+            // 更新发货商品的序列号
             for (Map<String, Object> item : goodsSerials) {
-                System.out.println("detId: " + item.get("detId"));
-                System.out.println("serinalNum: " + item.get("serinalNum"));
-                System.out.println("---");
+                Integer detId = Integer.parseInt(item.get("detId").toString());
+                String serinalNum =  item.get("serinalNum").toString();
+                LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
+                //TODO: 校验orderGoods的数据合法性, 是否是该订单的订货明细
+                orderGoods.setSerial(serinalNum);
+                orderGoodsService.updateById(orderGoods);
             }
-        }
-
-        // 如果订单不是已付款状态，则不能发货
-        if (!order.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
-            return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
         }
 
         order.setOrderStatus(OrderUtil.STATUS_SHIP);
