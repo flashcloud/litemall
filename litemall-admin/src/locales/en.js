@@ -316,6 +316,9 @@ export default {
       expand_goods_name: 'Goods name: {goods_name}',
       expand_specifications: 'Specifications: {specifications}',
       expand_serial: 'Serial: {serial}',
+      expand_bound_serial: 'Bound serial: {bound_serial}',
+      expand_max_client_count: 'Max client count: {max_client_count}',
+      expand_max_register_user_count: 'Max register user count: {max_register_user_count}',
       expand_unit_price: 'Unit price: {price} 元',
       expand_number: 'Quantity: {number}',
       expand_subtotal_price: 'Subtotal: {price} 元',
@@ -336,6 +339,9 @@ export default {
     },
     table: {
       order_sn: 'Order SN',
+      order_id: 'Order ID',
+      root_order_id: 'Root Order ID',
+      parent_order_id: 'Parent Order ID',
       avatar: 'Avatar',
       trader_id: 'Trader ID',
       trader_info: 'Trader info',
@@ -349,7 +355,11 @@ export default {
       mobile: 'Mobile',
       ship_sn: 'Ship SN',
       ship_channel: 'Ship channel',
-      ship_goods_serial_number: 'Serial number',
+      goods_serial_number: 'Serial number',
+      goods_attis: 'Goods attributes',
+      goods_bound_serial: 'Bound serial',
+      goods_max_client_count: 'Max client count',
+      goods_max_register_user_count: 'Max register user count',
       actions: 'Actions',
       detail_goods_name: 'Name',
       detail_goods_sn: 'Goods SN',
@@ -362,13 +372,15 @@ export default {
       pay_goods_number: 'Quantity'
     },
     dialog: {
-      detail: 'Details',
-      pay: 'Pay',
-      ship: 'Ship',
-      refund: 'Refund'
+      detail: 'Details：Order ID：{orderId}',
+      pay: 'Pay：Order ID：{orderId}',
+      ship: 'Ship：Order ID：{orderId}',
+      refund: 'Refund：Order ID：{orderId}'
     },
     form: {
+      detail_order_id: 'Order ID',
       detail_order_sn: 'Order SN',
+      detail_parent_order_id: 'Parent Order ID',
       detail_order_status: 'Status',
       detail_order_trader_id: 'Trader ID',
       detail_order_trader_name: 'Trader Name',
@@ -388,14 +400,19 @@ export default {
       refund_money: 'Refund amount'
     },
     placeholder: {
+      filter_order_id: 'Order ID',
       filter_nickname: 'Nickname',
       filter_consignee: 'Consignee',
       filter_order_sn: 'Order SN',
+      parent_order_id: 'Parent Order ID',
       filter_time_start: 'From date',
       filter_time_end: 'To date',
       filter_order_status: 'Status',
       ship_channel: 'Please choose',
-      ship_goods_serial_number: 'Please enter serial number'
+      goods_serial_number: 'Please enter serial number',
+      goods_bound_serial: 'The serial numbers of other products associated with this product',
+      goods_max_client_count: 'Maximum number of authorized computer sites allowed',
+      goods_max_register_user_count: 'Maximum allowed number of registered users'
     },
     message: {
       pay_confirm: 'Confirm that the current order (order number {order_sn}) has been paid offline?'

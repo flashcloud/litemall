@@ -39,6 +39,8 @@
     <result column="deleted" jdbcType="BIT" property="deleted" />
     <result column="trader_id" jdbcType="INTEGER" property="traderId" />
     <result column="trader_name" jdbcType="VARCHAR" property="traderName" />
+    <result column="root_order_id" jdbcType="INTEGER" property="rootOrderId" />
+    <result column="parent_order_id" jdbcType="INTEGER" property="parentOrderId" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -115,7 +117,7 @@
     message, goods_price, freight_price, coupon_price, integral_price, groupon_price, 
     order_price, actual_price, pay_id, pay_time, ship_sn, ship_channel, ship_time, refund_amount, 
     refund_type, refund_content, refund_time, confirm_time, comments, end_time, add_time, 
-    update_time, deleted, trader_id, trader_name
+    update_time, deleted, trader_id, trader_name, root_order_id, parent_order_id
   </sql>
   <select id="selectByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderExample" resultMap="BaseResultMap">
     <!--
@@ -246,7 +248,8 @@
       refund_type, refund_content, refund_time, 
       confirm_time, comments, end_time, 
       add_time, update_time, deleted, 
-      trader_id, trader_name)
+      trader_id, trader_name, root_order_id, 
+      parent_order_id)
     values (#{userId,jdbcType=INTEGER}, #{orderSn,jdbcType=VARCHAR}, #{orderStatus,jdbcType=SMALLINT}, 
       #{aftersaleStatus,jdbcType=SMALLINT}, #{consignee,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, 
       #{address,jdbcType=VARCHAR}, #{message,jdbcType=VARCHAR}, #{goodsPrice,jdbcType=DECIMAL}, 
@@ -257,7 +260,8 @@
       #{refundType,jdbcType=VARCHAR}, #{refundContent,jdbcType=VARCHAR}, #{refundTime,jdbcType=TIMESTAMP}, 
       #{confirmTime,jdbcType=TIMESTAMP}, #{comments,jdbcType=SMALLINT}, #{endTime,jdbcType=TIMESTAMP}, 
       #{addTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{deleted,jdbcType=BIT}, 
-      #{traderId,jdbcType=INTEGER}, #{traderName,jdbcType=VARCHAR})
+      #{traderId,jdbcType=INTEGER}, #{traderName,jdbcType=VARCHAR}, #{rootOrderId,jdbcType=INTEGER}, 
+      #{parentOrderId,jdbcType=INTEGER})
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallOrder">
     <!--
@@ -365,6 +369,12 @@
       <if test="traderName != null">
         trader_name,
       </if>
+      <if test="rootOrderId != null">
+        root_order_id,
+      </if>
+      <if test="parentOrderId != null">
+        parent_order_id,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="userId != null">
@@ -462,6 +472,12 @@
       </if>
       <if test="traderName != null">
         #{traderName,jdbcType=VARCHAR},
+      </if>
+      <if test="rootOrderId != null">
+        #{rootOrderId,jdbcType=INTEGER},
+      </if>
+      <if test="parentOrderId != null">
+        #{parentOrderId,jdbcType=INTEGER},
       </if>
     </trim>
   </insert>
@@ -581,6 +597,12 @@
       <if test="record.traderName != null">
         trader_name = #{record.traderName,jdbcType=VARCHAR},
       </if>
+      <if test="record.rootOrderId != null">
+        root_order_id = #{record.rootOrderId,jdbcType=INTEGER},
+      </if>
+      <if test="record.parentOrderId != null">
+        parent_order_id = #{record.parentOrderId,jdbcType=INTEGER},
+      </if>
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -624,7 +646,9 @@
       update_time = #{record.updateTime,jdbcType=TIMESTAMP},
       deleted = #{record.deleted,jdbcType=BIT},
       trader_id = #{record.traderId,jdbcType=INTEGER},
-      trader_name = #{record.traderName,jdbcType=VARCHAR}
+      trader_name = #{record.traderName,jdbcType=VARCHAR},
+      root_order_id = #{record.rootOrderId,jdbcType=INTEGER},
+      parent_order_id = #{record.parentOrderId,jdbcType=INTEGER}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -732,6 +756,12 @@
       <if test="traderName != null">
         trader_name = #{traderName,jdbcType=VARCHAR},
       </if>
+      <if test="rootOrderId != null">
+        root_order_id = #{rootOrderId,jdbcType=INTEGER},
+      </if>
+      <if test="parentOrderId != null">
+        parent_order_id = #{parentOrderId,jdbcType=INTEGER},
+      </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -772,7 +802,9 @@
       update_time = #{updateTime,jdbcType=TIMESTAMP},
       deleted = #{deleted,jdbcType=BIT},
       trader_id = #{traderId,jdbcType=INTEGER},
-      trader_name = #{traderName,jdbcType=VARCHAR}
+      trader_name = #{traderName,jdbcType=VARCHAR},
+      root_order_id = #{rootOrderId,jdbcType=INTEGER},
+      parent_order_id = #{parentOrderId,jdbcType=INTEGER}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderExample" resultMap="BaseResultMap">

@@ -91,5 +91,32 @@ public class OrderGoodsVo {
     }
     public void setSerial(String value) {
         this.serial = value;
-    }    
+    }
+
+    private String boundSerial;
+    // 此条产品关联到的其他产品的序列号
+    public String getBoundSerial() {
+        return boundSerial;
+    }
+    public void setBoundSerial(String value) {
+        this.boundSerial = value;
+    }
+
+    private Short maxClientsCount;
+    // 允许的最大授权计算机站点数
+    public Short getMaxClientsCount() {
+        return maxClientsCount;
+    }
+    public void setMaxClientsCount(Short value) {
+        this.maxClientsCount = value;
+    }
+
+    private Short maxRegisterUsersCount;
+    // 允许的最大注册用户数
+    public Short getMaxRegisterUsersCount() {
+        return maxRegisterUsersCount;
+    }
+    public void setMaxRegisterUsersCount(Short value) {
+        this.maxRegisterUsersCount = value;
+    }
 }

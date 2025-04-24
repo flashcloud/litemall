@@ -67,6 +67,12 @@
             <if test="order.shipTime != null">
                 ship_time = #{order.shipTime,jdbcType=TIMESTAMP},
             </if>
+            <if test="order.parentOrderId != null">
+                parent_order_id = #{order.parentOrderId,jdbcType=INTEGER},
+            </if>
+            <if test="order.rootOrderId != null">
+                root_order_id = #{order.rootOrderId,jdbcType=INTEGER},
+            </if>
             <if test="order.refundAmount != null">
                 refund_amount = #{order.refundAmount,jdbcType=DECIMAL},
             </if>
@@ -139,6 +145,8 @@
         <result column="user_avatar" property="userAvatar"/>
         <result column="trader_id" property="traderId"/>
         <result column="trader_name" property="traderName"/>
+        <result column="root_order_id" property="rootOrderId"/>
+        <result column="parent_order_id" property="parentOrderId"/>
 
         <collection property="goodsVoList" ofType="org.linlinjava.litemall.db.domain.OrderGoodsVo">
             <id column="ogid" property="id"/>
@@ -150,6 +158,9 @@
             <result column="goods_number" property="number"/>
             <result column="goods_price" property="price"/>
             <result column="serial" property="serial"/>
+            <result column="bound_serial" property="boundSerial"/>
+            <result column="max_clients_count" property="maxClientsCount"/>
+            <result column="max_register_users_count" property="maxRegisterUsersCount"/>
         </collection>
     </resultMap>
     <select id="getOrderList" resultMap="orderList">
@@ -157,7 +168,9 @@
         o.consignee, o.address, o.mobile, o.pay_time, o.order_price, o.ship_channel, o.ship_sn,
         u.id user_id, u.nickname user_name, u.avatar user_avatar, o.integral_price,
         og.id ogid, og.goods_id, og.product_id, og.goods_name, og.pic_url goods_picture,
-        og.specifications goods_specifications, og.number goods_number, og.price goods_price, o.trader_id, o.trader_name, og.serial
+        og.specifications goods_specifications, og.number goods_number, og.price goods_price,
+        o.root_order_id, o.parent_order_id,
+        o.trader_id, o.trader_name, og.serial, og.bound_serial, og.max_clients_count,og.max_register_users_count
         from litemall_order o
         left join litemall_user u
         on o.user_id = u.id

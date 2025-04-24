@@ -3,19 +3,79 @@
 
     <!-- 查询和其他操作 -->
     <div class="filter-container">
-      <el-input v-model="listQuery.nickname" clearable class="filter-item" style="width: 160px;" :placeholder="$t('mall_order.placeholder.filter_nickname')" />
-      <el-input v-model="listQuery.consignee" clearable class="filter-item" style="width: 160px;" :placeholder="$t('mall_order.placeholder.filter_consignee')" />
-      <el-input v-model="listQuery.orderSn" clearable class="filter-item" style="width: 160px;" :placeholder="$t('mall_order.placeholder.filter_order_sn')" />
-      <el-date-picker v-model="listQuery.timeArray" type="datetimerange" value-format="yyyy-MM-dd HH:mm:ss" class="filter-item" :range-separator="$t('mall_order.text.date_range_separator')" :start-placeholder="$t('mall_order.placeholder.filter_time_start')" :end-placeholder="$t('mall_order.placeholder.filter_time_end')" :picker-options="pickerOptions" />
-      <el-select v-model="listQuery.orderStatusArray" multiple style="width: 200px" class="filter-item" :placeholder="$t('mall_order.placeholder.filter_order_status')">
+      <el-input
+        v-model="listQuery.orderId"
+        clearable
+        class="filter-item"
+        style="width: 150px;"
+        :placeholder="$t('mall_order.placeholder.filter_order_id')"
+        type="number"
+      />
+      <el-input
+        v-model="listQuery.nickname"
+        clearable
+        class="filter-item"
+        style="width: 160px;"
+        :placeholder="$t('mall_order.placeholder.filter_nickname')"
+      />
+      <el-input
+        v-model="listQuery.consignee"
+        clearable
+        class="filter-item"
+        style="width: 160px;"
+        :placeholder="$t('mall_order.placeholder.filter_consignee')"
+      />
+      <el-input
+        v-model="listQuery.orderSn"
+        clearable
+        class="filter-item"
+        style="width: 160px;"
+        :placeholder="$t('mall_order.placeholder.filter_order_sn')"
+      />
+      <el-date-picker
+        v-model="listQuery.timeArray"
+        type="datetimerange"
+        value-format="yyyy-MM-dd HH:mm:ss"
+        class="filter-item"
+        :range-separator="$t('mall_order.text.date_range_separator')"
+        :start-placeholder="$t('mall_order.placeholder.filter_time_start')"
+        :end-placeholder="$t('mall_order.placeholder.filter_time_end')"
+        :picker-options="pickerOptions"
+      />
+      <el-select
+        v-model="listQuery.orderStatusArray"
+        multiple
+        style="width: 200px"
+        class="filter-item"
+        :placeholder="$t('mall_order.placeholder.filter_order_status')"
+      >
         <el-option v-for="(key, value) in statusMap" :key="key" :label="key" :value="value" />
       </el-select>
-      <el-button v-permission="['GET /admin/order/list']" class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">{{ $t('app.button.search') }}</el-button>
-      <el-button :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">{{ $t('app.button.download') }}</el-button>
+      <el-button
+        v-permission="['GET /admin/order/list']"
+        class="filter-item"
+        type="primary"
+        icon="el-icon-search"
+        @click="handleFilter"
+      >{{ $t('app.button.search') }}</el-button>
+      <el-button
+        :loading="downloadLoading"
+        class="filter-item"
+        type="primary"
+        icon="el-icon-download"
+        @click="handleDownload"
+      >{{ $t('app.button.download') }}</el-button>
     </div>
 
     <!-- 查询结果 -->
-    <el-table v-loading="listLoading" :data="list" :element-loading-text="$t('app.message.list_loading')" border fit highlight-current-row>
+    <el-table
+      v-loading="listLoading"
+      :data="list"
+      :element-loading-text="$t('app.message.list_loading')"
+      border
+      fit
+      highlight-current-row
+    >
 
       <el-table-column type="expand">
         <template slot-scope="props">
@@ -27,10 +87,9 @@
               {{ $t('mall_order.text.expand_goods_name', { goods_name: item.goodsName }) }}
             </div>
             <div class="spec">
-              {{ $t('mall_order.text.expand_specifications', { specifications: item.specifications.join('-') }) }}
-            </div>
-            <div class="spec">
-              {{ $t('mall_order.text.expand_serial', { serial: item.serial }) }}
+              {{ $t('mall_order.text.expand_specifications', {
+                specifications:
+                  item.specifications.join('-') }) }}
             </div>
             <div class="price">
               {{ $t('mall_order.text.expand_unit_price', { price: item.price }) }}
@@ -41,10 +100,46 @@
             <div class="price">
               {{ $t('mall_order.text.expand_subtotal_price', { price: item.price * item.number }) }}
             </div>
+            <div class="other-att">
+              {{ $t('mall_order.text.expand_serial', { serial: item.serial }) }}
+            </div>
+            <div class="other-att">
+              {{ $t('mall_order.text.expand_bound_serial', { bound_serial: item.boundSerial }) }}
+            </div>
+            <div class="other-att">
+              {{ $t('mall_order.text.expand_max_client_count', { max_client_count: item.maxClientsCount })
+              }}
+            </div>
+            <div class="other-att">
+              {{ $t('mall_order.text.expand_max_register_user_count', {
+                max_register_user_count:
+                  item.maxRegisterUsersCount }) }}
+            </div>
           </div>
         </template>
       </el-table-column>
 
+      <el-table-column
+        align="center"
+        min-width="50"
+        max-width="100"
+        :label="$t('mall_order.table.root_order_id')"
+        prop="rootOrderId"
+      />
+      <el-table-column
+        align="center"
+        min-width="50"
+        max-width="100"
+        :label="$t('mall_order.table.parent_order_id')"
+        prop="parentOrderId"
+      />
+      <el-table-column
+        align="center"
+        min-width="50"
+        max-width="100"
+        :label="$t('mall_order.table.order_id')"
+        prop="id"
+      />
       <el-table-column align="center" min-width="120" :label="$t('mall_order.table.order_sn')" prop="orderSn" />
 
       <el-table-column align="center" :label="$t('mall_order.table.avatar')" width="80">
@@ -53,13 +148,20 @@
         </template>
       </el-table-column>
 
-      <el-table-column align="center" :label="$t('mall_order.table.trader_id')" prop="traderId" />
-      <el-table-column align="center" :label="$t('mall_order.table.trader_info')" prop="traderName" />
+      <!-- <el-table-column align="center" :label="$t('mall_order.table.trader_id')" prop="traderId" /> -->
+      <el-table-column align="center" :label="$t('mall_order.table.trader_info')" prop="traderName">
+        <template slot-scope="scope">
+          <el-tooltip class="item" effect="dark" :content="scope.row.traderName" placement="top-start">
+            <el-link> {{ scope.row.traderName.split(',')[1] }} </el-link>
+          </el-tooltip>
+        </template>
+      </el-table-column>
       <el-table-column align="center" :label="$t('mall_order.table.user_name')" prop="userName" />
 
       <el-table-column align="center" :label="$t('mall_order.table.add_time')" prop="addTime" min-width="100">
         <template slot-scope="scope">
-          {{ (scope.row.addTime || '').substring(0, 10) }}
+          <!-- {{ (scope.row.addTime || '').substring(0, 10) }} -->
+          {{ scope.row.addTime }}
         </template>
       </el-table-column>
       <el-table-column align="center" :label="$t('mall_order.table.order_status')" prop="orderStatus">
@@ -94,23 +196,50 @@
 
       <el-table-column align="center" :label="$t('mall_order.table.ship_channel')" prop="shipChannel" />
 
-      <el-table-column align="center" :label="$t('mall_order.table.actions')" width="250" class-name="oper">
+      <el-table-column align="center" :label="$t('mall_order.table.actions')" width="90" class-name="oper">
         <template slot-scope="scope">
-          <el-button type="primary" size="mini" @click="handleDetail(scope.row)">{{ $t('app.button.detail') }}</el-button>
+          <!-- <el-button type="primary" size="mini" @click="handleDetail(scope.row)">{{ $t('app.button.detail') }}</el-button>
           <el-button type="danger" size="mini" @click="handleDelete(scope.row)">{{ $t('app.button.delete') }}</el-button>
           <el-button type="warning" size="mini" @click="handlePay(scope.row)">{{ $t('mall_order.button.pay') }}</el-button>
-          <el-button type="primary" size="mini" @click="handleShip(scope.row)">{{ $t('mall_order.button.ship') }}</el-button>
-          <el-button type="danger" size="mini" @click="handleRefund(scope.row)">{{ $t('mall_order.button.refund') }}</el-button>
+          <el-tooltip class="item" effect="dark" content="发货及更新商品的序列号等参数" placement="top-start">
+            <el-button type="primary" size="mini" @click="handleShip(scope.row)">{{ $t('mall_order.button.ship') }}</el-button>
+          </el-tooltip>
+          <el-button type="danger" size="mini" @click="handleRefund(scope.row)">{{ $t('mall_order.button.refund') }}</el-button> -->
+          <el-dropdown @command="executeTableAction">
+            <el-button type="primary" style="width: 60px;">操作<i
+              class="el-icon-arrow-down el-icon--right"
+            />
+            </el-button>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item
+                v-for="(item, index) in tableActionOptions"
+                :key="index"
+                :icon="item.icon"
+                :command="handleActionCommand(scope.row, item.value, item.param)"
+              >
+                {{ renderDropdownMenuLabel(scope.row, item) }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total>0" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" @pagination="getList" />
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :page.sync="listQuery.page"
+      :limit.sync="listQuery.limit"
+      @pagination="getList"
+    />
 
     <!-- 订单详情对话框 -->
-    <el-dialog :visible.sync="orderDialogVisible" :title="$t('mall_order.dialog.detail')" width="800">
+    <el-dialog :visible.sync="orderDialogVisible" :title="$t('mall_order.dialog.detail', {orderId: orderDetail.order.id})" width="800">
       <section ref="print">
         <el-form :data="orderDetail" label-position="left">
+          <el-form-item :label="$t('mall_order.form.detail_order_id')">
+            <span>{{ orderDetail.order.id }}</span>
+          </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_order_sn')">
             <span>{{ orderDetail.order.orderSn }}</span>
           </el-form-item>
@@ -130,18 +259,63 @@
             <span>{{ orderDetail.order.message }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_receiving_info')">
-            <span>{{ $t('mall_order.text.detail_consigne', { consignee: orderDetail.order.consignee }) }}</span>
+            <span>{{ $t('mall_order.text.detail_consigne', { consignee: orderDetail.order.consignee })
+            }}</span>
             <span>{{ $t('mall_order.text.detail_mobile', { mobile: orderDetail.order.mobile }) }}</span>
             <span>{{ $t('mall_order.text.detail_address', { address: orderDetail.order.address }) }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_goods')">
             <el-table :data="orderDetail.orderGoods" border fit highlight-current-row>
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_name')" prop="goodsName" />
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_sn')" prop="goodsSn" />
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_specifications')" prop="specifications" />
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_price')" prop="price" />
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_number')" prop="number" />
-              <el-table-column align="center" :label="$t('mall_order.table.detail_goods_pic_url')" prop="picUrl">
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_name')"
+                prop="goodsName"
+              />
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_sn')"
+                prop="goodsSn"
+              />
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_specifications')"
+                prop="specifications"
+              />
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_price')"
+                prop="price"
+              />
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_number')"
+                prop="number"
+              />
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_number')"
+                prop="maxClientsCount"
+              />
+              <el-table-column align="center" :label="$t('mall_order.table.goods_attis')" width="150">
+                <template slot-scope="scope">
+                  <div style="text-align: left;">
+                    <p>{{ $t('mall_order.text.expand_serial', { serial: scope.row.serial }) }}</p>
+                    <p>{{ $t('mall_order.text.expand_bound_serial', {
+                      bound_serial:
+                        scope.row.boundSerial }) }}</p>
+                    <p>{{ $t('mall_order.text.expand_max_client_count', {
+                      max_client_count:
+                        scope.row.maxClientsCount }) }}</p>
+                    <p>{{ $t('mall_order.text.expand_max_register_user_count', {
+                      max_register_user_count: scope.row.maxRegisterUsersCount }) }}</p>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column
+                align="center"
+                :label="$t('mall_order.table.detail_goods_pic_url')"
+                prop="picUrl"
+              >
                 <template slot-scope="scope">
                   <img :src="scope.row.picUrl" width="40">
                 </template>
@@ -161,21 +335,37 @@
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_pay_info')">
             <span>{{ $t('mall_order.text.detail_pay_channel', { pay_channel: '微信支付' }) }}</span>
-            <span>{{ $t('mall_order.text.detail_pay_time', { pay_time: orderDetail.order.payTime }) }}</span>
+            <span>{{ $t('mall_order.text.detail_pay_time', { pay_time: orderDetail.order.payTime })
+            }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_ship_info')">
-            <span>{{ $t('mall_order.text.detail_ship_channel', { ship_channel: orderDetail.order.shipChannel }) }}</span>
+            <span>{{ $t('mall_order.text.detail_ship_channel', {
+              ship_channel: orderDetail.order.shipChannel
+            })
+            }}</span>
             <span>{{ $t('mall_order.text.detail_ship_sn', { ship_sn: orderDetail.order.shipSn }) }}</span>
-            <span>{{ $t('mall_order.text.detail_ship_time', { ship_time: orderDetail.order.shipTime }) }}</span>
+            <span>{{ $t('mall_order.text.detail_ship_time', { ship_time: orderDetail.order.shipTime })
+            }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_refund_info')">
-            <span>{{ $t('mall_order.text.detail_refund_amount', { refund_amount: orderDetail.order.refundAmount }) }}</span>
-            <span>{{ $t('mall_order.text.detail_refund_type', { refund_type: orderDetail.order.refundType }) }}</span>
-            <span>{{ $t('mall_order.text.detail_refund_content', { refund_content: orderDetail.order.refundContent }) }}</span>
-            <span>{{ $t('mall_order.text.detail_refund_time', { refund_time: orderDetail.order.refundTime }) }}</span>
+            <span>{{ $t('mall_order.text.detail_refund_amount', {
+              refund_amount:
+                orderDetail.order.refundAmount })
+            }}</span>
+            <span>{{ $t('mall_order.text.detail_refund_type', { refund_type: orderDetail.order.refundType })
+            }}</span>
+            <span>{{ $t('mall_order.text.detail_refund_content', {
+              refund_content:
+                orderDetail.order.refundContent
+            }) }}</span>
+            <span>{{ $t('mall_order.text.detail_refund_time', { refund_time: orderDetail.order.refundTime })
+            }}</span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_receipt_info')">
-            <span>{{ $t('mall_order.text.detail_confirm_time', { confirm_time: orderDetail.order.confirmTime }) }}</span>
+            <span>{{ $t('mall_order.text.detail_confirm_time', {
+              confirm_time: orderDetail.order.confirmTime
+            })
+            }}</span>
           </el-form-item>
         </el-form>
       </section>
@@ -186,7 +376,7 @@
     </el-dialog>
 
     <!-- 收款对话框 -->
-    <el-dialog :visible.sync="payDialogVisible" :title="$t('mall_order.dialog.pay')" width="40%" center>
+    <el-dialog :visible.sync="payDialogVisible" :title="$t('mall_order.dialog.pay', {orderId: payForm.orderId})" width="40%">
       <el-form ref="payForm" :model="payForm" status-icon label-position="left" label-width="100px">
         <div style="margin-bottom: 10px;">
           {{ $t('mall_order.message.pay_confirm', { order_sn: payForm.orderSn }) }}
@@ -219,8 +409,15 @@
     </el-dialog>
 
     <!-- 发货对话框 -->
-    <el-dialog :visible.sync="shipDialogVisible" :title="$t('mall_order.dialog.ship')">
-      <el-form ref="shipForm" :model="shipForm" status-icon label-position="left" label-width="100px" style="width: 400px; margin-left:50px;">
+    <el-dialog :visible.sync="shipDialogVisible" :title="$t('mall_order.dialog.ship', {orderId: shipForm.orderId})">
+      <el-form
+        ref="shipForm"
+        :model="shipForm"
+        status-icon
+        label-position="left"
+        label-width="100px"
+        style="width: 400px; margin-left:50px;"
+      >
         <el-form-item :label="$t('mall_order.form.ship_channel')" prop="shipChannel">
           <el-select v-model="shipForm.shipChannel" :placeholder="$t('mall_order.placeholder.ship_channel')">
             <el-option v-for="item in channels" :key="item.code" :label="item.name" :value="item.code" />
@@ -228,6 +425,15 @@
         </el-form-item>
         <el-form-item :label="$t('mall_order.form.ship_sn')" prop="shipSn">
           <el-input v-model="shipForm.shipSn" />
+        </el-form-item>
+        <el-form-item :label="$t('mall_order.form.detail_parent_order_id')" prop="parentOrderId">
+          <!-- <el-input v-model="shipForm.parentOrderId" /> 为什么不能编辑？ -->
+          <input
+            v-model="shipForm.parentOrderId"
+            type="number"
+            class="el-input__inner"
+            :placeholder="$t('mall_order.placeholder.parent_order_id')"
+          >
         </el-form-item>
       </el-form>
       <el-table :data="shipForm.goodsList">
@@ -238,11 +444,60 @@
           </template>
         </el-table-column>
         <el-table-column property="onumber" width="100" :label="$t('mall_order.table.pay_goods_number')" />
-        <el-table-column property="serinalNum" width="200" :label="$t('mall_order.table.ship_goods_serial_number')">
+        <el-table-column property="serial" width="130" :label="$t('mall_order.table.goods_serial_number')">
           <template slot-scope="scope">
             <!-- el-input不能编辑，BUG？ -->
-            <!-- <el-input v-model="scope.row.serinalNum" :placeholder="$t('mall_order.placeholder.ship_goods_serial_number')" /> -->
-            <input type="text" :value="scope.row.serinalNum" class="el-input__inner" :placeholder="$t('mall_order.placeholder.ship_goods_serial_number')" @input="handleGoodsSerialNum($event, scope.$index)">
+            <!-- <el-input v-model="scope.row.serial" :placeholder="$t('mall_order.placeholder.goods_serial_number')" /> -->
+            <input
+              type="text"
+              :value="scope.row.serial"
+              class="el-input__inner"
+              :placeholder="$t('mall_order.placeholder.goods_serial_number')"
+              @input="handleGoodsAttValue($event, scope.$index, 'serial')"
+            >
+          </template>
+        </el-table-column>
+        <el-table-column property="boundSerial" width="130" :label="$t('mall_order.table.goods_bound_serial')">
+          <template slot-scope="scope">
+            <input
+              type="text"
+              :value="scope.row.boundSerial"
+              class="el-input__inner"
+              :placeholder="$t('mall_order.placeholder.goods_bound_serial')"
+              @input="handleGoodsAttValue($event, scope.$index, 'boundSerial')"
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
+          property="maxClientsCount"
+          width="80"
+          :label="$t('mall_order.table.goods_max_client_count')"
+        >
+          <template slot-scope="scope">
+            <span class="form-num">
+              <input
+                type="number"
+                :value="scope.row.maxClientsCount"
+                class="el-input__inner"
+                :placeholder="$t('mall_order.placeholder.goods_max_client_count')"
+                @input="handleGoodsAttValue($event, scope.$index, 'maxClientsCount')"
+              >
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          property="maxRegisterUsersCount"
+          width="80"
+          :label="$t('mall_order.table.goods_max_register_user_count')"
+        >
+          <template slot-scope="scope">
+            <input
+              type="number"
+              :value="scope.row.maxRegisterUsersCount"
+              class="el-input__inner"
+              :placeholder="$t('mall_order.placeholder.goods_max_register_user_count')"
+              @input="handleGoodsAttValue($event, scope.$index, 'maxRegisterUsersCount')"
+            >
           </template>
         </el-table-column>
         <!-- <el-table-column label="实际数量" width="100">
@@ -258,8 +513,15 @@
     </el-dialog>
 
     <!-- 退款对话框 -->
-    <el-dialog :visible.sync="refundDialogVisible" :title="$t('mall_order.dialog.refund')">
-      <el-form ref="refundForm" :model="refundForm" status-icon label-position="left" label-width="100px" style="width: 400px; margin-left:50px;">
+    <el-dialog :visible.sync="refundDialogVisible" :title="$t('mall_order.dialog.refund', {orderId: refundForm.orderId})">
+      <el-form
+        ref="refundForm"
+        :model="refundForm"
+        status-icon
+        label-position="left"
+        label-width="100px"
+        style="width: 400px; margin-left:50px;"
+      >
         <el-form-item :label="$t('mall_order.form.refund_money')" prop="refundMoney">
           <el-input v-model="refundForm.refundMoney" :disabled="true" />
         </el-form-item>
@@ -274,47 +536,62 @@
 </template>
 
 <style lang="scss" scoped>
-.el-table--medium th, .el-table--medium td {
+.el-dropdown-link {
+    cursor: pointer;
+    color: #409EFF;
+}
+
+.el-icon-arrow-down {
+    font-size: 12px;
+}
+
+.el-table--medium th,
+.el-table--medium td {
     padding: 3px 0;
 }
 
 .el-input-number--medium {
-  width: 100%;
+    width: 100%;
 }
 
 .oper .el-button--mini {
-  padding: 7px 4px;
-  width: 40px;
-  font-size: 10px;
-  margin-left: 1px;
+    padding: 7px 4px;
+    width: 40px;
+    font-size: 10px;
+    margin-left: 1px;
 }
 
 ::v-deep .el-table__expanded-cell {
-  padding: 6px 80px;
+    padding: 6px 80px;
 }
 
 .order-goods {
-  display: flex;
-  justify-content: space-around;
-  justify-items: center;
-  align-items:center;
-  padding: 6px 0;
+    display: flex;
+    justify-content: space-around;
+    justify-items: center;
+    align-items: center;
+    padding: 6px 0;
 }
 
 .name {
-  width: 400px;
+    width: 400px;
 }
 
 .spec {
-  width: 180px;
+    width: 180px;
 }
 
 .price {
-  width: 120px;
+    width: 120px;
 }
 
 .num {
-  width: 120px;
+    width: 120px;
+}
+
+.other-att {
+    width: 180px;
+    font-weight: bold;
 }
 
 .el-form-item span {
@@ -339,6 +616,33 @@ const statusMap = {
   402: '系统收货'
 }
 
+const actionOptions = [{
+  value: '1', // 下拉菜单唯一标识
+  label: '详情', // 菜单默认操作名称
+  icon: 'el-icon-more', // 菜单图标
+  param: 'look' // 其他参数（不同于表格所需的scope.row及value），如无传空
+}, {
+  value: '2',
+  label: '删除',
+  icon: 'el-icon-delete',
+  param: 'change'
+}, {
+  value: '3',
+  label: '收款',
+  icon: 'el-icon-money',
+  param: ''
+}, {
+  value: '4',
+  label: '发货',
+  icon: 'el-icon-ship',
+  param: ''
+}, {
+  value: '5',
+  label: '退款',
+  icon: 'el-icon-sunrise',
+  param: ''
+}]
+
 export default {
   name: 'Order',
   components: { Pagination },
@@ -349,6 +653,7 @@ export default {
   },
   data() {
     return {
+      tableActionOptions: actionOptions,
       list: [],
       total: 0,
       listLoading: true,
@@ -427,7 +732,6 @@ export default {
   methods: {
     checkPermission,
     getList() {
-      debugger
       this.listLoading = true
       if (this.listQuery.timeArray && this.listQuery.timeArray.length === 2) {
         this.listQuery.start = this.listQuery.timeArray[0]
@@ -460,6 +764,44 @@ export default {
           this.listLoading = false
         })
       }
+    },
+    // 表格菜单操作
+    executeTableAction(c) {
+      switch (c.command) {
+        case '1':
+          // this.handleDetail(c.row, c.param)
+          this.handleDetail(c.row)
+          break
+        case '2':
+          this.handleDelete(c.row)
+          break
+        case '3':
+          this.handlePay(c.row)
+          break
+        case '4':
+          this.handleShip(c.row)
+          break
+        case '5':
+          this.handleRefund(c.row)
+          break
+        default:
+          return
+      }
+    },
+    // 将command属性封装成一个对象 便于@command事件可获得多个参数
+    handleActionCommand(row, command, param) {
+      return {
+        row: row,
+        command: command,
+        param: param
+      }
+    },
+    // 默认返回label, 可根据表格属性自定义返回内容（采用闭包传参）
+    renderDropdownMenuLabel: function(row, item) {
+      if (item.value === '1') {
+        // return row.status === 1 ? '开启' : '关闭'
+      }
+      return item.label
     },
     getChannel() {
       listChannel().then(response => {
@@ -494,7 +836,7 @@ export default {
           .then(_ => {
             this.confirmPay2()
           })
-          .catch(_ => {})
+          .catch(_ => { })
       } else {
         this.confirmPay2()
       }
@@ -517,15 +859,21 @@ export default {
     },
     handleShip(row) {
       this.shipForm.orderId = row.id
+      this.shipForm.parentOrderId = row.parentOrderId
       this.shipForm.shipChannel = row.shipChannel
       this.shipForm.shipSn = row.shipSn
       this.shipForm.goodsInputList = []
       this.shipForm.goodsList = row.goodsVoList
       this.shipForm.goodsList.forEach(element => {
         element.onumber = element.number
-        element.serinalNum = ''
-        // 添加订单明细ID及对应的序列号
-        this.shipForm.goodsInputList.push({ detId: element.id, serinalNum: '' })
+        // 添加订单明细ID及对应的序列号等参数
+        this.shipForm.goodsInputList.push({
+          detId: element.id,
+          serial: element.serial,
+          boundSerial: element.boundSerial,
+          maxClientsCount: element.maxClientsCount,
+          maxRegisterUsersCount: element.maxRegisterUsersCount
+        })
       })
 
       this.shipDialogVisible = true
@@ -533,12 +881,9 @@ export default {
         this.$refs['shipForm'].clearValidate()
       })
     },
-    // 更新订单明细中的产品序列号
-    handleGoodsSerialNum(e, rowIndex) {
-      const serinalNum = e.currentTarget.value
-      const goodsData = this.shipForm.goodsInputList[rowIndex]
-      goodsData.serinalNum = serinalNum
-      // console.log('goodsData', goodsData)
+    // 更新订单明细中的商品参数
+    handleGoodsAttValue(e, rowIndex, attributeName) {
+      onEditOrderGoodsAtt(e, this.list, this.shipForm.goodsInputList, rowIndex, attributeName)
     },
     confirmShip() {
       this.$refs['shipForm'].validate((valid) => {
@@ -555,10 +900,20 @@ export default {
             this.getList()
           }).catch(response => {
             this.shipForm.goodsList = backupGoodsList
-            this.$notify.error({
-              title: '失败',
-              message: response.data.errmsg
-            })
+            if (response.data.errno === 620) {
+              // 更新订单明细中的商品参数成功
+              this.shipDialogVisible = false
+              this.$notify.success({
+                title: '成功',
+                message: '更新商品序列号等参数成功'
+              })
+              this.getList()
+            } else {
+              this.$notify.error({
+                title: '失败',
+                message: response.data.errmsg
+              })
+            }
           })
         }
       })
@@ -619,5 +974,21 @@ export default {
       this.orderDialogVisible = false
     }
   }
+}
+
+/**
+ * 编辑订单商品参数
+ * @param e
+ * @param rowIndex
+ */
+function onEditOrderGoodsAtt(e, orderGoodsList, goodsInputList, rowIndex, attributeName) {
+  const attributeValue = e.currentTarget.value
+  // 编辑的商品参数
+  const goodsInputData = goodsInputList[rowIndex]
+  goodsInputData[attributeName] = attributeValue
+  // 更新订单明细中的商品参数，用于表格的显示
+  const orderGoodsData = orderGoodsList[rowIndex]
+  orderGoodsData[attributeName] = attributeValue
+  // console.log('goodsData', goodsData)
 }
 </script>

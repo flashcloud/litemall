@@ -67,6 +67,9 @@ public class AdminOrderService {
 
     public Object detail(Integer id) {
         LitemallOrder order = orderService.findById(id);
+        if (order == null) {
+            return ResponseUtil.fail();
+        }
         List<LitemallOrderGoods> orderGoods = orderGoodsService.queryByOid(id);
         UserVo user = userService.findUserVoById(order.getUserId());
         Map<String, Object> data = new HashMap<>();
@@ -200,6 +203,7 @@ public class AdminOrderService {
         Integer orderId = JacksonUtil.parseInteger(body, "orderId");
         String shipSn = JacksonUtil.parseString(body, "shipSn");
         String shipChannel = JacksonUtil.parseString(body, "shipChannel");
+        Integer parentOrderId = JacksonUtil.parseInteger(body, "parentOrderId");
         if (orderId == null || shipSn == null || shipChannel == null) {
             return ResponseUtil.badArgument();
         }
@@ -209,29 +213,54 @@ public class AdminOrderService {
             return ResponseUtil.badArgument();
         }
 
+        //设置发货商品的序列号等参数
+        List<Map<String, Object>> goodsAttValues = null;
+        try {
+            //利用ObjectMapper将JSon字符串body中的goodsList部分转换成Map结构
+            goodsAttValues = parseOrderGoodsAttributeValue(body);
+        } catch (Exception e) {
+            return ResponseUtil.fail(ORDER_PARSE_GOODS_INPUT_DATA, "解析发货商品参数失败: " + e.toString());
+        }
+        if (goodsAttValues != null) {
+            // 更新发货商品的序列号等参数
+            for (Map<String, Object> item : goodsAttValues) {
+                Integer detId = Integer.parseInt(item.get("detId").toString());
+                String serial =  item.get("serial").toString();
+                String boundserial =  item.get("boundSerial").toString();
+                Short maxClientsCount =  Short.parseShort(item.get("maxClientsCount").toString());
+                Short maxRegisterUsersCount =  Short.parseShort(item.get("maxRegisterUsersCount").toString());
+                LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
+                orderGoods.setSerial(serial);
+                orderGoods.setBoundSerial(boundserial);
+                orderGoods.setMaxClientsCount(maxClientsCount);
+                orderGoods.setMaxRegisterUsersCount(maxRegisterUsersCount);
+                orderGoodsService.updateById(orderGoods);
+            }
+        }
+
         // 如果订单不是已付款状态，则不能发货
         if (!order.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
             return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
         }
 
-        //设置发货商品的序列号
-        List<Map<String, Object>> goodsSerials = null;
-        try {
-            //利用ObjectMapper将JSon字符串body中的goodsList部分转换成Map结构
-            goodsSerials = parseOrderGoodsSerinalNum(body);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            return ResponseUtil.badArgument();
-        }
-        if (goodsSerials != null) {
-            // 更新发货商品的序列号
-            for (Map<String, Object> item : goodsSerials) {
-                Integer detId = Integer.parseInt(item.get("detId").toString());
-                String serinalNum =  item.get("serinalNum").toString();
-                LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
-                //TODO: 校验orderGoods的数据合法性, 是否是该订单的订货明细
-                orderGoods.setSerial(serinalNum);
-                orderGoodsService.updateById(orderGoods);
+        //更新父级订单ID和根订单ID
+        if (parentOrderId != null) {
+            if (parentOrderId > 0) {
+                LitemallOrder parentOrder = orderService.findById(parentOrderId);
+                if (parentOrder != null) {
+                    order.setParentOrderId(parentOrderId);
+                    if (parentOrder.getRootOrderId() == 0) {
+                        order.setRootOrderId(parentOrderId);
+                    } else {
+                        order.setRootOrderId(parentOrder.getRootOrderId());
+                    }
+                } else {
+                    return ResponseUtil.fail(ORDER_PARENT_ORDER_NOT_EXISTS, "指定的上级关联订单ID：" + parentOrderId + " 不存在，请确认后再重试");
+                }
+            }
+            if (parentOrderId == 0) {
+                order.setParentOrderId(0);
+                order.setRootOrderId(0);
             }
         }
 
@@ -342,7 +371,7 @@ public class AdminOrderService {
         return ResponseUtil.ok();
     }
 
-    private List<Map<String, Object>> parseOrderGoodsSerinalNum (String jsonStr) throws JsonParseException, JsonMappingException, IOException  {
+    private List<Map<String, Object>> parseOrderGoodsAttributeValue (String jsonStr) throws JsonParseException, JsonMappingException, IOException  {
         // 1. 创建 ObjectMapper
         ObjectMapper objectMapper = new ObjectMapper();
         // 2. 解析整个 JSON 为 Map

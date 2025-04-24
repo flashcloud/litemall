@@ -316,6 +316,9 @@ export default {
       expand_goods_name: '商品名称：{goods_name}',
       expand_specifications: '规格：{specifications}',
       expand_serial: '序列号: {serial}',
+      expand_bound_serial: '关联的产品序列号: {bound_serial}',
+      expand_max_client_count: '最大授权站点数: {max_client_count}',
+      expand_max_register_user_count: '最大允许注册用户数: {max_register_user_count}',
       expand_unit_price: '单价：{price} 元',
       expand_number: '数量：{number} 件',
       expand_subtotal_price: '小计：{price} 元',
@@ -336,6 +339,9 @@ export default {
     },
     table: {
       order_sn: '订单编号',
+      order_id: '订单ID',
+      root_order_id: '源订单ID',
+      parent_order_id: '上级订单ID',
       avatar: '用户头像',
       trader_id: '下单企业ID',
       trader_info: '下单企业',
@@ -349,7 +355,11 @@ export default {
       mobile: '收货电话',
       ship_sn: '物流单号',
       ship_channel: '物流渠道',
-      ship_goods_serial_number: '商品序列号',
+      goods_attis: '商品重要参数',
+      goods_serial_number: '商品序列号',
+      goods_bound_serial: '关联的产品序列号',
+      goods_max_client_count: '最大授权站点数',
+      goods_max_register_user_count: '最大允许注册用户数',
       actions: '操作',
       detail_goods_name: '商品名称',
       detail_goods_sn: '商品编号',
@@ -362,13 +372,15 @@ export default {
       pay_goods_number: '下单数量'
     },
     dialog: {
-      detail: '订单详情',
-      pay: '订单收款',
-      ship: '发货',
-      refund: '退款'
+      detail: '订单详情：订单ID：{orderId}',
+      pay: '订单收款：订单ID：{orderId}',
+      ship: '发货：订单ID：{orderId}',
+      refund: '退款：订单ID：{orderId}'
     },
     form: {
+      detail_order_id: '订单ID',
       detail_order_sn: '订单编号',
+      detail_parent_order_id: '上级订单ID',
       detail_order_status: '订单状态',
       detail_order_trader_id: '订货企业ID',
       detail_order_trader_name: '订货企业',
@@ -388,14 +400,19 @@ export default {
       refund_money: '退款金额'
     },
     placeholder: {
+      filter_order_id: '请输入订单ID号',
       filter_nickname: '请输入用户昵称',
       filter_consignee: '请输入收货人名称',
       filter_order_sn: '请输入订单编号',
+      parent_order_id: '请输入关联的上级订单ID',
       filter_time_start: '开始日期',
       filter_time_end: '结束日期',
       filter_order_status: '请选择订单状态',
       ship_channel: '请选择',
-      ship_goods_serial_number: '请输入商品序列号'
+      goods_serial_number: '请输入商品序列号',
+      goods_bound_serial: '请输入此条产品关联到的其他产品的序列号',
+      goods_max_client_count: '请输入允许的最大授权计算机站点数',
+      goods_max_register_user_count: '请输入允许的最大注册用户数'
     },
     message: {
       pay_confirm: '确认当前订单（订单编号 {order_sn} ) 已经完成线下收款  ？'

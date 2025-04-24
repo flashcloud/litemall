@@ -41,6 +41,27 @@ public class OrderVo {
         this.traderId = traderId;
     }
 
+    private Integer rootOrderId;
+    // 获取根订单ID
+    public Integer getRootOrderId() {
+        return rootOrderId;
+    }
+    // 设置根订单ID
+    public void setRootOrderId(Integer rootOrderId) {
+        this.rootOrderId = rootOrderId;
+    }
+
+    private Integer parentOrderId;
+    // 获取父订单ID
+    public Integer getParentOrderId() {
+        return parentOrderId;
+    }
+    // 设置父订单ID
+    public void setParentOrderId(Integer parentOrderId) {
+        this.parentOrderId = parentOrderId;
+    }
+
+
     public LocalDateTime getPayTime() {
         return payTime;
     }

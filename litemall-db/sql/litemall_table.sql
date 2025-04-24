@@ -594,6 +594,8 @@ DROP TABLE IF EXISTS `litemall_order`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `litemall_order` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `root_order_id` int(11) NOT NULL DEFAULT '0' COMMENT '根订单ID',
+  `parent_order_id` int(11) NOT NULL DEFAULT '0' COMMENT '父订单ID',
   `user_id` int(11) NOT NULL COMMENT '用户表的用户ID',
   `trader_id` int(11) DEFAULT '0' COMMENT '交易商户',
   `trader_name` varchar(255) NOT NULL COMMENT '交易商户名称',
@@ -649,8 +651,11 @@ CREATE TABLE `litemall_order_goods` (
   `specifications` varchar(1023) NOT NULL COMMENT '商品货品的规格列表',
   `lot` varchar(50) NOT NULL DEFAULT '' COMMENT '商品批号',
   `serial` varchar(50) NOT NULL DEFAULT '' COMMENT '商品序列号',
+  'bound_serial' varchar(50) NOT NULL DEFAULT '' COMMENT '绑定序列号',
   `pd_date` datetime DEFAULT NULL COMMENT '商品生产日期'
   `exp_date` datetime DEFAULT NULL COMMENT '商品失效期'
+  'max_clients_count' smallint(5) DEFAULT '0' COMMENT '最大客户端站点数',
+  'max_register_users_count' smallint(5) DEFAULT '0' COMMENT '最大注册用户数',
   `pic_url` varchar(255) NOT NULL DEFAULT '' COMMENT '商品货品图片或者商品图片',
   `comment` int(11) DEFAULT '0' COMMENT '订单商品评论，如果是-1，则超期不能评价；如果是0，则可以评价；如果其他值，则是comment表里面的评论ID。',
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
