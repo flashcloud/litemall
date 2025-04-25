@@ -1,6 +1,19 @@
 <template>
 <div class="order">
   <van-cell-group>
+      <van-cell v-if="checkedTrader" isLink @click="goTraderList()" title="购买公司">
+      <div slot="label">
+        <div>
+         <span>{{ checkedTrader.companyName }} </span>
+      </div>
+      <div>
+        {{ checkedTrader.taxid }}
+      </div>
+      </div>
+    </van-cell>
+  </van-cell-group>
+
+  <van-cell-group>
       <van-cell v-if="checkedAddress" isLink @click="goAddressList()" title="收货地址">
       <div slot="label">
         <div>
@@ -83,6 +96,7 @@ export default {
     return {
       checkedGoodsList: [],
       checkedAddress: {},
+      checkedTrader: {},
       availableCouponLength: 0, // 可用的优惠券数量
       goodsTotalPrice: 0, //商品总价
       freightPrice: 0, //快递费
@@ -105,18 +119,24 @@ export default {
 
   methods: {
     onSubmit() {     
-      const {AddressId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'CartId', 'CouponId', 'UserCouponId');
+      const {AddressId, TraderId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'TraderId', 'CartId', 'CouponId', 'UserCouponId');
 
       if (AddressId === null || AddressId === "0") {
         Toast.fail('请设置收货地址');
         return;
       }
 
+      if (TraderId === null || TraderId === "0") {
+        Toast.fail('请选择购买公司');
+        return;
+      }      
+
 
       this.isDisabled = true;
 
       orderSubmit({
         addressId: AddressId,
+        traderId: TraderId,
         cartId: CartId,
         couponId: CouponId,
         userCouponId: UserCouponId,
@@ -126,7 +146,7 @@ export default {
       }).then(res => {
         
         // 下单成功，重置下单参数。
-        setLocalStorage({AddressId: 0, CartId: 0, CouponId: 0});
+        setLocalStorage({AddressId: 0, TraderId: 0, CartId: 0, CouponId: 0});
 
         let orderId = res.data.data.orderId;
         this.$router.push({
@@ -144,6 +164,11 @@ export default {
         path: '/user/address'
       });
     },
+    goTraderList() {
+      this.$router.push({
+        path: '/user/trader'
+      });
+    },
     getCouponValue() {
       if(this.couponPrice !== 0 ){
         return "-¥" + this.couponPrice + ".00元"
@@ -154,7 +179,7 @@ export default {
       return '没有可用优惠券'
     },
     getCoupons() {
-      const {AddressId, CartId, CouponId} = getLocalStorage('AddressId', 'CartId', 'CouponId');
+      const {AddressId, TraderId, CartId, CouponId} = getLocalStorage('AddressId', 'TraderId', 'CartId', 'CouponId');
       couponSelectList({cartId: CartId, grouponRulesId: 0}).then(res => {
         var cList = res.data.data.list;
         this.coupons = []
@@ -185,13 +210,14 @@ export default {
       })
     },
     init() {
-      const {AddressId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'CartId', 'CouponId', 'UserCouponId');
+      const {AddressId, TraderId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'TraderId', 'CartId', 'CouponId', 'UserCouponId');
 
-      cartCheckout({cartId: CartId, addressId: AddressId, couponId: CouponId, userCouponId: UserCouponId, grouponRulesId: 0}).then(res => {
+      cartCheckout({cartId: CartId, addressId: AddressId, traderId: TraderId, couponId: CouponId, userCouponId: UserCouponId, grouponRulesId: 0}).then(res => {
           var data = res.data.data
 
           this.checkedGoodsList = data.checkedGoodsList;
           this.checkedAddress= data.checkedAddress;
+          this.checkedTrader= data.checkedTrader;
           this.availableCouponLength= data.availableCouponLength;
           this.actualPrice= data.actualPrice;
           this.couponPrice= data.couponPrice;
@@ -200,7 +226,7 @@ export default {
           this.goodsTotalPrice= data.goodsTotalPrice;
           this.orderTotalPrice= data.orderTotalPrice;
 
-          setLocalStorage({AddressId: data.addressId, CartId: data.cartId, CouponId: data.couponId, UserCouponId: data.userCouponId});
+          setLocalStorage({AddressId: data.addressId, TraderId: data.traderId, CartId: data.cartId, CouponId: data.couponId, UserCouponId: data.userCouponId});
       });
 
     },

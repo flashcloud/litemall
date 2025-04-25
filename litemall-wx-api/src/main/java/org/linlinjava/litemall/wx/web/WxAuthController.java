@@ -67,6 +67,9 @@ public class WxAuthController {
     public Object login(@RequestBody String body, HttpServletRequest request) {
         String username = JacksonUtil.parseString(body, "username");
         String password = JacksonUtil.parseString(body, "password");
+        if (username == null) {
+            username = JacksonUtil.parseString(body, "mobile");
+        }
         if (username == null || password == null) {
             return ResponseUtil.badArgument();
         }

@@ -20,6 +20,12 @@
     </div>
 
     <van-cell-group style="margin-top: 20px;">
+      <van-cell icon="user"
+                :title="`${orderInfo.traderName}  ${orderInfo.traderNickname}`"
+                :label="orderInfo.traderTaxid" />
+    </van-cell-group>
+
+    <van-cell-group style="margin-top: 20px;">
       <van-cell icon="dingwei"
                 :title="`${orderInfo.consignee}  ${orderInfo.mobile}`"
                 :label="orderInfo.address" />

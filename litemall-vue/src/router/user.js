@@ -66,6 +66,14 @@ export default [
     component: UserTrader
   },
   {
+    path: '/user/trader',
+    name: 'trader',
+    meta: {
+      login: true
+    },
+    component: UserTrader
+  },
+  {
     path: '/user/trader/edit',
     name: 'trader-edit',
     props: true,
