@@ -2,11 +2,14 @@ package org.linlinjava.litemall.db.service;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+
+import org.apache.ibatis.annotations.Param;
 import org.linlinjava.litemall.db.dao.LitemallOrderMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
 import org.linlinjava.litemall.db.domain.OrderVo;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -265,5 +268,14 @@ public class LitemallOrderService {
         data.put("limit", list1.getPageSize());
         data.put("pages", list1.getPages());
         return data;
+    }
+
+    /**
+     * 根据产品序列号获取订单相关信息
+     * @param serial
+     * @return
+     */
+    public TraderOrderGoodsVo getTraderOrderGoodsBySerial(String serial) {
+        return orderMapper.getTraderOrderGoodsBySerial(serial);
     }
 }

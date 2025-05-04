@@ -164,6 +164,7 @@ export default {
   },
   user_trader: {
     table: {
+      id: 'ID',
       name: '交易企业名称',
       nickname: '企业简称',
       taxid: '税号',

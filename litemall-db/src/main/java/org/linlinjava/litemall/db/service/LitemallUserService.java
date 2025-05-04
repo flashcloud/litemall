@@ -3,7 +3,6 @@ package org.linlinjava.litemall.db.service;
 import com.github.pagehelper.PageHelper;
 import org.linlinjava.litemall.db.dao.LitemallUserMapper;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
-import org.linlinjava.litemall.db.domain.LitemallTraderExample;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.UserVo;
@@ -62,10 +61,11 @@ public class LitemallUserService {
         return userMapper.selectOneByExample(example);
     }
 
-    public void add(LitemallUser user) {
+    public Integer add(LitemallUser user) {
         user.setAddTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         userMapper.insertSelective(user);
+        return user.getId();
     }
 
     public int updateById(LitemallUser user) {

@@ -13,11 +13,13 @@ import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
 import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.service.CouponAssignService;
+import org.linlinjava.litemall.db.service.LitemallOrderService;
+import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.dto.UserInfo;
-import org.linlinjava.litemall.wx.dto.UserToken;
 import org.linlinjava.litemall.wx.dto.WxLoginInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
@@ -55,6 +57,10 @@ public class WxAuthController {
 
     @Autowired
     private CouponAssignService couponAssignService;
+
+    @Autowired LitemallTraderService traderService;
+
+    @Autowired LitemallOrderService orderService;
 
     /**
      * 账号登录
@@ -241,6 +247,7 @@ public class WxAuthController {
         String password = JacksonUtil.parseString(body, "password");
         String mobile = JacksonUtil.parseString(body, "mobile");
         String code = JacksonUtil.parseString(body, "code");
+        String dogKey = JacksonUtil.parseString(body, "pcapp-key");
         // 如果是小程序注册，则必须非空
         // 其他情况，可以为空
         String wxCode = JacksonUtil.parseString(body, "wxCode");
@@ -308,7 +315,20 @@ public class WxAuthController {
         user.setStatus((byte) 0);
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(IpUtil.getIpAddr(request));
-        userService.add(user);
+        if (dogKey != null && !dogKey.isEmpty()) {
+            //绑定加密锁注册
+            TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderGoodsBySerial(dogKey);
+            if (orderGoodsVo == null) {
+                return ResponseUtil.fail(AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + dogKey + "）不存在");
+            }
+            if (!traderService.checkRegisterUser(dogKey)) {
+                //TODO: 向交易企业负责人发送消息，提示注册用户数已达上限，让其购买更多注册用户
+                return ResponseUtil.fail(AUTH_REGISTER_USERS_COUNT_MAX, "注册用户数已达上限值：" + orderGoodsVo.getMaxRegisterUsersCount());
+            }
+            traderService.registerUser(user, dogKey);
+        } else {
+            userService.add(user);
+        }
 
         // 给新用户发送注册优惠券
         couponAssignService.assignForRegister(user.getId());

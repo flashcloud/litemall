@@ -12,6 +12,7 @@ import com.github.binarywang.wxpay.service.WxPayService;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.ibatis.annotations.Param;
 import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.express.dao.ExpressInfo;
 import org.linlinjava.litemall.core.notify.NotifyService;
@@ -1127,5 +1128,9 @@ public class WxOrderService {
             return ResponseUtil.fail(ORDER_TRADER_REJECT, "无效的购买公司!");
         } else 
             return checkedTrader;
+    }
+
+    public TraderOrderGoodsVo getTraderOrderGoodsBySerial(String serial) {
+        return orderService.getTraderOrderGoodsBySerial(serial);
     }
 }

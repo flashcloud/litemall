@@ -2,17 +2,22 @@ package org.linlinjava.litemall.wx.web;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.WxOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
+
 
 @RestController
 @RequestMapping("/wx/order")
@@ -55,7 +60,13 @@ public class WxOrderController {
     public Object detail(@LoginUser Integer userId, @NotNull Integer orderId) {
         return wxOrderService.detail(userId, orderId);
     }
-
+    @GetMapping("traderOrderDetail")
+    public Object traderOrderDetail(@RequestParam String serial) {
+        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderGoodsBySerial(serial);
+        result.setPrice(BigDecimal.valueOf(0.0));//价格不显示
+        return ResponseUtil.ok(result);
+    }
+    
     /**
      * 提交订单
      *

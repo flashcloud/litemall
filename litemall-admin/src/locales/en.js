@@ -164,6 +164,7 @@ export default {
   },
   user_trader: {
     table: {
+      id: 'ID',
       name: 'Company Name',
       nickname: 'Nickname',
       taxid: 'Tax ID',

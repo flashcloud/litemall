@@ -12,6 +12,7 @@ import javax.annotation.Resource;
 import org.linlinjava.litemall.db.dao.LitemallTraderMapper;
 import org.linlinjava.litemall.db.domain.LitemallTraderExample;
 import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +102,54 @@ public class LitemallTraderService {
 
         //更新用户绑定的商户
         updateUsersTraders(trader);
+    }
+
+    /**
+     *  添加用户.并将该用户与加密锁KEY对应的交易商户绑定
+     * @param user
+     * @param dogKey 用户绑定的加密锁key
+     */
+    @Transactional
+    public boolean registerUser(LitemallUser user, String dogKey) {
+        if (!checkRegisterUser(dogKey)) return false;
+
+        //根据加密锁KEY找到对应的订单明细，再根据订单明细找到对应的订单，从该订单中找到交易商户，将该用户和交易商户绑定
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderGoodsBySerial(dogKey);
+        LitemallTrader trader = queryById(orderedGoods.getTraderId());
+
+        userService.add(user);
+
+        //如果当前注册用户的手机号和交易商户的手机号相同，则将交易商户的负责人绑定到此用户
+        if ((trader.getUserId() == null || trader.getUserId() == 0) && trader.getPhoneNum().equals(user.getMobile())) {
+            trader.setUserId(user.getId());
+            trader.setIsDefault(true);
+            traderMapper.updateByPrimaryKey(trader);
+        }
+        
+        //绑定用户和交易商户
+        user.setDefaultTraderId(trader.getId());
+        user.setTraderIds(new Integer[]{trader.getId()});
+        userService.updateById(user);
+        
+        return true;
+        
+    }
+
+    /**
+     *  检查用户是否可以注册
+     * @param user
+     * @param dogKey
+     * @return
+     */
+    public boolean checkRegisterUser(String dogKey) {
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderGoodsBySerial(dogKey);
+        if (orderedGoods == null) return false;
+
+        LitemallTrader trader = queryById(orderedGoods.getTraderId());
+        if (trader == null) return false;
+
+        return orderedGoods.getMaxRegisterUsersCount() > usedTraderByUserIds(trader.getId()).length;
+        
     }
 
     public boolean checkCanEditTrader(Integer userId, Integer traderId) {

@@ -41,4 +41,7 @@ public class WxResponseCode {
     public static final int AFTERSALE_INVALID_AMOUNT = 751;
     public static final int AFTERSALE_INVALID_STATUS = 752;
 
+    public static final Integer AUTH_DOG_KEY_NOT_EXISTS = 753;
+    public static final Integer AUTH_REGISTER_USERS_COUNT_MAX = 754;
+
 }

@@ -10,6 +10,7 @@
 
     <!-- 查询结果 -->
     <el-table v-loading="listLoading" :data="list" :element-loading-text="$t('app.message.list_loading')" border fit highlight-current-row>
+      <el-table-column align="center" :label="$t('user_trader.table.id')" prop="id" sortable :width="70" />
       <el-table-column align="center" :label="$t('user_trader.table.taxid')" prop="taxid" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.name')" prop="companyName" sortable />
       <el-table-column align="center" :label="$t('user_trader.table.nickname')" prop="nickname" sortable />
