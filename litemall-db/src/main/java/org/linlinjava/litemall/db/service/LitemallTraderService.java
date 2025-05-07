@@ -14,7 +14,6 @@ import org.linlinjava.litemall.db.domain.LitemallTraderExample;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
-import org.linlinjava.litemall.core.util.RegexUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -432,12 +431,23 @@ public class LitemallTraderService {
 
     /**
      * 使用了指定商户的其他用户
-     * @param userId
-     * @param id
+     * @param userId 如果userId不为空，则返回除了该用户以外的其他用户
+     * @param traderId
      * @return
      */
-    public List<LitemallUser> usedTraderByOtherUsers(Integer userId, Integer id) {
-        return usedTraderByUsersHlp(userId, id);
+    public List<LitemallUser> usedTraderByOtherUsers(Integer userId, Integer traderId) {
+        return usedTraderByUsersHlp(userId, traderId);
+    }
+
+    /**
+     * 获取使用了指定商户的其他用户的数量
+     * @param userId 如果userId不为空，则返回除了该用户以外的其他用户
+     * @param traderId
+     * @return
+     */
+    public Integer usedTraderByOtherUsersCount(Integer userId, Integer traderId) {
+        List<LitemallUser> userList =  usedTraderByOtherUsers(userId, traderId);
+        return userList == null ? 0 : userList.size();
     }
 
     public String usedTraderUsersString(List<LitemallUser> userList) {
@@ -560,12 +570,6 @@ public class LitemallTraderService {
 		}
         String taxid = trader.getTaxid();
 		if (StringUtils.isEmpty(taxid)) {
-			return false;
-		}
-
-		// 测试电话是否正确
-		String phoneNum = trader.getPhoneNum();
-		if (StringUtils.isNotBlank(phoneNum) && !RegexUtil.isPhoneOrMobile(phoneNum)) {
 			return false;
 		}
 
