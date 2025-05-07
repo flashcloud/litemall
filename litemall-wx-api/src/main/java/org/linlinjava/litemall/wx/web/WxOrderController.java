@@ -6,8 +6,10 @@ import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
+import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.WxOrderService;
+import org.linlinjava.litemall.wx.util.WxResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,8 @@ public class WxOrderController {
 
     @Autowired
     private WxOrderService wxOrderService;
+
+    @Autowired LitemallTraderService traderService;
 
     /**
      * 订单列表
@@ -63,6 +67,10 @@ public class WxOrderController {
     @GetMapping("traderOrderDetail")
     public Object traderOrderDetail(@RequestParam String serial) {
         TraderOrderGoodsVo result =  wxOrderService.getTraderOrderGoodsBySerial(serial);
+        if (result == null){
+            return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + serial + "）不存在");
+        }
+        result.setHasRegisteredUsersCount(traderService.usedTraderByOtherUsersCount(null, result.getTraderId()));
         result.setPrice(BigDecimal.valueOf(0.0));//价格不显示
         return ResponseUtil.ok(result);
     }

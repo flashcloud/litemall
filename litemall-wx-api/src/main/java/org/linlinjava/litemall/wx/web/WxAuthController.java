@@ -186,7 +186,7 @@ public class WxAuthController {
     /**
      * 请求注册验证码
      *
-     * TODO
+     * TODO: 不用再使用短信验证码，使用图片验证码：https://github.com/xingyuv/captcha-plus
      * 这里需要一定机制防止短信验证码被滥用
      *
      * @param body 手机号码 { mobile }
@@ -217,6 +217,8 @@ public class WxAuthController {
 
     /**
      * 账号注册
+     * TODO: 限制用户注册频率：https://blog.csdn.net/baiyan3212/article/details/90453765
+     *      在注解上实际频率的动态设置：https://blog.csdn.net/qq_18244417/article/details/117678422， https://www.cnblogs.com/54chensongxia/p/15250479.html
      *
      * @param body    请求内容
      *                {
