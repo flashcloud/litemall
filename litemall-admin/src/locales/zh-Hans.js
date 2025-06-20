@@ -123,7 +123,7 @@ export default {
     }
   },
   common_config: {
-    add_time: '添加时间',
+    add_time: '注册时间',
     update_time: '更新时间'
   },
   user_user: {

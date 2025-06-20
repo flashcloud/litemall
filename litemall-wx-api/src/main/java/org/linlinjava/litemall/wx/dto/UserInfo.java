@@ -1,6 +1,9 @@
 package org.linlinjava.litemall.wx.dto;
 
+import java.time.LocalDateTime;
+
 public class UserInfo {
+    private String userName;
     private String nickName;
     private String avatarUrl;
     private String country;
@@ -8,6 +11,10 @@ public class UserInfo {
     private String city;
     private String language;
     private Byte gender;
+
+    private String mobile;
+    private LocalDateTime addTime;
+    private int addDays;
 
     public String getCountry() {
         return country;
@@ -49,6 +56,13 @@ public class UserInfo {
         this.gender = gender;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     public String getNickName() {
         return nickName;
     }
@@ -63,5 +77,26 @@ public class UserInfo {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getMobile() {
+        return mobile;
+    }
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
+    }
+
+    public LocalDateTime getAddTime() {
+        return addTime;
+    }
+    public void setAddTime(LocalDateTime addTime) {
+        this.addTime = addTime;
+
+        //计算addTime到现在的天数
+        this.addDays = (int) java.time.Duration.between(addTime, LocalDateTime.now()).toDays();
+    }
+
+    public int getAddedDays() {
+        return addDays;
     }
 }

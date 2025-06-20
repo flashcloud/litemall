@@ -25,11 +25,21 @@ import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.NotNull;
+
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +55,9 @@ import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 @Validated
 public class WxAuthController {
     private final Log logger = LogFactory.getLog(WxAuthController.class);
+
+    @Autowired
+    private Environment environment;    
 
     @Autowired
     private LitemallUserService userService;
@@ -104,8 +117,12 @@ public class WxAuthController {
 
         // userInfo
         UserInfo userInfo = new UserInfo();
-        userInfo.setNickName(username);
+        userInfo.setUserName(username);
+        userInfo.setNickName(user.getNickname());
         userInfo.setAvatarUrl(user.getAvatar());
+        userInfo.setGender(user.getGender());
+        userInfo.setMobile(user.getMobile());
+        userInfo.setAddTime(user.getAddTime());
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
@@ -404,22 +421,37 @@ public class WxAuthController {
      * 失败则 { errno: XXX, errmsg: XXX }
      */
     @PostMapping("reset")
-    public Object reset(@RequestBody String body, HttpServletRequest request) {
-        String password = JacksonUtil.parseString(body, "password");
+    public Object reset(@LoginUser Integer userId, @RequestBody String body, HttpServletRequest request) {
+        if(userId == null){
+            return ResponseUtil.unlogin();
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        String oldPassword = JacksonUtil.parseString(body, "oldPassword");
+        String newPassword = JacksonUtil.parseString(body, "newPassword");
         String mobile = JacksonUtil.parseString(body, "mobile");
         String code = JacksonUtil.parseString(body, "code");
 
-        if (mobile == null || code == null || password == null) {
+        if (mobile == null || code == null || newPassword == null || oldPassword == null) {
             return ResponseUtil.badArgument();
         }
 
+        //TODO: 验证码
         //判断验证码是否正确
-        String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
-        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        //String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
+        //if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
+        //    return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号的原密码不对");
+        }        
 
         List<LitemallUser> userList = userService.queryByMobile(mobile);
-        LitemallUser user = null;
         if (userList.size() > 1) {
             return ResponseUtil.serious();
         } else if (userList.size() == 0) {
@@ -427,9 +459,14 @@ public class WxAuthController {
         } else {
             user = userList.get(0);
         }
+        if (!user.getId().equals(userId)) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户账号不匹配");
+        }
 
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String encodedPassword = encoder.encode(password);
+        if (!RegexUtil.isMobileSimple(mobile)) {
+            return ResponseUtil.fail(AUTH_INVALID_MOBILE, "手机号格式不正确");
+        }
+        String encodedPassword = encoder.encode(newPassword);
         user.setPassword(encodedPassword);
 
         if (userService.updateById(user) == 0) {
@@ -467,10 +504,11 @@ public class WxAuthController {
             return ResponseUtil.badArgument();
         }
 
+        //TODO: 验证码
         //判断验证码是否正确
-        String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
-        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        // String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
+        // if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
+        //     return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
 
         List<LitemallUser> userList = userService.queryByMobile(mobile);
         LitemallUser user = null;
@@ -534,6 +572,128 @@ public class WxAuthController {
         return ResponseUtil.ok();
     }
 
+    @PostMapping("isLoginTimeout")
+    public Object isLoginTimeout(@LoginUser Integer userId) {
+        if(userId == null){
+            return ResponseUtil.unlogin();
+        } else {
+            return ResponseUtil.ok();
+        }
+    }
+
+    // 图片上传
+    @PostMapping(value = "uploadAvatar", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public Object upload(@LoginUser Integer userId, @RequestParam("file") MultipartFile multipartFile) {
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+
+        String avatarAbsPathStr = getAvatarAbsFolder();
+        File avatarAbsFolder = new File(avatarAbsPathStr);
+        if (!avatarAbsFolder.exists()) {
+            avatarAbsFolder.mkdirs();
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        //获取文件扩展名
+        String originalFilename = multipartFile.getOriginalFilename();
+        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String avatarFileName = user.getUsername() + fileExtension;
+
+        // 保存头像名称为用户账户名
+        String avatarUrl = getAvatarFolder() +  avatarFileName;
+        String avatarFileLocalPath = avatarAbsPathStr + avatarFileName;
+		File avatarFile = new File(avatarFileLocalPath);
+        
+
+        // 在avatarAbsFolder文件夹下搜索所有以用户账户名开头的的其他文件，并删除
+        File[] files = avatarAbsFolder.listFiles((dir, name) -> name.startsWith(user.getUsername()));
+        if (files != null) {
+            for (File f : files) {
+                if (!f.equals(avatarFile)) {
+                    f.delete();
+                }
+            }
+        }
+
+        try {
+            multipartFile.transferTo(avatarFile);
+            
+            //上传头像到服务器本地后，清空用户的头像地址
+            user.setAvatar(avatarUrl); // 清空头像地址，使用本地存储的头像
+            if (userService.updateById(user) == 0) {
+                return ResponseUtil.updatedDataFailed();
+            }
+
+            // 这里可以添加图片上传逻辑，比如上传到云存储等
+            // 目前仅返回图片地址
+            Map<Object, Object> data = new HashMap<>();
+            data.put("avatar", avatarUrl);
+            return ResponseUtil.ok(data);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseUtil.fail(502, "图片上传失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("getAvatar")
+    public ResponseEntity<Resource> getAvatar( @NotNull String token) {
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.status(501).build(); // 未登录
+        }
+        Integer userId = UserTokenManager.getUserId(token);
+        if (userId == null) {
+            return ResponseEntity.status(501).build(); // 未登录
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.status(404).build(); // 用户不存在
+        }
+
+        Resource resource;
+
+        if (!StringUtils.isEmpty(user.getAvatar()) && !user.getAvatar().startsWith(getAvatarFolder())) {
+            //如果用户设置了头像的URL地址，则直接返回该头像
+            return ResponseEntity.status(404).build();
+        } else {
+            // 获取头像文件夹路径
+            String avatarAbsPathStr = getAvatarAbsFolder();
+            File avatarAbsFolder = new File(avatarAbsPathStr);
+            if (!avatarAbsFolder.exists()) {
+                return ResponseEntity.status(201).build(); // 有头像的URL,则返回201让客户端自己加载
+            }
+            //在avatarAbsFolder文件夹下搜索所有以用户账户名开头的的文件，返回第一个找到的文件
+            File[] files = avatarAbsFolder.listFiles((dir, name) -> name.startsWith(user.getUsername()));
+            if (files != null && files.length > 0) {
+                File avatarFile = files[0];
+                // 加载图片资源
+                resource = loadResource(avatarFile.getAbsolutePath());
+            } else {
+                // 如果用户没有设置头像，则返回默认头像
+                File defaultAvatarFile = new File(avatarAbsFolder, "avatar.jpg");   //TODO: 需要从配置文件中application.yml获取默认头像路径web.default-avatar-local
+                if (!defaultAvatarFile.exists()) {
+                    return ResponseEntity.status(404).build(); // 默认头像文件不存在
+                }
+                resource = loadResource(defaultAvatarFile.getAbsolutePath());
+            }
+        }
+
+        // 构建响应
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(resource);
+    }
+    private Resource loadResource(String imagePath) {
+        // 实现加载图片资源的逻辑，这里可以是文件系统、类路径、网络等不同位置
+        // 这里的示例是加载文件系统中的图片
+        return new FileSystemResource(imagePath);
+    }
+
     /**
      * 微信手机号码绑定
      *
@@ -580,5 +740,18 @@ public class WxAuthController {
         data.put("mobile", user.getMobile());
 
         return ResponseUtil.ok(data);
+    }
+
+    private String getAvatarFolder() {
+        return "/images/avatar/";
+    }    
+
+    private String getAvatarAbsFolder() {
+        String defaultPath= environment.getProperty("web.upload-path");
+        if (defaultPath == null || defaultPath.isEmpty()) {
+            //TODO: 这里需要修改为实际的图片存储路径
+            defaultPath = "/Users/flashcloudf/dev/mobile_dev/worksapce/sungole-icloud/grsoft/litemall/storage";
+        }
+        return defaultPath + getAvatarFolder();
     }
 }

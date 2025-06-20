@@ -54,6 +54,7 @@
         </template>
       </el-table-column>
 
+      <el-table-column align="center" :label="$t('common_config.add_time')" prop="addTime" />
       <el-table-column align="center" :label="$t('common_config.update_time')" prop="updateTime" />
 
       <el-table-column align="center" :label="$t('user_user.table.actions')" width="250" class-name="small-padding fixed-width">

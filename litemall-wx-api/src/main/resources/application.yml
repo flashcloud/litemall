@@ -1,8 +1,15 @@
+web:
+  upload-path: '/Users/flashcloudf/dev/mobile_dev/worksapce/sungole-icloud/grsoft/litemall/storage'
+  default-avatar-url: 'https://sungole-icloud.oss-cn-shenzhen.aliyuncs.com/litemall/default-avatar.jpg'  #TODO: change to your own default avatar URL
+  default-avatar-local: '/Users/flashcloudf/dev/mobile_dev/worksapce/sungole-icloud/grsoft/litemall/storage/images/avatar/avatar.jpg' 
+
 spring:
   profiles:
     active: db, core, wx
   messages:
     encoding: UTF-8
+  resources:
+    static-locations: classpath:/static/, file:${web.upload-path}
 
 server:
   port: 8082
