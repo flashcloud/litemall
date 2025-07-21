@@ -23,6 +23,7 @@ import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.dto.WxLoginInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
+import org.linlinjava.litemall.wx.service.WxOrderService;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -75,6 +76,8 @@ public class WxAuthController {
 
     @Autowired LitemallOrderService orderService;
 
+    @Autowired private WxOrderService wxOrderService;
+
     /**
      * 账号登录
      *
@@ -123,6 +126,9 @@ public class WxAuthController {
         userInfo.setGender(user.getGender());
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
+
+        // 登录用户下面的所有交易商户
+        userInfo.setManagedTraders(traderService.managedByUser(user));
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
@@ -336,7 +342,7 @@ public class WxAuthController {
         user.setLastLoginIp(IpUtil.getIpAddr(request));
         if (dogKey != null && !dogKey.isEmpty()) {
             //绑定加密锁注册
-            TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderGoodsBySerial(dogKey);
+            TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderedPCAppBySerial(dogKey);
             if (orderGoodsVo == null) {
                 return ResponseUtil.fail(AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + dogKey + "）不存在");
             }
@@ -512,9 +518,15 @@ public class WxAuthController {
 
         List<LitemallUser> userList = userService.queryByMobile(mobile);
         LitemallUser user = null;
-        if (userList.size() > 1) {
+        if (userList.size() > 0) {
             return ResponseUtil.fail(AUTH_MOBILE_REGISTERED, "手机号已注册");
         }
+
+        userList = userService.queryByUsername(mobile);
+        if (userList.size() > 0) {
+            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "手机号注册的用户名已存在");
+        }
+
         user = userService.findById(userId);
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -523,6 +535,7 @@ public class WxAuthController {
         }
 
         user.setMobile(mobile);
+        user.setUsername(mobile); // 将用户名也设置为手机号
         if (userService.updateById(user) == 0) {
             return ResponseUtil.updatedDataFailed();
         }

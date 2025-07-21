@@ -4,12 +4,18 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 
 import org.apache.ibatis.annotations.Param;
+import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
 import org.linlinjava.litemall.db.dao.LitemallOrderMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample;
+import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.OrderVo;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
+import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -24,6 +30,8 @@ import java.util.*;
 public class LitemallOrderService {
     @Resource
     private LitemallOrderMapper litemallOrderMapper;
+    @Resource
+    private LitemallOrderGoodsMapper litemallOrderGoodsMapper;
     @Resource
     private OrderMapper orderMapper;
 
@@ -271,11 +279,25 @@ public class LitemallOrderService {
     }
 
     /**
+     * 根据ID获取指定管理用户的商户订阅的PC端应用订单信息
+     * @param userId 
+     * @param orderGoodsId
+     * @return
+     */
+    public TraderOrderGoodsVo getTraderOrderedPCAppById(Integer userId, Integer orderGoodsId) {
+        return orderMapper.getTraderOrderedPCAppBy(null, userId, orderGoodsId);
+    }
+
+    /**
      * 根据产品序列号获取订单相关信息
      * @param serial
      * @return
-     */
-    public TraderOrderGoodsVo getTraderOrderGoodsBySerial(String serial) {
-        return orderMapper.getTraderOrderGoodsBySerial(serial);
+     */    
+    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(String serial) {
+        return orderMapper.getTraderOrderedPCAppBy(serial, null, null);
+    }    
+
+    public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(Integer userId) {
+        return orderMapper.getTraderOrderedPCAppByUserId(userId);
     }
 }

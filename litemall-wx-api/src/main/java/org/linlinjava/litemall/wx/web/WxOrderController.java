@@ -5,9 +5,12 @@ import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
+import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.service.WxOrderService;
 import org.linlinjava.litemall.wx.util.WxResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +18,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
+import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 
 @RestController
 @RequestMapping("/wx/order")
@@ -31,6 +37,7 @@ public class WxOrderController {
     private WxOrderService wxOrderService;
 
     @Autowired LitemallTraderService traderService;
+    @Autowired LitemallUserService userService;
 
     /**
      * 订单列表
@@ -66,13 +73,60 @@ public class WxOrderController {
     }
     @GetMapping("traderOrderDetail")
     public Object traderOrderDetail(@RequestParam String serial) {
-        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderGoodsBySerial(serial);
+        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderedPCAppBySerial(serial);
         if (result == null){
             return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + serial + "）不存在");
         }
-        result.setHasRegisteredUsersCount(traderService.usedTraderByOtherUsersCount(null, result.getTraderId()));
         result.setPrice(BigDecimal.valueOf(0.0));//价格不显示
         return ResponseUtil.ok(result);
+    }
+
+    /**
+     * 交易商户订单列表
+     *
+     * @param userId 用户ID
+     * @return 交易商户订单列表
+     */
+    @GetMapping("traderOrders")
+    public Object traderOrdersData(@LoginUser Integer userId) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        List<TraderOrderGoodsVo> result =  wxOrderService.getTraderOrderGoodsByUser(user);
+        if (result == null || result.isEmpty()) {
+            return ResponseUtil.okList(result);
+        }
+        return ResponseUtil.okList(result);
+    }
+
+    /**
+     * 根据订单明细ID获取指定管理用户的商户订阅的PC端应用已经注册的用户列表
+     * @param userId 管理用户ID
+     * @param orderGoodsId 订单ID
+     * @return 用户列表
+     */
+    @GetMapping("pcAppRegisteredUsers")
+    public Object traderOrderedPCAppRegisteredUsers(@LoginUser Integer userId, @NotNull Integer orderGoodsId) {
+        List<UserInfo> userInfoList = new ArrayList<>();
+        List<LitemallUser> users = wxOrderService.getTraderOrderedPCAppRegisteredUsers(userId, orderGoodsId);
+        if (users == null || users.isEmpty()) {
+            return ResponseUtil.okList(userInfoList);
+        }
+
+        for (LitemallUser user : users) {
+            UserInfo userInfo = new UserInfo();
+            userInfo.setUserName(user.getUsername());
+            userInfo.setNickName(user.getNickname());
+            userInfo.setAvatarUrl(user.getAvatar());
+            userInfo.setGender(user.getGender());
+            userInfo.setMobile(user.getMobile());
+            userInfo.setAddTime(user.getAddTime());
+            userInfoList.add(userInfo);
+        }
+
+        return ResponseUtil.okList(userInfoList);
     }
     
     /**

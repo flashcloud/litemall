@@ -1,6 +1,9 @@
 package org.linlinjava.litemall.wx.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import org.linlinjava.litemall.db.domain.LitemallTrader;
 
 public class UserInfo {
     private String userName;
@@ -11,6 +14,7 @@ public class UserInfo {
     private String city;
     private String language;
     private Byte gender;
+    private List<LitemallTrader> managedTraders;
 
     private String mobile;
     private LocalDateTime addTime;
@@ -99,4 +103,12 @@ public class UserInfo {
     public int getAddedDays() {
         return addDays;
     }
+
+    public List<LitemallTrader> getManagedTraders() {
+        return managedTraders;
+    }
+
+    public void setManagedTraders(List<LitemallTrader> managedTraders) {
+        this.managedTraders = managedTraders;
+    }    
 }

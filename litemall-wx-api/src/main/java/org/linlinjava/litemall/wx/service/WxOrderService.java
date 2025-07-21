@@ -25,6 +25,7 @@ import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.service.*;
+import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
 import org.linlinjava.litemall.db.util.GrouponConstant;
 import org.linlinjava.litemall.db.util.OrderHandleOption;
@@ -41,7 +42,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -109,6 +112,8 @@ public class WxOrderService {
     private TaskService taskService;
     @Autowired
     private LitemallAftersaleService aftersaleService;
+    @Autowired
+    private LitemallTraderService traderService;
 
     /**
      * 订单列表
@@ -1130,7 +1135,31 @@ public class WxOrderService {
             return checkedTrader;
     }
 
-    public TraderOrderGoodsVo getTraderOrderGoodsBySerial(String serial) {
-        return orderService.getTraderOrderGoodsBySerial(serial);
+    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(String serial) {
+        return orderService.getTraderOrderedPCAppBySerial(serial);
+    }
+
+    public List<TraderOrderGoodsVo> getTraderOrderGoodsByUser(LitemallUser user) {
+        List<TraderOrderGoodsVo> result = orderService.getTraderOrderedPCAppByUser(user.getId());
+        for (TraderOrderGoodsVo goodsVo : result) {
+            goodsVo.setPrice(BigDecimal.valueOf(0.0));//价格不显示
+        }
+        return result;
+    }
+
+    /**
+     * 根据订单明细ID获取指定管理用户的商户订阅的PC端应用已经注册的用户列表
+     * @param userId 管理用户ID
+     * @param orderGoodsId 订单ID
+     * @return 管理用户订阅的PC端应用已经注册的用户列表
+     */
+    public List<LitemallUser> getTraderOrderedPCAppRegisteredUsers(Integer userId, Integer orderGoodsId) {
+        List<LitemallUser> users = new  LinkedList<LitemallUser>();
+        TraderOrderGoodsVo traderOrderGoodsVo = orderService.getTraderOrderedPCAppById(userId, orderGoodsId);
+        if (traderOrderGoodsVo == null || traderOrderGoodsVo.getHasRegisterUserIds() == null || traderOrderGoodsVo.getHasRegisterUserIds().length == 0) {
+            return users;
+        }
+
+        return userService.queryByIds(traderOrderGoodsVo.getHasRegisterUserIds());
     }
 }

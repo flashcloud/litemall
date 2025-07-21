@@ -27,6 +27,7 @@
     <result column="bound_serial" jdbcType="VARCHAR" property="boundSerial" />
     <result column="max_clients_count" jdbcType="SMALLINT" property="maxClientsCount" />
     <result column="max_register_users_count" jdbcType="SMALLINT" property="maxRegisterUsersCount" />
+    <result column="has_register_user_ids" jdbcType="VARCHAR" property="hasRegisterUserIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -74,6 +75,25 @@
                   </foreach>
                 </when>
               </choose>
+            </foreach>
+            <foreach collection="criteria.hasRegisterUserIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
             </foreach>
           </trim>
         </if>
@@ -127,6 +147,25 @@
                 </when>
               </choose>
             </foreach>
+            <foreach collection="criteria.hasRegisterUserIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
+            </foreach>
           </trim>
         </if>
       </foreach>
@@ -139,7 +178,7 @@
     -->
     id, order_id, goods_id, goods_name, goods_sn, product_id, `number`, price, specifications, 
     pic_url, `comment`, add_time, update_time, deleted, lot, serial, pd_date, exp_date, 
-    bound_serial, max_clients_count, max_register_users_count
+    bound_serial, max_clients_count, max_register_users_count, has_register_user_ids
   </sql>
   <select id="selectByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample" resultMap="BaseResultMap">
     <!--
@@ -266,7 +305,7 @@
       pic_url, `comment`, add_time, 
       update_time, deleted, lot, 
       serial, pd_date, exp_date, 
-      bound_serial, max_clients_count, max_register_users_count
+      bound_serial, max_clients_count, max_register_users_count, has_register_user_ids
       )
     values (#{orderId,jdbcType=INTEGER}, #{goodsId,jdbcType=INTEGER}, #{goodsName,jdbcType=VARCHAR}, 
       #{goodsSn,jdbcType=VARCHAR}, #{productId,jdbcType=INTEGER}, #{number,jdbcType=SMALLINT}, 
@@ -274,7 +313,8 @@
       #{picUrl,jdbcType=VARCHAR}, #{comment,jdbcType=INTEGER}, #{addTime,jdbcType=TIMESTAMP}, 
       #{updateTime,jdbcType=TIMESTAMP}, #{deleted,jdbcType=BIT}, #{lot,jdbcType=VARCHAR}, 
       #{serial,jdbcType=VARCHAR}, #{pdDate,jdbcType=TIMESTAMP}, #{expDate,jdbcType=TIMESTAMP}, 
-      #{boundSerial,jdbcType=VARCHAR}, #{maxClientsCount,jdbcType=SMALLINT}, #{maxRegisterUsersCount,jdbcType=SMALLINT}
+      #{boundSerial,jdbcType=VARCHAR}, #{maxClientsCount,jdbcType=SMALLINT}, #{maxRegisterUsersCount,jdbcType=SMALLINT},
+      #{hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
       )
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderGoods">
@@ -347,6 +387,9 @@
       <if test="maxRegisterUsersCount != null">
         max_register_users_count,
       </if>
+      <if test="hasRegisterUserIds != null">
+        has_register_user_ids,
+      </if>      
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="orderId != null">
@@ -409,6 +452,9 @@
       <if test="maxRegisterUsersCount != null">
         #{maxRegisterUsersCount,jdbcType=SMALLINT},
       </if>
+      <if test="hasRegisterUserIds != null">
+        #{hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+      </if>      
     </trim>
   </insert>
   <select id="countByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample" resultType="java.lang.Long">
@@ -491,6 +537,9 @@
       <if test="record.maxRegisterUsersCount != null">
         max_register_users_count = #{record.maxRegisterUsersCount,jdbcType=SMALLINT},
       </if>
+      <if test="record.hasRegisterUserIds != null">
+        has_register_user_ids = #{record.hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+      </if>      
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -522,7 +571,8 @@
       exp_date = #{record.expDate,jdbcType=TIMESTAMP},
       bound_serial = #{record.boundSerial,jdbcType=VARCHAR},
       max_clients_count = #{record.maxClientsCount,jdbcType=SMALLINT},
-      max_register_users_count = #{record.maxRegisterUsersCount,jdbcType=SMALLINT}
+      max_register_users_count = #{record.maxRegisterUsersCount,jdbcType=SMALLINT},
+      has_register_user_ids = #{record.hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -594,6 +644,9 @@
       <if test="maxRegisterUsersCount != null">
         max_register_users_count = #{maxRegisterUsersCount,jdbcType=SMALLINT},
       </if>
+      <if test="hasRegisterUserIds != null">
+        has_register_user_ids = #{hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
+      </if>      
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -622,7 +675,8 @@
       exp_date = #{expDate,jdbcType=TIMESTAMP},
       bound_serial = #{boundSerial,jdbcType=VARCHAR},
       max_clients_count = #{maxClientsCount,jdbcType=SMALLINT},
-      max_register_users_count = #{maxRegisterUsersCount,jdbcType=SMALLINT}
+      max_register_users_count = #{maxRegisterUsersCount,jdbcType=SMALLINT},
+      has_register_user_ids = #{hasRegisterUserIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample" resultMap="BaseResultMap">

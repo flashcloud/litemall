@@ -20,7 +20,7 @@ public class TraderOrderGoodsVo {
     private BigDecimal price;
     private Short maxClientsCount;
     private Short maxRegisterUsersCount;
-    private Integer hasRegisteredUsersCount;
+    private Integer[] hasRegisterUserIds;
 
     @Override
     public String toString() {

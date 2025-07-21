@@ -17,6 +17,7 @@ import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +30,9 @@ public class LitemallTraderService {
 
     @Autowired
     private LitemallOrderService orderService;
+
+    @Autowired
+    private LitemallOrderGoodsService orderGoodsService;
 
     @Resource
     private LitemallTraderMapper traderMapper;
@@ -65,6 +69,26 @@ public class LitemallTraderService {
         example.or().andIdIn(Arrays.asList(traderIds)).andStatusEqualTo(CommonStatusConstant.STATUS_ENABLE).andDeletedEqualTo(false);
         traders = traderMapper.selectByExample(example);
 
+        return traders;
+    }
+
+    // 根据用户获取该用户管理的交易商户列表
+    public List<LitemallTrader> managedByUser(LitemallUser user) {
+        // 创建一个空的交易商户列表
+        List<LitemallTrader> traders = new  ArrayList<LitemallTrader>();
+        // 如果用户ID为空或为0，则返回空列表
+        if(user.getId() == null || user.getId() == 0){
+            return traders;
+        }
+
+        // 创建一个交易商户示例
+        LitemallTraderExample example = new LitemallTraderExample();
+        // 设置示例的条件，用户ID等于传入的用户ID，状态为启用，未删除
+        example.or().andUserIdEqualTo(user.getId()).andStatusEqualTo(CommonStatusConstant.STATUS_ENABLE).andDeletedEqualTo(false);
+        // 根据示例查询交易商户列表
+        traders = traderMapper.selectByExample(example);
+
+        // 返回交易商户列表
         return traders;
     }
 
@@ -113,7 +137,7 @@ public class LitemallTraderService {
         if (!checkRegisterUser(dogKey)) return false;
 
         //根据加密锁KEY找到对应的订单明细，再根据订单明细找到对应的订单，从该订单中找到交易商户，将该用户和交易商户绑定
-        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderGoodsBySerial(dogKey);
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(dogKey);
         LitemallTrader trader = queryById(orderedGoods.getTraderId());
 
         userService.add(user);
@@ -130,6 +154,17 @@ public class LitemallTraderService {
         user.setTraderIds(new Integer[]{trader.getId()});
         userService.updateById(user);
         
+        // 更新订单的hasRegisterUserIds
+        LitemallOrderGoods orderedGoodsOld = orderGoodsService.findById(orderedGoods.getId());
+        Integer[] hasRegisterUserIds = orderedGoodsOld.getHasRegisterUserIds();
+        if (hasRegisterUserIds == null) {
+            hasRegisterUserIds = new Integer[0];
+        }
+        hasRegisterUserIds = Arrays.copyOf(hasRegisterUserIds, hasRegisterUserIds.length + 1);
+        hasRegisterUserIds[hasRegisterUserIds.length - 1] = user.getId();
+        orderedGoodsOld.setHasRegisterUserIds(hasRegisterUserIds);
+        orderGoodsService.updateById(orderedGoodsOld);
+
         return true;
         
     }
@@ -141,7 +176,7 @@ public class LitemallTraderService {
      * @return
      */
     public boolean checkRegisterUser(String dogKey) {
-        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderGoodsBySerial(dogKey);
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(dogKey);
         if (orderedGoods == null) return false;
 
         LitemallTrader trader = queryById(orderedGoods.getTraderId());
@@ -350,6 +385,11 @@ public class LitemallTraderService {
         return traders;
     }
 
+    // 指定的商户ID是否是指定的用户的商户
+    public boolean isTraderOfUser(Integer userId, Integer traderId) {
+        return getTrader(userId, traderId) != null;
+    }
+
     public LitemallTrader getTrader(Integer userId, Integer traderId) {
         if (traderId == null || traderId == 0 || userId == null || userId == 0) {
             return null;
@@ -382,18 +422,18 @@ public class LitemallTraderService {
         return null;
     }
 
-    private void deleteHlp(Integer userId, Integer id) {
+    private void deleteHlp(Integer userId, Integer traderId) {
         //如果当前商户有订单，不能删除
-        if (orderService.countByTrader(id) > 0)  return;
+        if (orderService.countByTrader(traderId) > 0)  return;
 
          //将该商户的的税号后面更新为随机字符串
-        LitemallTrader trader = queryById(id);
+        LitemallTrader trader = queryById(traderId);
         if (trader == null) {
             return;
         }
         trader.setTaxid(trader.getTaxid() + "--@@--" + RandomStringUtils.randomAlphanumeric(20));
         updateById(userId, trader);
-        traderMapper.logicalDeleteByPrimaryKey(id);
+        traderMapper.logicalDeleteByPrimaryKey(traderId);
 
         //删除商户后，查找所有默认商户是该商户的所有用户，把它们的默认商户设置为0
         resetDefaultTrader(trader);
@@ -404,21 +444,21 @@ public class LitemallTraderService {
      * @param id
      * @return
      */
-    public boolean isTraderUsed(Integer id) {
-        return isTraderUsedHlp(0, id);
+    public boolean isTraderUsed(Integer traderId) {
+        return isTraderUsedHlp(0, traderId);
     }
 
-    public boolean isTraderUsedByOtherUsers(Integer userId, Integer id) {
-        return isTraderUsedHlp(userId, id);
+    public boolean isTraderUsedByOtherUsers(Integer userId, Integer traderId) {
+        return isTraderUsedHlp(userId, traderId);
     }
     
     /**
      * 使用了指定商户的所有用户
-     * @param id
+     * @param traderId
      * @return
      */
-    public List<LitemallUser> usedTraderByUsers(Integer id) {
-        return usedTraderByUsersHlp(0, id);
+    public List<LitemallUser> usedTraderByUsers(Integer traderId) {
+        return usedTraderByUsersHlp(0, traderId);
     }
     public Integer[] usedTraderByUserIds(Integer id) {
         List<LitemallUser>  userList = usedTraderByUsers(id);
@@ -465,7 +505,7 @@ public class LitemallTraderService {
         return sb.toString();
     }
     
-    private List<LitemallUser> usedTraderByUsersHlp(Integer userId, Integer id) {
+    private List<LitemallUser> usedTraderByUsersHlp(Integer userId, Integer traderId) {
         Set<LitemallUser> usedUsers = new HashSet<LitemallUser>();
 
         List<LitemallUser> users = null;
@@ -480,8 +520,8 @@ public class LitemallTraderService {
         for (LitemallUser user : users) {
             Integer[] traderIds = user.getTraderIds();
             if (traderIds != null) {
-                for (Integer traderId : traderIds) {
-                    if (traderId.equals(id)) {
+                for (Integer id : traderIds) {
+                    if (id.equals(traderId)) {
                         usedUsers.add(user);
                     }
                 }
@@ -490,7 +530,7 @@ public class LitemallTraderService {
         return new ArrayList<>(usedUsers);
     }
 
-    private boolean isTraderUsedHlp(Integer userId, Integer id) {
+    private boolean isTraderUsedHlp(Integer userId, Integer traderId) {
         List<LitemallUser> users = null;
         if (userId != null && userId > 0) {
             users = userService.queryOtherUsers(userId);
@@ -503,8 +543,8 @@ public class LitemallTraderService {
         for (LitemallUser user : users) {
             Integer[] traderIds = user.getTraderIds();
             if (traderIds != null) {
-                for (Integer traderId : traderIds) {
-                    if (traderId.equals(id)) {
+                for (Integer id : traderIds) {
+                    if (id.equals(traderId)) {
                         return true;
                     }
                 }
