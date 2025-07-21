@@ -20,8 +20,13 @@ public class StorageAutoConfiguration {
         StorageService storageService = new StorageService();
         String active = this.properties.getActive();
         storageService.setActive(active);
+
+
+        LocalStorage _localStorage = localStorage();
+        storageService.setLocalStorage(_localStorage);
+
         if (active.equals("local")) {
-            storageService.setStorage(localStorage());
+            storageService.setStorage(_localStorage);
         } else if (active.equals("aliyun")) {
             storageService.setStorage(aliyunStorage());
         } else if (active.equals("tencent")) {

@@ -16,6 +16,9 @@ import java.util.stream.Stream;
 public class StorageService {
     private String active;
     private Storage storage;
+
+    private LocalStorage localStorage;
+
     @Autowired
     private LitemallStorageService litemallStorageService;
 
@@ -35,6 +38,13 @@ public class StorageService {
         this.storage = storage;
     }
 
+    public LocalStorage getLocalStorage() {
+        return localStorage;
+    }
+    public void setLocalStorage(LocalStorage localStorage) {
+        this.localStorage = localStorage;
+    }
+
     /**
      * 存储一个文件对象
      *
@@ -44,8 +54,24 @@ public class StorageService {
      * @param fileName      文件索引名
      */
     public LitemallStorage store(InputStream inputStream, long contentLength, String contentType, String fileName) {
+        return storeHlp(storage, inputStream, contentLength, contentType, fileName);
+    }
+
+    public LitemallStorage storeToLocal(InputStream inputStream, long contentLength, String contentType, String fileName) {
+        return storeHlp(localStorage, inputStream, contentLength, contentType, fileName);
+    }
+
+/**
+     * 存储一个文件对象
+     *
+     * @param inputStream   文件输入流
+     * @param contentLength 文件长度
+     * @param contentType   文件类型
+     * @param fileName      文件索引名
+     */
+    private LitemallStorage storeHlp(Storage storage1, InputStream inputStream, long contentLength, String contentType, String fileName) {
         String key = generateKey(fileName);
-        storage.store(inputStream, contentLength, contentType, key);
+        storage1.store(inputStream, contentLength, contentType, key);
 
         String url = generateUrl(key);
         LitemallStorage storageInfo = new LitemallStorage();

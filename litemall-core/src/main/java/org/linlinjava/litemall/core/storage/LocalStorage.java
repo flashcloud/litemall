@@ -108,4 +108,12 @@ public class LocalStorage implements Storage {
 
         return address + keyName;
     }
+
+    public String getAvatarFolder() {
+        return "/images/avatar/";
+    }    
+
+    public String getAvatarAbsFolder() {
+        return getStoragePath() + getAvatarFolder();
+    }    
 }

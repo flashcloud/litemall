@@ -7,6 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
+import org.linlinjava.litemall.core.storage.StorageService;
 import org.linlinjava.litemall.core.util.CharUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
@@ -68,6 +69,9 @@ public class WxAuthController {
 
     @Autowired
     private NotifyService notifyService;
+
+    @Autowired
+    private StorageService storageService;
 
     @Autowired
     private CouponAssignService couponAssignService;
@@ -534,8 +538,29 @@ public class WxAuthController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号密码不对");
         }
 
+        //更新头像
+        String avatar = user.getAvatar();
+        String localAvatarPath = storageService.getLocalStorage().getStoragePath() + avatar;
+        //检查头像文件是否存在
+        File avatarFile = new File(localAvatarPath);
+        if (avatarFile.exists()) {
+            //如果存在，则将头像文件名也改为手机号
+            String fileExtension = avatar.substring(avatar.lastIndexOf("."));
+            String newAvatarFileName = mobile + fileExtension;
+            String newAvatarPath = storageService.getLocalStorage().getStoragePath() + getAvatarFolder() + newAvatarFileName;
+            File newAvatarFile = new File(newAvatarPath);
+            if (avatarFile.renameTo(newAvatarFile)) {
+                //头像文件名修改成功
+                user.setAvatar(getAvatarFolder() + newAvatarFileName);
+            } else {
+                //头像文件名修改失败，返回错误
+                return ResponseUtil.fail(502, "头像文件名修改失败");
+            }
+        }
+
         user.setMobile(mobile);
         user.setUsername(mobile); // 将用户名也设置为手机号
+
         if (userService.updateById(user) == 0) {
             return ResponseUtil.updatedDataFailed();
         }
@@ -618,7 +643,7 @@ public class WxAuthController {
         String avatarFileName = user.getUsername() + fileExtension;
 
         // 保存头像名称为用户账户名
-        String avatarUrl = getAvatarFolder() +  avatarFileName;
+        String avatarUrl =  getAvatarFolder() +  avatarFileName;
         String avatarFileLocalPath = avatarAbsPathStr + avatarFileName;
 		File avatarFile = new File(avatarFileLocalPath);
         
@@ -756,15 +781,10 @@ public class WxAuthController {
     }
 
     private String getAvatarFolder() {
-        return "/images/avatar/";
+        return storageService.getLocalStorage().getAvatarFolder();
     }    
 
     private String getAvatarAbsFolder() {
-        String defaultPath= environment.getProperty("web.upload-path");
-        if (defaultPath == null || defaultPath.isEmpty()) {
-            //TODO: 这里需要修改为实际的图片存储路径
-            defaultPath = "/Users/flashcloudf/dev/mobile_dev/worksapce/sungole-icloud/grsoft/litemall/storage";
-        }
-        return defaultPath + getAvatarFolder();
+        return storageService.getLocalStorage().getAvatarAbsFolder();
     }
 }
