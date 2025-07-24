@@ -866,6 +866,7 @@ CREATE TABLE `litemall_user` (
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
   `trader_ids` varchar(255) DEFAULT '[]' COMMENT '所属交易商户列表',
   `default_trader_id` int(11) DEFAULT '0' COMMENT '默认的所属交易商户',
+  `member_order_id` int(11)  NULL DEFAULT NULL COMMENT '开通会员订单ID',
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_name` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
