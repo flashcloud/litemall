@@ -2781,6 +2781,7 @@ public class LitemallUserExample {
             addCriterion("default_trader_id not between", value1, value2, "defaultTraderId");
             return (Criteria) this;
         }
+
         public Criteria andMemberOrderIdIsNull() {
             addCriterion("member_order_id is null");
             return (Criteria) this;
