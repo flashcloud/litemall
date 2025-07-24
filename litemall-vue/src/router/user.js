@@ -18,6 +18,8 @@ const UserOrderList = () => import('@/views/user/order-list');
 const UserCouponList = () => import('@/views/user/coupon-list');
 const UserRefundList = () => import('@/views/user/refund-list');
 
+const MemberSchemeList = () => import('@/views/user/member-scheme-list');
+
 const Tabbar = () => import('@/components/Tabbar/');
 
 export default [
@@ -136,5 +138,16 @@ export default [
     path: '/user/refund/list',
     name: 'user-refund-list',
     component: UserRefundList
+  },
+  {
+    path: '/user/open/member/',
+    name: 'user-member-scheme-list',
+    props: true,
+    meta: {
+      //   login: true,   //不需要登录，直接访问，
+      showHeader: false,
+      title: '开通会员'
+    },
+    component: MemberSchemeList
   }
 ];

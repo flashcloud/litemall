@@ -1,6 +1,7 @@
 <template>
   <div class="tabbar-user">
     <user-header :isLogin="isLogin"/>
+    <open-member :isLogin="isLogin"/>
     <order-group/>
     <coupon-group/>
     <user-module/>
@@ -12,6 +13,7 @@ import userHeader from './tabbar-user-header';
 import orderGroup from './tabbar-user-order';
 import couponGroup from './tabbar-user-coupon';
 import userModule from './tabbar-user-module';
+import openMember from './tabbar-user-open-member';
 
 export default {
   data() {
@@ -35,7 +37,8 @@ export default {
     [userHeader.name]: userHeader,
     [orderGroup.name]: orderGroup,
     [couponGroup.name]: couponGroup,
-    [userModule.name]: userModule
+    [userModule.name]: userModule,
+    [openMember.name]: openMember
   }
 };
 </script>

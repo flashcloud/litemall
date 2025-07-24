@@ -2,7 +2,7 @@
   <div class="user_header" :style="{backgroundImage: `url(${background_image})`}">
     <van-icon name="set" class="user_set" @click="toSetting"/>
     <div class="user_avatar">
-      <img :src="avatar" alt="头像" width="55" height="55">
+      <img :src="avatar" alt="头像" width="60" height="60">
     </div>
     <div>{{nickName}}</div>
   </div>
@@ -27,6 +27,7 @@ export default {
     return {
       nickName: '昵称',
       avatar: avatar_default,
+      token: '',
       background_image: bg_default
     };
   },
@@ -39,10 +40,17 @@ export default {
     getUserInfo() {
       const infoData = getLocalStorage(
         'nickName',
-        'avatar'
+        'avatar',
+        'Authorization'
       );
+      console.log('infoData', infoData);
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
+      this.token = infoData.Authorization || '';
+
+      if(this.avatar.indexOf('/images/avatar/') > -1 && this.token !== '') {
+        this.avatar = '/wx/auth/getAvatar?token=' + this.token;
+      }      
     },
     toSetting() {
       this.$router.push({ name: 'user-information' });

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f8f8;
+            color: #333;
+        }
+
+        .header {
+            background: #fff;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            font-size: 24px;
+            color: #333;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 500;
+            flex: 1;
+            text-align: center;
+            margin-right: 39px; /* 补偿返回按钮的宽度 */
+        }
+
+        .user-section {
+            background: #fff;
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d4c5a0, #b8a082);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="35" r="15" fill="%23654321"/><path d="M20 80 Q30 65 50 65 Q70 65 80 80 Z" fill="%23654321"/></svg>') center/cover;
+        }
+
+        .user-info h3 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .user-info p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .plans-container {
+            padding: 20px;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .plan-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card.selected {
+            border-color: #ff6b6b;
+            background: linear-gradient(135deg, #fff5f5, #fff);
+        }
+
+        .plan-card.special {
+            background: linear-gradient(135deg, #fff9e6, #fff);
+        }
+
+        .plan-tag {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #fff;
+            border-radius: 0 0 8px 0;
+        }
+
+        .tag-limited {
+            background: #ff6b6b;
+        }
+
+        .tag-new {
+            background: #d4af37;
+        }
+
+        .plan-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #333;
+        }
+
+        .plan-price {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-bottom: 5px;
+        }
+
+        .plan-price .currency {
+            font-size: 16px;
+        }
+
+        .plan-original {
+            font-size: 14px;
+            color: #999;
+            text-decoration: line-through;
+            margin-bottom: 10px;
+        }
+
+        .plan-note {
+            font-size: 12px;
+            color: #666;
+            background: rgba(212, 175, 55, 0.1);
+            padding: 5px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .subscription-info {
+            background: #fff;
+            margin: 0 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .subscription-info .highlight {
+            color: #ff6b6b;
+        }
+
+        .pay-button {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: calc(100% - 40px);
+        }
+
+        .pay-button:hover {
+            background: linear-gradient(135deg, #b8941f, #a08018);
+            transform: translateY(-2px);
+        }
+
+        .agreement {
+            padding: 0 20px 30px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .agreement input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+
+        .agreement a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+
+        @media (max-width: 480px) {
+            .plans-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .plan-card {
+                padding: 15px 10px;
+            }
+            
+            .plan-title {
+                font-size: 16px;
+            }
+            
+            .plan-price {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="back-btn" onclick="goBack()">‹</span>
+        <div class="header-title">会员中心</div>
+    </div>
+
+    <div class="user-section">
+        <div class="avatar">
+            <div class="avatar-img"></div>
+        </div>
+        <div class="user-info">
+            <h3>宗见</h3>
+            <p>加入会员享受专属权益</p>
+        </div>
+    </div>
+
+    <div class="plans-container">
+        <div class="plans-grid">
+            <div class="plan-card" onclick="selectPlan(this, 168)">
+                <div class="plan-tag tag-limited">限时特惠</div>
+                <div class="plan-title">年卡</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>168
+                </div>
+                <div class="plan-original">¥360</div>
+            </div>
+
+            <div class="plan-card selected special" onclick="selectPlan(this, 12)">
+                <div class="plan-tag tag-new">新朋友特惠</div>
+                <div class="plan-title">连续包月</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>12
+                </div>
+                <div class="plan-original">¥25</div>
+                <div class="plan-note">次月续费25元</div>
+            </div>
+
+            <div class="plan-card" onclick="selectPlan(this, 228)">
+                <div class="plan-title">连续包年</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>228
+                </div>
+                <div class="plan-original">¥238</div>
+            </div>
+
+            <div class="plan-card" onclick="selectPlan(this, 35)">
+                <div class="plan-title">月卡</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>35
+                </div>
+            </div>
+        </div>
+
+        <div class="subscription-info">
+            连续包月：<span class="highlight">到期按每月25元自动续费，可随时取消</span> ⓘ
+        </div>
+
+        <button class="pay-button" onclick="confirmPayment()">
+            确认协议并支付¥<span id="payAmount">12</span>
+        </button>
+
+        <div class="agreement">
+            <input type="checkbox" id="agreeCheckbox" checked>
+            <label for="agreeCheckbox">
+                开通前请阅读 <a href="#" onclick="showAgreement('service')">《会员服务协议》</a>、<a href="#" onclick="showAgreement('auto')">《自动续费声明》</a>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let selectedPrice = 12;
+
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                // 如果没有历史记录，可以跳转到首页或关闭页面
+                window.close();
+            }
+        }
+
+        function selectPlan(element, price) {
+            // 移除所有选中状态
+            document.querySelectorAll('.plan-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加选中状态
+            element.classList.add('selected');
+            
+            // 更新价格
+            selectedPrice = price;
+            document.getElementById('payAmount').textContent = price;
+        }
+
+        function confirmPayment() {
+            const checkbox = document.getElementById('agreeCheckbox');
+            if (!checkbox.checked) {
+                alert('请先阅读并同意服务协议');
+                return;
+            }
+            
+            // 这里可以调用支付接口
+            alert(`即将支付 ¥${selectedPrice} 元`);
+            
+            // 模拟支付流程
+            processPayment();
+        }
+
+        function processPayment() {
+            // 模拟支付处理
+            const button = document.querySelector('.pay-button');
+            button.textContent = '支付中...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                button.textContent = `确认协议并支付¥${selectedPrice}`;
+                button.disabled = false;
+                alert('支付成功！');
+            }, 2000);
+        }
+
+        function showAgreement(type) {
+            if (type === 'service') {
+                // 显示会员服务协议
+                alert('这里将显示会员服务协议内容');
+            } else if (type === 'auto') {
+                // 显示自动续费声明
+                alert('这里将显示自动续费声明内容');
+            }
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('会员中心页面加载完成');
+        });
+    </script>
+</body>
+</html>
