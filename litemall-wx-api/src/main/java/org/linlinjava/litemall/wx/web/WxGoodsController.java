@@ -10,6 +10,7 @@ import org.linlinjava.litemall.core.validator.Sort;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.service.HomeCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
@@ -325,5 +326,48 @@ public class WxGoodsController {
 		Integer goodsCount = goodsService.queryOnSale();
 		return ResponseUtil.ok(goodsCount);
 	}
+
+    /**
+     * 获取会员商品列表
+     * 会员商品是指：关键词为SYS-MEMBER的商品
+     * @param userId
+     * @return
+     */
+    @GetMapping("/userMembers")
+    public Object getMemberList(@LoginUser Integer userId) {
+        Callable<List> memberListCallable = () -> goodsService.queryByUserMember(0, SystemConfig.getNewLimit());
+        FutureTask<List> memberListTask = new FutureTask<>(memberListCallable);
+        executorService.submit(memberListTask);
+
+        Map<String, Object> entity = new HashMap<>();
+        try {
+            List<LitemallGoods> memberList = memberListTask.get();
+            ArrayList<LitemallGoodsProduct> goodsProducts = new ArrayList<>();
+            memberList.forEach(goods -> {
+                // 商品规格对应的数量和价格
+                Callable<List> productListCallable = () -> productService.queryByGid(goods.getId());
+                FutureTask<List> productListCallableTask = new FutureTask<>(productListCallable);
+                executorService.submit(productListCallableTask);
+                try {
+                    goodsProducts.addAll(productListCallableTask.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            });
+
+            entity.put("memberList", memberListTask.get());
+            entity.put("productList", goodsProducts);
+            //缓存数据
+            HomeCacheManager.loadData(HomeCacheManager.SYS_DATA, entity);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+//        finally {
+//            executorService.shutdown();
+//        }
+        return ResponseUtil.ok(entity);
+    }
 
 }

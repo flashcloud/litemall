@@ -43,7 +43,7 @@ export default {
         'avatar',
         'Authorization'
       );
-      console.log('infoData', infoData);
+      
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
       this.token = infoData.Authorization || '';

@@ -13,6 +13,7 @@ public class HomeCacheManager {
     public static final String INDEX = "index";
     public static final String CATALOG = "catalog";
     public static final String GOODS = "goods";
+    public static final String SYS_DATA = "systemData";
 
     private static ConcurrentHashMap<String, Map<String, Object>> cacheDataList = new ConcurrentHashMap<>();
 

@@ -4,6 +4,7 @@ import com.github.pagehelper.PageHelper;
 import org.linlinjava.litemall.db.dao.LitemallGoodsMapper;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallGoods.Column;
+import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.domain.LitemallGoodsExample;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -87,6 +88,21 @@ public class LitemallGoodsService {
         return goodsMapper.selectByExampleSelective(example, columns);
     }
 
+    /**
+     * 获取会员商品
+     * 会员商品是指：关键词为SYS-MEMBER的商品
+     * @param offset
+     * @param limit
+     * @return
+     */
+    public List<LitemallGoods> queryByUserMember(int offset, int limit) {
+        LitemallGoodsExample example = new LitemallGoodsExample();
+        example.or().andKeywordsEqualTo(KeywordsConstant.KEYWORDS_MEMBER).andDeletedEqualTo(false);
+        example.setOrderByClause("add_time desc");
+        PageHelper.startPage(offset, limit);
+
+        return goodsMapper.selectByExampleSelective(example, columns);
+    }    
 
     public List<LitemallGoods> querySelective(Integer catId, Integer brandId, String keywords, Boolean isHot, Boolean isNew, Integer offset, Integer limit, String sort, String order) {
         LitemallGoodsExample example = new LitemallGoodsExample();
