@@ -29,6 +29,8 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -231,9 +233,25 @@ public class AdminOrderService {
                 Short maxRegisterUsersCount =  Short.parseShort(item.get("maxRegisterUsersCount").toString());
                 LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
                 orderGoods.setSerial(serial);
-                orderGoods.setBoundSerial(boundserial);
+                orderGoods.setBoundSerial(boundserial); // 绑定的序列号不为空，表示此条订单是对应序列号的软件产品的服务或它的升级
                 orderGoods.setMaxClientsCount(maxClientsCount);
                 orderGoods.setMaxRegisterUsersCount(maxRegisterUsersCount);
+                if (serial != null && !serial.isEmpty()) {
+                    //如果有序列号，表示订购的软件，然后将订单用户绑定到orderGoods的hasRegisterUserIds字段
+                    if (orderGoods.getHasRegisterUserIds() == null || orderGoods.getHasRegisterUserIds().length == 0) {
+                        Integer[] hasRegisterUserIds = new Integer[]{order.getUserId()};
+                        orderGoods.setHasRegisterUserIds(hasRegisterUserIds);
+                    } else {
+                        List<Integer> hasRegisterUserIdsList = new ArrayList<>(Arrays.asList(orderGoods.getHasRegisterUserIds()));
+                        if (!hasRegisterUserIdsList.contains(order.getUserId())) {
+                            hasRegisterUserIdsList.add(order.getUserId());
+                            orderGoods.setHasRegisterUserIds(hasRegisterUserIdsList.toArray(new Integer[0]));
+                        }
+                    }
+                } else {
+                    //如果没有序列号，则清除hasRegisterUserIds字段
+                    orderGoods.setHasRegisterUserIds(new Integer[0]);
+                }
                 orderGoodsService.updateById(orderGoods);
             }
         }
@@ -362,6 +380,7 @@ public class AdminOrderService {
             return ResponseUtil.fail(ORDER_PAY_FAILED, "当前订单状态不支持线下收款");
         }
 
+        order.setPayTime(LocalDateTime.now());
         order.setActualPrice(actualPrice);
         order.setOrderStatus(OrderUtil.STATUS_PAY);
         if (orderService.updateWithOptimisticLocker(order) == 0) {

@@ -188,7 +188,7 @@
         og.id ogid, og.goods_id, og.product_id, og.goods_name, og.pic_url goods_picture,
         og.specifications goods_specifications, og.number goods_number, og.price goods_price,
         o.root_order_id, o.parent_order_id,
-        o.trader_id, o.trader_name, og.serial, og.bound_serial, og.max_clients_count,og.max_register_users_count, og.has_register_user_ids,
+        o.trader_id, o.trader_name, og.serial, og.bound_serial, og.max_clients_count,og.max_register_users_count, og.has_register_user_ids
         from litemall_order o
         left join litemall_user u
         on o.user_id = u.id

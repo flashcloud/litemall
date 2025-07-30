@@ -182,7 +182,7 @@ public class LitemallTraderService {
         LitemallTrader trader = queryById(orderedGoods.getTraderId());
         if (trader == null) return false;
 
-        return orderedGoods.getMaxRegisterUsersCount() > usedTraderByUserIds(trader.getId()).length;
+        return orderedGoods.getMaxRegisterUsersCount() > orderedGoods.getHasRegisterUserIds().length;
         
     }
 

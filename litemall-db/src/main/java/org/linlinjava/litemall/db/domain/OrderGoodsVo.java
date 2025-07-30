@@ -13,6 +13,7 @@ public class OrderGoodsVo {
     private Integer number;
     private BigDecimal price;
     private String location;
+    private Integer[] hasRegisterUserIds;
 
     public Integer getProductId() {
         return productId;
@@ -119,4 +120,12 @@ public class OrderGoodsVo {
     public void setMaxRegisterUsersCount(Short value) {
         this.maxRegisterUsersCount = value;
     }
+
+    public Integer[] getHasRegisterUserIds() {
+        return hasRegisterUserIds;
+    }
+
+    public void setHasRegisterUserIds(Integer[] hasRegisterUserIds) {
+        this.hasRegisterUserIds = hasRegisterUserIds;
+    }    
 }
