@@ -134,7 +134,7 @@ import CustomTabs from '@/components/CustomTabs/index.vue';
 import MembershipPlans from '@/components/CustomTabs/MembershipPlans/index.vue';
 
 import { setLocalStorage, removeLocalStorage } from '@/utils/local-storage';
-import { authInfo, authLoginByAccount, authLogout, getMemberList, authProfile } from '@/api/api';
+import { authInfo, authLoginByAccount, authLogout, getMemberList, cartFastAdd, authProfile } from '@/api/api';
 
 export default {
   name: 'member-center',
@@ -365,12 +365,32 @@ export default {
         console.log('确认支付套餐:', this.selectedPlan.planKey, '价格:', price);
         
         // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        Toast.success('支付成功！会员开通成功！');
-        setTimeout(() => {
-          this.$router.go(-1);
-        }, 1500);
+        // await new Promise(resolve => setTimeout(resolve, 2000));
+        // 添加到后台的购物车
+        if (!this.selectedPlan.goodsId || !this.selectedPlan.planId) {
+          Toast.fail('请选择有效的套餐');
+          return;
+        }
+        console.log('添加到购物车:', this.selectedPlan.goodsId, this.selectedPlan.planId);
+
+        cartFastAdd({
+            goodsId: this.selectedPlan.goodsId,
+            productId: this.selectedPlan.planId,
+            number: 1
+        }).then(res => {
+            const resData = res.data;
+            if (resData.errno !== 0) {
+                console.error('添加到购物车失败:', resData.errmsg);
+                Toast.fail('添加到购物车失败: ' + resData.errmsg);
+                return;
+            }
+            let cartId = resData.data;
+            setLocalStorage({ CartId: cartId });
+            this.$router.push('/order/checkout?noReqAddress=true');
+        }).catch(error => {
+            Toast.fail('添加到购物车失败，请重试');
+            console.error('添加到购物车失败:', error);
+        });
       } catch (error) {
         Toast.fail('支付失败，请重试');
       } finally {

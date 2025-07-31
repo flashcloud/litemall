@@ -1,6 +1,6 @@
 <template>
 <div class="order">
-  <van-cell-group>
+  <van-cell-group v-if="!noReqAddress">
       <van-cell v-if="checkedTrader" isLink @click="goTraderList()" title="购买公司">
       <div slot="label">
         <div>
@@ -13,7 +13,7 @@
     </van-cell>
   </van-cell-group>
 
-  <van-cell-group>
+  <van-cell-group v-if="!noReqAddress">
       <van-cell v-if="checkedAddress" isLink @click="goAddressList()" title="收货地址">
       <div slot="label">
         <div>
@@ -110,20 +110,44 @@ export default {
       showList: false,
       chosenCoupon: -1,
       coupons: [],
-      disabledCoupons: [] 
+      disabledCoupons: [],
+      noReqAddress: false
     };
   },
   created() {
     this.init();
   },
 
+  mounted() {
+    // 如果不需要收货地址，则禁止使用返回
+    if (this.noReqAddress == true || this.noReqAddress == 'true') {
+        history.pushState(null, null, document.URL);
+        window.addEventListener('popstate', this.handlePopState);
+    }
+  },
+
+  handlePopState(event) {
+    // 如果不需要收货地址，则禁止使用返回
+    event.preventDefault();
+  }, 
+
+  destroyed() {
+    // 如果不需要收货地址，则禁止使用返回
+    window.removeEventListener('popstate', this.handlePopState);
+  },
+
   methods: {
     onSubmit() {     
-      const {AddressId, TraderId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'TraderId', 'CartId', 'CouponId', 'UserCouponId');
+      const {TraderId, CartId, CouponId, UserCouponId} = getLocalStorage('TraderId', 'CartId', 'CouponId', 'UserCouponId');
+      let {AddressId} = getLocalStorage('AddressId');
 
       if (AddressId === null || AddressId === "0") {
-        Toast.fail('请设置收货地址');
-        return;
+        if (this.noReqAddress == true || this.noReqAddress == 'true') {
+            AddressId = 0;
+        } else {
+            Toast.fail('请设置收货地址');
+            return;
+        }
       }
 
       if (TraderId === null || TraderId === "0") {
@@ -212,7 +236,9 @@ export default {
     init() {
       const {AddressId, TraderId, CartId, CouponId, UserCouponId} = getLocalStorage('AddressId', 'TraderId', 'CartId', 'CouponId', 'UserCouponId');
 
-      cartCheckout({cartId: CartId, addressId: AddressId, traderId: TraderId, couponId: CouponId, userCouponId: UserCouponId, grouponRulesId: 0}).then(res => {
+      this.noReqAddress = this.$route.query.noReqAddress === 'true' || this.$route.query.noReqAddress === true;
+
+      cartCheckout({cartId: CartId, addressId: AddressId, traderId: TraderId, couponId: CouponId, userCouponId: UserCouponId, grouponRulesId: 0, noReqAddress: this.noReqAddress}).then(res => {
           var data = res.data.data
 
           this.checkedGoodsList = data.checkedGoodsList;

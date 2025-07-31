@@ -343,9 +343,9 @@ public class WxOrderService {
 
         // 收货地址
         LitemallAddress checkedAddress = addressService.query(userId, addressId);
-        if (checkedAddress == null) {
-            return ResponseUtil.badArgument();
-        }
+        //if (checkedAddress == null) {
+        //    return ResponseUtil.badArgument();
+        //}
 
         //验证trderId是否是当前用户的已绑定商户
         Object checkedResult = checkTrader(userId, traderId);
@@ -400,7 +400,7 @@ public class WxOrderService {
 
         // 根据订单商品总价计算运费，满足条件（例如88元）则免运费，否则需要支付运费（例如8元）；
         BigDecimal freightPrice = new BigDecimal(0);
-        if (checkedGoodsPrice.compareTo(SystemConfig.getFreightLimit()) < 0) {
+        if (checkedAddress !=null && checkedGoodsPrice.compareTo(SystemConfig.getFreightLimit()) < 0) {
             freightPrice = SystemConfig.getFreight();
         }
 
@@ -419,10 +419,13 @@ public class WxOrderService {
         order.setUserId(userId);
         order.setOrderSn(orderService.generateOrderSn(userId));
         order.setOrderStatus(OrderUtil.STATUS_CREATE);
-        order.setConsignee(checkedAddress.getName());
-        order.setMobile(checkedAddress.getTel());
+        order.setConsignee(checkedAddress == null ? "" : checkedAddress.getName());
+        order.setMobile(checkedAddress == null ? "" : checkedAddress.getTel());
         order.setMessage(message);
-        String detailedAddress = checkedAddress.getProvince() + checkedAddress.getCity() + checkedAddress.getCounty() + " " + checkedAddress.getAddressDetail();
+        String detailedAddress = (checkedAddress == null ? "" : checkedAddress.getProvince()) + " " +
+                (checkedAddress == null ? "" : checkedAddress.getCity()) + " " +
+                (checkedAddress == null ? "" : checkedAddress.getCounty()) + " " +
+                (checkedAddress == null ? "" : checkedAddress.getAddressDetail());
         order.setAddress(detailedAddress);
         order.setTraderId(checkedTrader.getId());
         order.setTraderName(checkedTrader.getFullInfo());
