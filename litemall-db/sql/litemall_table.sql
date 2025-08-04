@@ -429,6 +429,8 @@ CREATE TABLE `litemall_goods_specification` (
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
+  `keywords` varchar(255) DEFAULT '' COMMENT '商品关键字，采用逗号间隔',
+  `auto_pay` tinyint(1) DEFAULT '0' COMMENT '自动扣费，0则不自动扣费，1则自动扣费',
   PRIMARY KEY (`id`),
   KEY `goods_id` (`goods_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COMMENT='商品规格表';
@@ -867,6 +869,7 @@ CREATE TABLE `litemall_user` (
   `trader_ids` varchar(255) DEFAULT '[]' COMMENT '所属交易商户列表',
   `default_trader_id` int(11) DEFAULT '0' COMMENT '默认的所属交易商户',
   `member_order_id` int(11)  NULL DEFAULT NULL COMMENT '开通会员订单ID',
+  `expire_time` datetime DEFAULT NULL COMMENT '会员到期时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_name` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
