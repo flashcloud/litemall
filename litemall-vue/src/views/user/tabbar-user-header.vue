@@ -4,11 +4,12 @@
     <div class="user_avatar">
       <img :src="avatar" alt="头像" width="60" height="60">
     </div>
-    <div>{{nickName}}</div>
+    <div>{{nickName}} <van-tag type="success">{{memberDes}}</van-tag></div>
   </div>
 </template>
 
 <script>
+import { Tag } from 'vant';
 import avatar_default from '@/assets/images/avatar_default.png';
 import bg_default from '@/assets/images/user_head_bg.png';
 import { getLocalStorage } from '@/utils/local-storage';
@@ -28,6 +29,7 @@ export default {
       nickName: '昵称',
       avatar: avatar_default,
       token: '',
+      memberDes: '',
       background_image: bg_default
     };
   },
@@ -41,12 +43,14 @@ export default {
       const infoData = getLocalStorage(
         'nickName',
         'avatar',
-        'Authorization'
+        'Authorization',
+        'memberDes'
       );
       
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
       this.token = infoData.Authorization || '';
+      this.memberDes = infoData.memberDes || '普通会员';
 
       if(this.avatar.indexOf('/images/avatar/') > -1 && this.token !== '') {
         this.avatar = '/wx/auth/getAvatar?token=' + this.token;
@@ -55,7 +59,11 @@ export default {
     toSetting() {
       this.$router.push({ name: 'user-information' });
     }
-  }
+  },
+
+  components: {
+    [Tag.name]: Tag,
+  }  
 };
 </script>
 

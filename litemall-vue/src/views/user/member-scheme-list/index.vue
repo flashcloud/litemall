@@ -8,8 +8,8 @@
         <img :src="avatar" alt="用户头像" />
       </div>
       <div class="user-info">
-        <div class="username">{{nickName}}</div>
-        <div class="member-desc">加入会员，享受金软助手App专属特权</div>
+        <div class="username">{{nickName}} <van-tag type="success">{{memberDes}}</van-tag></div>
+        <div class="member-desc" v-show="memberDes === '普通会员'">加入会员，享受金软助手App专属特权</div>
       </div>
     </div>
 
@@ -137,7 +137,7 @@
 </template>
 
 <script>
-import { NavBar, Button, Icon, Checkbox, Toast } from 'vant';
+import { NavBar, Button, Icon, Checkbox, Toast, Tag } from 'vant';
 
 import avatar_default from '@/assets/images/avatar_default.png';
 import bg_default from '@/assets/images/user_head_bg.png';
@@ -166,7 +166,8 @@ export default {
     [NavBar.name]: NavBar,
     [Button.name]: Button,
     [Icon.name]: Icon,
-    [Checkbox.name]: Checkbox
+    [Checkbox.name]: Checkbox,
+    [Tag.name]: Tag,
   },
 
     created() {
@@ -200,6 +201,7 @@ export default {
       password: '',
       isMobile: false,
       nickName: '昵称',
+      memberDes: '',
       avatar: avatar_default,
       token: '',
       background_image: bg_default,
@@ -240,7 +242,8 @@ export default {
         setLocalStorage({
           Authorization: res.data.data.token,
           avatar: userInfo.avatarUrl,
-          nickName: userInfo.nickName
+          nickName: userInfo.nickName,
+          memberDes: userInfo.memberDes
         });
         this.getUserInfo();
       }).catch(error => {
@@ -259,11 +262,13 @@ export default {
       const infoData = getLocalStorage(
         'nickName',
         'avatar',
-        'Authorization'
+        'Authorization',
+        'memberDes'
       );
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
       this.token = infoData.Authorization || '';
+      this.memberDes = infoData.memberDes || '普通会员';
       if (this.token === '') {
         this.$router.push({ name: 'login' });
         return;

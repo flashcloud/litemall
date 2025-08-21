@@ -3,6 +3,7 @@ package org.linlinjava.litemall.wx.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 
 public class UserInfo {
@@ -19,6 +20,8 @@ public class UserInfo {
     private String mobile;
     private LocalDateTime addTime;
     private int addDays;
+    private String memberType;
+    private String memberDes;
 
     public String getCountry() {
         return country;
@@ -110,5 +113,23 @@ public class UserInfo {
 
     public void setManagedTraders(List<LitemallTrader> managedTraders) {
         this.managedTraders = managedTraders;
-    }    
+    }
+
+    public void setMemberType(String memberType) {
+        this.memberType = memberType;
+    }
+
+    public LitemallGoodsSpecification.SpecificationType getMemberType() {
+        LitemallGoodsSpecification speci = new LitemallGoodsSpecification();
+        speci.setKeywords(this.memberType);
+        return speci.getSpecificationType();
+    }
+
+    public String getMemberDes() {
+        return memberDes;
+    }
+
+    public void setMemberDes(String memberDes) {
+        this.memberDes = memberDes;
+    }
 }

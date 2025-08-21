@@ -13,9 +13,11 @@ import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.service.CouponAssignService;
+import org.linlinjava.litemall.db.service.LitemallOrderGoodsService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
@@ -79,6 +81,7 @@ public class WxAuthController {
     @Autowired LitemallTraderService traderService;
 
     @Autowired LitemallOrderService orderService;
+    @Autowired private LitemallOrderGoodsService orderGoodsService;
 
     @Autowired private WxOrderService wxOrderService;
 
@@ -130,6 +133,16 @@ public class WxAuthController {
         userInfo.setGender(user.getGender());
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
+        userInfo.setMemberType(user.getMemberType());
+        userInfo.setMemberDes("普通会员");
+
+        //会员名称
+        if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
+            LitemallOrderGoods newMemberGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
+            if (newMemberGoods != null) {
+                userInfo.setMemberDes(newMemberGoods.getGoodsName());
+            }
+        }
 
         // 登录用户下面的所有交易商户
         userInfo.setManagedTraders(traderService.managedByUser(user));
