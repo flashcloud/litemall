@@ -21,22 +21,30 @@ export default {
     return {
       active: 0,
       tabbar: [
+        // {
+        //   name: '精选',
+        //   path: '/',
+        //   pathName: 'home',
+        //   icon: 'compass-full',
+        //   dot: false,
+        //   info: ''
+        // },
         {
-          name: '精选',
+          name: '购买',
           path: '/',
-          pathName: 'home',
+          pathName: 'shop',
           icon: 'compass-full',
           dot: false,
           info: ''
-        },
-        {
-          name: '分类',
-          path: '/items',
-          pathName: 'class',
-          icon: 'class-full',
-          dot: false,
-          info: ''
-        },
+        },        
+        // {
+        //   name: '分类',
+        //   path: '/items',
+        //   pathName: 'class',
+        //   icon: 'class-full',
+        //   dot: false,
+        //   info: ''
+        // },
         {
           name: '购物车',
           path: '/order',

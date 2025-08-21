@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ibatis.annotations.Param;
+import org.joda.time.DateTime;
 import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.express.dao.ExpressInfo;
 import org.linlinjava.litemall.core.notify.NotifyService;
@@ -24,10 +25,12 @@ import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
 import org.linlinjava.litemall.db.util.GrouponConstant;
+import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.util.OrderHandleOption;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.linlinjava.litemall.core.util.IpUtil;
@@ -80,6 +83,8 @@ public class WxOrderService {
     private LitemallOrderService orderService;
     @Autowired
     private LitemallOrderGoodsService orderGoodsService;
+    @Autowired
+    private LitemallGoodsService goodsService;
     @Autowired
     private LitemallAddressService addressService;
     @Autowired
@@ -447,10 +452,21 @@ public class WxOrderService {
         orderService.add(order);
         orderId = order.getId();
 
+        List<LitemallGoods> memberGoodsList = new ArrayList<>();
+
         // 添加订单商品表项
         for (LitemallCart cartGoods : checkedGoodsList) {
+            //检查会员商品
+            LitemallGoods goods = goodsService.findById(cartGoods.getGoodsId());
+            goods.setNumber(cartGoods.getNumber());
+            cartGoods.setGoodsType(goods.getGoodsType());
+            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                memberGoodsList.add(goods);
+            }
+
             // 订单商品
             LitemallOrderGoods orderGoods = new LitemallOrderGoods();
+            orderGoods.setGoodsType(goods.getGoodsType());
             orderGoods.setOrderId(order.getId());
             orderGoods.setGoodsId(cartGoods.getGoodsId());
             orderGoods.setGoodsSn(cartGoods.getGoodsSn());
@@ -463,6 +479,12 @@ public class WxOrderService {
             orderGoods.setAddTime(LocalDateTime.now());
 
             orderGoodsService.add(orderGoods);
+        }
+
+        try {
+            orderService.checkMemberGoodsData(memberGoodsList);
+        } catch (MemberOrderDataException e) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 
         // 删除购物车里面的商品信息
@@ -830,6 +852,14 @@ public class WxOrderService {
         if (orderService.updateWithOptimisticLocker(order) == 0) {
             return WxPayNotifyResponse.fail("更新数据已失效");
         }
+
+        //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
+        try {
+            orderService.updateUserMemberStatus(order);
+        } catch (MemberOrderDataException e) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        }
+        
 
         //  支付成功，有团购信息，更新团购信息
         LitemallGroupon groupon = grouponService.queryByOrderId(order.getId());

@@ -27,6 +27,7 @@ public class WxResponseCode {
     public static final Integer ORDER_COMMENTED = 726;
     public static final Integer ORDER_COMMENT_EXPIRED = 727;
     public static final Integer ORDER_TRADER_REJECT = 728;
+    public static final Integer ORDER_CHECKOUT_MEMBER_FAIL = 729;
 
     public static final Integer GROUPON_EXPIRED = 730;
     public static final Integer GROUPON_OFFLINE = 731;

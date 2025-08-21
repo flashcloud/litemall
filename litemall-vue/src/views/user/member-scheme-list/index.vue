@@ -9,7 +9,7 @@
       </div>
       <div class="user-info">
         <div class="username">{{nickName}}</div>
-        <div class="member-desc">加入会员享受金软专属权益</div>
+        <div class="member-desc">加入会员，享受金软助手App专属特权</div>
       </div>
     </div>
 
@@ -38,9 +38,9 @@
           
           <!-- 云端会员内容 -->
           <div v-if="currentTab === 1" class="member-content">
-            <!-- <div class="member-header">
+            <div class="member-header">
               <p class="member-description">{{activeTabData ? activeTabData.description : ''}}</p>
-            </div> -->
+            </div>
             
             <!-- 美观的建设中页面 -->
             <div class="under-construction">
@@ -93,8 +93,20 @@
 
         <!-- 连续包月说明 -->
         <div class="auto-renew-note">
-            连续包月/年：到期自动续费，可随时取消 <van-icon name="question-o" />
+            *连续包月/年：到期自动续费，可随时取消 <van-icon name="question-o" />
         </div>
+
+        <!-- 使用新的权益对比表格组件 -->
+        <member-privileges-table
+          :member-tabs="privilegeTabs"
+          :title="`${privilegeTabs[currentTab] ? privilegeTabs[currentTab].title : ''}App内专属特权：`"
+          :privilege-list="privilegeList"
+          theme="golden"
+        />
+
+        <div class="auto-renew-note">
+            *特别说明：UDI扫码必须配合PC端金软UDI版软件使用 <van-icon name="question-o" />
+        </div>        
 
         <!-- 确认支付按钮 -->
         <div class="payment-section">
@@ -132,6 +144,7 @@ import bg_default from '@/assets/images/user_head_bg.png';
 import { getLocalStorage } from '@/utils/local-storage';
 import CustomTabs from '@/components/CustomTabs/index.vue';
 import MembershipPlans from '@/components/CustomTabs/MembershipPlans/index.vue';
+import MemberPrivilegesTable from '@/components/MemberPrivilegesTable/index.vue';
 
 import { setLocalStorage, removeLocalStorage } from '@/utils/local-storage';
 import { authInfo, authLoginByAccount, authLogout, getMemberList, cartFastAdd, authProfile } from '@/api/api';
@@ -149,6 +162,7 @@ export default {
   components: {
     CustomTabs,
     MembershipPlans,
+    MemberPrivilegesTable,
     [NavBar.name]: NavBar,
     [Button.name]: Button,
     [Icon.name]: Icon,
@@ -198,6 +212,22 @@ export default {
       selectedPlan: {
         planKey: '',
         price: 0
+      },
+      privilegeTabs: [],
+      // 权益列表配置
+      privilegeList: {
+        udi: { name: '云端UDI扫码', icon: 'scan' },
+        udi_wifi: { name: '内网UDI扫码', icon: 'scan' },
+        trade: { name: '查客供信息', icon: 'friends-o' },
+        product: { name: '查产品信息', icon: 'goods-collect-o' },
+        stock: { name: '查库存信息', icon: 'records' }
+      },
+      funcPoint: {
+        udi_wifi: { enable: false },
+        udi: { enable: false },
+        trade: { enable: true },
+        product: { enable: true },
+        stock: { enable: true },
       }
     };
   },
@@ -317,7 +347,8 @@ export default {
                 description: member.brief.indexOf("｜") > -1 ? member.brief.split("｜")[1] : '',
                 badge: member.isHot === true ? 'HOT' : '',
                 id: member.id,
-                planList: []
+                planList: [],
+                funcPoint: {}
             };
             //找到会员对应的套餐
             this.membersInfo.productList.forEach(plan => {
@@ -328,6 +359,19 @@ export default {
             });
             return memberTabData;
         });
+
+        //会员特权对比列表
+        this.memberTabs[0].funcPoint = JSON.parse(JSON.stringify(this.funcPoint));
+        this.memberTabs[1].funcPoint = JSON.parse(JSON.stringify(this.funcPoint));
+        this.memberTabs[0].funcPoint.udi_wifi.enable = true; // WIFI会员启用内网UDI扫码
+        this.memberTabs[1].funcPoint.udi_wifi.enable = true; // 云端会员启用内网UDI扫码
+        this.memberTabs[1].funcPoint.udi.enable = true; // 云端会员启用云端UDI扫码
+
+        //克隆一份"普通会员"用于特权对比表格
+        this.privilegeTabs = JSON.parse(JSON.stringify(this.memberTabs));
+        this.privilegeTabs.push(JSON.parse(JSON.stringify(this.privilegeTabs[0]))); // 复制WIFI会员标签成普通会员
+        this.privilegeTabs[2].title = '普通会员';
+        this.privilegeTabs[2].funcPoint.udi_wifi.enable = false; // 普通会员关闭内网UDI扫码
       });
     },
     onBack() {

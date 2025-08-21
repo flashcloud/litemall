@@ -115,6 +115,7 @@ export default {
     },
     cartSubmit(data) {
       let productIds = [];
+      let memberGoods = [];
       let checkedGoods = this.checkedGoods;
       _.each(checkedGoods, id => {
         productIds.push(
@@ -122,6 +123,14 @@ export default {
             return id === vv.id;
           }).productId
         );
+        memberGoods.push({productId:
+          _.find(this.goods, vv => {
+            return id === vv.id && vv.goodsType === 'MEMBER';
+          }).productId,
+          num:  _.find(this.goods, vv => {
+            return id === vv.id && vv.goodsType === 'MEMBER';
+          }).number
+        });
       });
       if (this.isEditor) {
         this.$dialog
@@ -133,6 +142,14 @@ export default {
             this.deleteNext(productIds);
           });
       } else {
+        if (memberGoods.length > 1) {
+          this.$toast('一次只能购买一种会员');
+          return;
+        }
+        if (memberGoods.length === 1 && memberGoods[0].num > 1) {
+          this.$toast('会员商品只能购买一件');
+          return;
+        }
         this.isSubmit = true;
         setLocalStorage({AddressId: 0, CartId: 0, CouponId: 0});
         this.$router.push('/order/checkout');

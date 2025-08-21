@@ -5,7 +5,11 @@ import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.system.SystemConfig;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.LitemallCategory;
+import org.linlinjava.litemall.db.domain.LitemallComment;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
+import org.linlinjava.litemall.db.domain.LitemallGoodsProduct;
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.HomeCacheManager;
@@ -15,6 +19,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.github.pagehelper.PageInfo;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -52,6 +58,9 @@ public class WxHomeController {
 
     @Autowired
     private LitemallCouponService couponService;
+
+    @Autowired
+	private LitemallGoodsProductService productService;    
 
     private final static ArrayBlockingQueue<Runnable> WORK_QUEUE = new ArrayBlockingQueue<>(9);
 
@@ -151,6 +160,97 @@ public class WxHomeController {
 //        }
         return ResponseUtil.ok(entity);
     }
+
+/**
+     * 首页数据
+     * @param userId 当用户已经登录时，非空。为登录状态为null
+     * @return 首页数据
+     */
+    @GetMapping("/shop")
+    public Object shop(@LoginUser Integer userId) {
+        //优先从缓存中读取
+        if (HomeCacheManager.hasData(HomeCacheManager.SHOP)) {
+            return ResponseUtil.ok(HomeCacheManager.getCacheData(HomeCacheManager.SHOP));
+        }
+        //相当于每次都是new的线程池 没意义
+        //ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+        Callable<List> bannerListCallable = () -> adService.queryIndex();
+
+        Callable<List> couponListCallable;
+        if(userId == null){
+            couponListCallable = () -> couponService.queryList(0, 3);
+        } else {
+            couponListCallable = () -> couponService.queryAvailableList(userId,0, 3);
+        }        
+
+        //Callable<List> newGoodsListCallable = () -> goodsService.queryBySoftware(0, SystemConfig.getNewLimit());
+        Callable<List> newGoodsListCallable = () -> {
+            List<LitemallGoods> goodsList = goodsService.queryBySoftware(0, SystemConfig.getNewLimit());
+            for (LitemallGoods goods : goodsList) {
+                List<LitemallGoodsProduct> products = productService.queryByGid(goods.getId());
+                goods.setProducts(products);
+            }            
+            return goodsList;
+        };
+
+        // 商品规格 返回的是定制的GoodsSpecificationVo
+		// Callable<Map> commentsCallable = () -> {
+        //     List<LitemallGoods> goodsList =  goodsService.queryBySoftware(0, SystemConfig.getNewLimit());
+        //     for (LitemallGoods goods : goodsList) {
+        //         List<LitemallGoodsSpecification> specifications = (List<LitemallGoodsSpecification>) goodsSpecificationService.getSpecificationVoList(goods.getId());               
+        //     }
+
+			
+		// 	List<Map<String, Object>> commentsVo = new ArrayList<>(comments.size());
+		// 	long commentCount = PageInfo.of(comments).getTotal();
+		// 	for (LitemallComment comment : comments) {
+		// 		Map<String, Object> c = new HashMap<>();
+		// 		c.put("id", comment.getId());
+		// 		c.put("addTime", comment.getAddTime());
+		// 		c.put("content", comment.getContent());
+		// 		c.put("adminContent", comment.getAdminContent());
+		// 		LitemallUser user = userService.findById(comment.getUserId());
+		// 		c.put("nickname", user == null ? "" : user.getNickname());
+		// 		c.put("avatar", user == null ? "" : user.getAvatar());
+		// 		c.put("picList", comment.getPicUrls());
+		// 		commentsVo.add(c);
+		// 	}
+		// 	Map<String, Object> commentList = new HashMap<>();
+		// 	commentList.put("count", commentCount);
+		// 	commentList.put("data", commentsVo);
+		// 	return commentList;
+		// };        
+
+        Callable<List> topicListCallable = () -> topicService.queryList(0, SystemConfig.getTopicLimit());
+
+        FutureTask<List> bannerTask = new FutureTask<>(bannerListCallable);
+        FutureTask<List> couponListTask = new FutureTask<>(couponListCallable);
+        FutureTask<List> newGoodsListTask = new FutureTask<>(newGoodsListCallable);
+        FutureTask<List> topicListTask = new FutureTask<>(topicListCallable);
+
+        executorService.submit(bannerTask);
+        executorService.submit(couponListTask);
+        executorService.submit(newGoodsListTask);
+        executorService.submit(topicListTask);
+
+        Map<String, Object> entity = new HashMap<>();
+        try {
+            entity.put("banner", bannerTask.get());
+            entity.put("couponList", couponListTask.get());
+            entity.put("newGoodsList", newGoodsListTask.get());
+            entity.put("topicList", topicListTask.get());
+            //缓存数据
+            HomeCacheManager.loadData(HomeCacheManager.SHOP, entity);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+//        finally {
+//            executorService.shutdown();
+//        }
+        return ResponseUtil.ok(entity);
+    }    
 
     private List<Map> getCategoryList() {
         List<Map> categoryList = new ArrayList<>();

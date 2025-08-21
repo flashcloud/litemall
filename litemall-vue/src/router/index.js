@@ -2,7 +2,8 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import { getLocalStorage } from '@/utils/local-storage';
 
-import home from './home';
+// import home from './home';
+import shop from './shop';
 import items from './items';
 import user from './user';
 import order from './order';
@@ -12,7 +13,7 @@ import store from '../store/index';
 Vue.use(Router);
 
 const RouterModel = new Router({
-  routes: [...home, ...items, ...user, ...order, ...login]
+  routes: [...shop, ...items, ...user, ...order, ...login]
 });
 
 RouterModel.beforeEach((to, from, next) => {

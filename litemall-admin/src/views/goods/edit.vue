@@ -111,6 +111,13 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column property="keywords" :label="$t('goods_edit.table.specification_keywords')">
+          <template slot-scope="scope">
+            <el-tag type="primary">
+              {{ scope.row.keywords }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column property="picUrl" :label="$t('goods_edit.table.specification_pic_url')">
           <template slot-scope="scope">
             <img v-if="scope.row.picUrl" :src="scope.row.picUrl" width="40">
@@ -130,6 +137,13 @@
           </el-form-item>
           <el-form-item :label="$t('goods_edit.form.specification_value')" prop="value">
             <el-input v-model="specForm.value" disabled />
+          </el-form-item>
+          <el-form-item :label="$t('goods_edit.form.specification_keywords')">
+            <el-tag v-for="tag in speciKeywordsObj.keywords" :key="'speci-' + tag" closable type="primary" @close="handleCloseOfSpeci(speciKeywordsObj.index, tag)">
+              {{ tag }}
+            </el-tag>
+            <el-input v-if="newKeywordVisible" ref="newKeywordInput" v-model="newKeyword" class="input-new-keyword" @keyup.enter.native="handleInputConfirm" @blur="handleInputConfirm" />
+            <el-button v-else class="button-new-keyword" type="primary" @click="showInput">{{ $t('app.button.add') }}</el-button>
           </el-form-item>
           <el-form-item :label="$t('goods_edit.form.specification_pic_url')" prop="picUrl">
             <el-upload
@@ -306,14 +320,15 @@ export default {
       newKeywordVisible: false,
       newKeyword: '',
       keywords: [],
+      speciKeywordsObj: { index: -1, keywords: [] },
       galleryFileList: [],
       categoryList: [],
       brandList: [],
       categoryIds: [],
       goods: { gallery: [] },
       specVisiable: false,
-      specForm: { specification: '', value: '', picUrl: '' },
-      specifications: [{ specification: '规格', value: '标准', picUrl: '' }],
+      specForm: { specification: '', value: '', picUrl: '', keywords: [] },
+      specifications: [{ specification: '规格', value: '标准', picUrl: '', keywords: '关键字' }],
       productVisiable: false,
       productForm: {
         id: 0,
@@ -449,6 +464,10 @@ export default {
       this.keywords.splice(this.keywords.indexOf(tag), 1)
       this.goods.keywords = this.keywords.toString()
     },
+    handleCloseOfSpeci(speciIndex, tag) {
+      this.speciKeywordsObj.keywords.splice(this.speciKeywordsObj.keywords.indexOf(tag), 1)
+      this.specifications[speciIndex].keywords = this.speciKeywordsObj.keywords.toString()
+    },
     showInput() {
       this.newKeywordVisible = true
       this.$nextTick(_ => {
@@ -515,6 +534,20 @@ export default {
     handleSpecificationShow(row) {
       this.specForm = Object.assign({}, row)
       this.specVisiable = true
+
+      // 这里需要处理规格的关键词
+      for (var i = 0; i < this.specifications.length; i++) {
+        if (this.specifications[i].id === this.specForm.id) {
+          const speci = this.specifications[i]
+          if (speci.keywords === '') {
+            speci.keywords = null
+          }
+          if (speci.keywords !== null) {
+            this.speciKeywordsObj = { index: i, keywords: speci.keywords.split(',') }
+          }
+          break
+        }
+      }
     },
     handleSpecificationEdit() {
       this.specForm.updateTime = ''

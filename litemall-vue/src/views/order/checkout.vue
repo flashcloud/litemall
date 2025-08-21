@@ -1,6 +1,6 @@
 <template>
 <div class="order">
-  <van-cell-group v-if="!noReqAddress">
+  <van-cell-group>
       <van-cell v-if="checkedTrader" isLink @click="goTraderList()" title="购买公司">
       <div slot="label">
         <div>
@@ -240,7 +240,6 @@ export default {
 
       cartCheckout({cartId: CartId, addressId: AddressId, traderId: TraderId, couponId: CouponId, userCouponId: UserCouponId, grouponRulesId: 0, noReqAddress: this.noReqAddress}).then(res => {
           var data = res.data.data
-
           this.checkedGoodsList = data.checkedGoodsList;
           this.checkedAddress= data.checkedAddress;
           this.checkedTrader= data.checkedTrader;

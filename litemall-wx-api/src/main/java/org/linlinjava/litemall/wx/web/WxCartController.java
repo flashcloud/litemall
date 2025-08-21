@@ -8,8 +8,11 @@ import org.linlinjava.litemall.core.system.SystemConfig;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.service.WxOrderService;
+import org.linlinjava.litemall.wx.util.WxResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +33,13 @@ public class WxCartController {
     private final Log logger = LogFactory.getLog(WxCartController.class);
 
     @Autowired
+    private WxOrderService wxOrderService;
+    @Autowired
     private LitemallCartService cartService;
     @Autowired
     private LitemallGoodsService goodsService;
+    @Autowired
+    private LitemallOrderService orderService;
     @Autowired
     private LitemallGoodsProductService productService;
     @Autowired
@@ -67,6 +74,7 @@ public class WxCartController {
         // 更好的效果应该是告知用户商品失效，允许用户点击按钮来清除失效商品。
         for (LitemallCart cart : list) {
             LitemallGoods goods = goodsService.findById(cart.getGoodsId());
+            cart.setGoodsType(goods.getGoodsType());
             if (goods == null || !goods.getIsOnSale()) {
                 cartService.deleteById(cart.getId());
                 logger.debug("系统自动删除失效购物车商品 goodsId=" + cart.getGoodsId() + " productId=" + cart.getProductId());
@@ -456,6 +464,9 @@ public class WxCartController {
             grouponPrice = grouponRules.getDiscount();
         }
 
+        //会员商品
+        List<LitemallGoods> memberGoodsList = new ArrayList<>();
+
         // 商品价格
         List<LitemallCart> checkedGoodsList = null;
         if (cartId == null || cartId.equals(0)) {
@@ -476,6 +487,17 @@ public class WxCartController {
             } else {
                 checkedGoodsPrice = checkedGoodsPrice.add(cart.getPrice().multiply(new BigDecimal(cart.getNumber())));
             }
+            LitemallGoods goods = goodsService.findById(cart.getGoodsId());
+            goods.setNumber(cart.getNumber());
+            if (goods != null && goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                memberGoodsList.add(goods);
+            }
+        }
+
+        try {
+            orderService.checkMemberGoodsData(memberGoodsList);
+        } catch (MemberOrderDataException e) {
+            return ResponseUtil.fail(WxResponseCode.ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 
         // 计算优惠券可用情况

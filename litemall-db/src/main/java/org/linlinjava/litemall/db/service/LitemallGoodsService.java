@@ -97,7 +97,23 @@ public class LitemallGoodsService {
      */
     public List<LitemallGoods> queryByUserMember(int offset, int limit) {
         LitemallGoodsExample example = new LitemallGoodsExample();
-        example.or().andKeywordsEqualTo(KeywordsConstant.KEYWORDS_MEMBER).andDeletedEqualTo(false);
+        example.or().andKeywordsLike(KeywordsConstant.KEYWORDS_MEMBER + '%').andDeletedEqualTo(false);
+        example.setOrderByClause("add_time desc");
+        PageHelper.startPage(offset, limit);
+
+        return goodsMapper.selectByExampleSelective(example, columns);
+    }  
+    
+    /**
+     * 获取软件商品
+     * 会员商品是指：关键词为SYS-GRSOFT_SOFTWARE的商品
+     * @param offset
+     * @param limit
+     * @return
+     */
+    public List<LitemallGoods> queryBySoftware(int offset, int limit) {
+        LitemallGoodsExample example = new LitemallGoodsExample();
+        example.or().andKeywordsEqualTo(KeywordsConstant.KEYWORDS_GRSOFT_SOFTWARE).andDeletedEqualTo(false);
         example.setOrderByClause("add_time desc");
         PageHelper.startPage(offset, limit);
 

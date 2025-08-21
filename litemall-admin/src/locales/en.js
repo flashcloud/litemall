@@ -578,6 +578,7 @@ export default {
     table: {
       specification_name: 'Name',
       specification_value: 'Value',
+      specification_keywords: 'Keywords',
       specification_pic_url: 'Picture',
       specification_actions: 'Actions',
       product_specifications: 'Specifications',
@@ -616,6 +617,7 @@ export default {
       detail: 'Detail',
       specification_name: 'Name',
       specification_value: 'Value',
+      specification_keywords: 'Keywords',
       specification_pic_url: 'Picture',
       product_specifications: 'Specifications',
       product_price: 'Price',

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.linlinjava.litemall.db.util.KeywordsConstant;
 
@@ -19,6 +20,14 @@ public class LitemallGoods {
         if (this.keywords.contains(KeywordsConstant.KEYWORDS_MEMBER)) return GoodsType.MEMBER;
         if (this.keywords.contains(KeywordsConstant.KEYWORDS_GRSOFT_SOFTWARE)) return GoodsType.GRSOFT_SOFTWARE;
         return GoodsType.NORMAL;
+    }
+    private List<LitemallGoodsProduct> products;
+
+    public List<LitemallGoodsProduct> getProducts() {
+        return products;
+    }
+    public void setProducts(List<LitemallGoodsProduct> specifications) {
+        this.products = specifications;
     }
 
     private Short number;

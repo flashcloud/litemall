@@ -52,7 +52,7 @@
     <result column="deleted" jdbcType="BIT" property="deleted" />
     <result column="trader_ids" jdbcType="VARCHAR" property="traderIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
     <result column="default_trader_id" jdbcType="INTEGER" property="defaultTraderId" />
-    <!-- <result column="default_trader_name" jdbcType="VARCHAR" property="defaultTraderName" /> -->
+    <result column="default_trader_name" jdbcType="VARCHAR" property="defaultTraderName" />
     <result column="member_order_id" jdbcType="INTEGER" property="memberOrderId" />
     <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime" />     
   </resultMap>  

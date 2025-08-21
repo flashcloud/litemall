@@ -1,8 +1,10 @@
 package org.linlinjava.litemall.db.service;
 
 import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
+import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -11,6 +13,10 @@ import java.util.List;
 
 @Service
 public class LitemallOrderGoodsService {
+
+    @Autowired
+    private LitemallGoodsService goodsService;
+
     @Resource
     private LitemallOrderGoodsMapper orderGoodsMapper;
 
@@ -24,6 +30,19 @@ public class LitemallOrderGoodsService {
         LitemallOrderGoodsExample example = new LitemallOrderGoodsExample();
         example.or().andOrderIdEqualTo(orderId).andDeletedEqualTo(false);
         return orderGoodsMapper.selectByExample(example);
+    }
+
+    public LitemallOrderGoods queryMemberOrderGoods(Integer orderId) {
+        List<LitemallOrderGoods> orderGoodsList = queryByOid(orderId);
+        for (LitemallOrderGoods orderGoods : orderGoodsList) {
+            LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
+            goods.setNumber(orderGoods.getNumber());
+            orderGoods.setGoodsType(goods.getGoodsType());
+            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                return orderGoods; // 返回第一个会员商品
+            }
+        }
+        return null;
     }
 
     public LitemallOrderGoods findById(Integer id) {

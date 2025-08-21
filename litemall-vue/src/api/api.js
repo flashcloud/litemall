@@ -8,6 +8,14 @@ export function getHome() {
   })
 }
 
+const ShopUrl= '/home/shop'; //定制的商店数据接口
+export function getShop() {
+  return request({
+    url: ShopUrl,
+    method: 'get'
+  })
+}
+
 const CatalogList='/catalog/index'; //分类目录全部分类数据接口
 export function catalogList() {
   return request({

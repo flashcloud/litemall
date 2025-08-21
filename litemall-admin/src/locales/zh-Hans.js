@@ -578,6 +578,7 @@ export default {
     table: {
       specification_name: '规格名',
       specification_value: '规格值',
+      specification_keywords: '关键字',
       specification_pic_url: '规格图片',
       specification_actions: '操作',
       product_specifications: '货品规格',
@@ -616,6 +617,7 @@ export default {
       detail: '商品详细介绍',
       specification_name: '规格名',
       specification_value: '规格值',
+      specification_keywords: '关键字',
       specification_pic_url: '规格图片',
       product_specifications: '货品规格列',
       product_price: '货品售价',
