@@ -38,12 +38,12 @@ public class LitemallGoodsSpecification {
 
     public SpecificationType getSpecificationType() {
         if (this.keywords == null) return SpecificationType.NORMAL;
-        if (this.keywords.contains(SpecificationType.MEMBER_MONTHLY.keywords)) return SpecificationType.MEMBER_MONTHLY;
-        if (this.keywords.contains(SpecificationType.MEMBER_MONTHLY_AUTO.keywords)) return SpecificationType.MEMBER_MONTHLY_AUTO;
-        if (this.keywords.contains(SpecificationType.MEMBER_QUARTERLY.keywords)) return SpecificationType.MEMBER_QUARTERLY;
-        if (this.keywords.contains(SpecificationType.MEMBER_QUARTERLY_AUTO.keywords)) return SpecificationType.MEMBER_QUARTERLY_AUTO;
-        if (this.keywords.contains(SpecificationType.MEMBER_YEARLY.keywords)) return SpecificationType.MEMBER_YEARLY;
-        if (this.keywords.contains(SpecificationType.MEMBER_YEARLY_AUTO.keywords)) return SpecificationType.MEMBER_YEARLY_AUTO;
+        if (this.keywords.equals(SpecificationType.MEMBER_MONTHLY.keywords)) return SpecificationType.MEMBER_MONTHLY;
+        if (this.keywords.equals(SpecificationType.MEMBER_MONTHLY_AUTO.keywords)) return SpecificationType.MEMBER_MONTHLY_AUTO;
+        if (this.keywords.equals(SpecificationType.MEMBER_QUARTERLY.keywords)) return SpecificationType.MEMBER_QUARTERLY;
+        if (this.keywords.equals(SpecificationType.MEMBER_QUARTERLY_AUTO.keywords)) return SpecificationType.MEMBER_QUARTERLY_AUTO;
+        if (this.keywords.equals(SpecificationType.MEMBER_YEARLY.keywords)) return SpecificationType.MEMBER_YEARLY;
+        if (this.keywords.equals(SpecificationType.MEMBER_YEARLY_AUTO.keywords)) return SpecificationType.MEMBER_YEARLY_AUTO;
         return SpecificationType.NORMAL;
     }
 

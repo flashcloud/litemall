@@ -88,6 +88,9 @@ export default {
         removeLocalStorage('Authorization')
         removeLocalStorage('avatar')
         removeLocalStorage('nickName')
+        removeLocalStorage('memberType')
+        removeLocalStorage('memberPlan')
+        removeLocalStorage('memberExpire')        
         this.$router.push({ name: 'home' });
       });
 

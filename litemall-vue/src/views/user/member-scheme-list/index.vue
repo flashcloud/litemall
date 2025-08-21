@@ -8,8 +8,10 @@
         <img :src="avatar" alt="用户头像" />
       </div>
       <div class="user-info">
-        <div class="username">{{nickName}} <van-tag type="success">{{memberDes}}</van-tag></div>
-        <div class="member-desc" v-show="memberDes === '普通会员'">加入会员，享受金软助手App专属特权</div>
+        <div class="username">{{nickName}} <van-tag type="success">{{ memberType }}</van-tag></div>
+        <div class="member-info" v-show="memberType != '普通会员'"><van-tag type="primary">{{ memberPlan }}</van-tag> <span> {{ memberExpire }} 到期</span></div>
+        
+        <div class="member-desc" v-show="memberType === '普通会员'">加入会员，享受金软助手App专属特权</div>
       </div>
     </div>
 
@@ -201,7 +203,9 @@ export default {
       password: '',
       isMobile: false,
       nickName: '昵称',
-      memberDes: '',
+      memberType: '',
+      memberPlan: '',
+      memberExpire: '',
       avatar: avatar_default,
       token: '',
       background_image: bg_default,
@@ -243,7 +247,9 @@ export default {
           Authorization: res.data.data.token,
           avatar: userInfo.avatarUrl,
           nickName: userInfo.nickName,
-          memberDes: userInfo.memberDes
+          memberType: userInfo.memberType,
+          memberPlan: this.userInfo.memberPlan,
+          memberExpire: this.userInfo.memberExpire,
         });
         this.getUserInfo();
       }).catch(error => {
@@ -255,6 +261,9 @@ export default {
         removeLocalStorage('Authorization')
         removeLocalStorage('avatar')
         removeLocalStorage('nickName')
+        removeLocalStorage('memberType')
+        removeLocalStorage('memberPlan')
+        removeLocalStorage('memberExpire')
         this.$router.push({ name: 'home' });
       });
     },
@@ -263,12 +272,16 @@ export default {
         'nickName',
         'avatar',
         'Authorization',
-        'memberDes'
+        'memberType',
+        'memberPlan',
+        'memberExpire'
       );
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
       this.token = infoData.Authorization || '';
-      this.memberDes = infoData.memberDes || '普通会员';
+      this.memberType = infoData.memberType || '普通会员';
+      this.memberPlan = infoData.memberPlan || '';
+      this.memberExpire = infoData.memberExpire || '';
       if (this.token === '') {
         this.$router.push({ name: 'login' });
         return;
@@ -498,7 +511,10 @@ export default {
       color: #333;
       margin-bottom: 4px;
     }
-    
+    .member-info {
+        font-size: 10px;
+        color: #666;
+    }
     .member-desc {
       font-size: 14px;
       color: #666;

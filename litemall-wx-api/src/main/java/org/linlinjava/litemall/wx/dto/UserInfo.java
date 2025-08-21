@@ -20,8 +20,9 @@ public class UserInfo {
     private String mobile;
     private LocalDateTime addTime;
     private int addDays;
+    private String memberPlan;
     private String memberType;
-    private String memberDes;
+    private String memberExpire;
 
     public String getCountry() {
         return country;
@@ -115,21 +116,27 @@ public class UserInfo {
         this.managedTraders = managedTraders;
     }
 
-    public void setMemberType(String memberType) {
-        this.memberType = memberType;
+    public void setMemberPlan(String memberPlan) {
+        this.memberPlan = memberPlan;
     }
 
-    public LitemallGoodsSpecification.SpecificationType getMemberType() {
-        LitemallGoodsSpecification speci = new LitemallGoodsSpecification();
-        speci.setKeywords(this.memberType);
-        return speci.getSpecificationType();
+    public String getMemberPlan() {
+        return this.memberPlan;
     }
 
-    public String getMemberDes() {
-        return memberDes;
+    public String getMemberType() {
+        return memberType;
     }
 
-    public void setMemberDes(String memberDes) {
-        this.memberDes = memberDes;
+    public void setMemberType(String memberDes) {
+        this.memberType = memberDes;
+    }
+
+    public String getMemberExpire() {
+        return memberExpire;
+    }
+
+    public void setMemberExpire(String memberExpire) {
+        this.memberExpire = memberExpire;
     }
 }

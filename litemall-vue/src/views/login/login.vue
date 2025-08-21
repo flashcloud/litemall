@@ -92,7 +92,9 @@ export default {
           Authorization: res.data.data.token,
           avatar: this.userInfo.avatarUrl,
           nickName: this.userInfo.nickName,
-          memberDes: this.userInfo.memberDes
+          memberType: this.userInfo.memberType,
+          memberPlan: this.userInfo.memberPlan,
+          memberExpire: this.userInfo.memberExpire
         });
 
         this.routerRedirect();

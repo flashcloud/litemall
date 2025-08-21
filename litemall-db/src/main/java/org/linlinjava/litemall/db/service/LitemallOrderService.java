@@ -367,7 +367,7 @@ public class LitemallOrderService {
         if (user == null) return;
 
         LocalDateTime newExpDate = null;
-        String memerType = "";
+        String memerPlan = "";
         if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
             // 如果用户的会员订单已经存在，则查询会员订单状态
             LitemallOrder oldMemberOrder = this.findById(user.getId(), user.getMemberOrderId());
@@ -381,7 +381,7 @@ public class LitemallOrderService {
                         LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
                         int days = memberSpeci.getSpecificationType().getDays();
                         newExpDate = oldExpDate.plusDays(days);
-                        memerType = memberSpeci.getKeywords();
+                        memerPlan = memberSpeci.getKeywords();
                     }
                 }
                 //更改新会员订单的父订单为上一次的会员订单
@@ -394,7 +394,7 @@ public class LitemallOrderService {
                     LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
                     int days = memberSpeci.getSpecificationType().getDays();
                     newExpDate = LocalDateTime.now().plusDays(days);
-                    memerType = memberSpeci.getKeywords();
+                    memerPlan = memberSpeci.getKeywords();
                 }
             }
         } else {
@@ -404,14 +404,17 @@ public class LitemallOrderService {
                     LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
                     int days = memberSpeci.getSpecificationType().getDays();
                     newExpDate = LocalDateTime.now().plusDays(days);
-                    memerType = memberSpeci.getKeywords();
+                    memerPlan = memberSpeci.getKeywords();
                 }            
         }
 
         //设置新的会员到期日和设置当前订单会员商品的效期
         if (newExpDate != null) {
-            user.setMemberOrderId(order.getId());
-            user.setMemberType(memerType);
+            Integer memberOrderId = order.getId();
+            LitemallOrderGoods newMemberGoods = orderGoodsService.queryMemberOrderGoods(memberOrderId);
+            user.setMemberType(newMemberGoods.getGoodsName());
+            user.setMemberOrderId(memberOrderId);
+            user.setMemberPlan(memerPlan);
             user.setExpireTime(newExpDate);
             userService.updateById(user);
 

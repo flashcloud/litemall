@@ -48,6 +48,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.format.DateTimeFormatter;
 
 import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 
@@ -134,15 +135,8 @@ public class WxAuthController {
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
         userInfo.setMemberType(user.getMemberType());
-        userInfo.setMemberDes("普通会员");
-
-        //会员名称
-        if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
-            LitemallOrderGoods newMemberGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
-            if (newMemberGoods != null) {
-                userInfo.setMemberDes(newMemberGoods.getGoodsName());
-            }
-        }
+        userInfo.setMemberPlan(user.getMemberActualPlan().getDescription());
+        userInfo.setMemberExpire(user.getExpireTime() == null ? null : user.getExpireTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
         // 登录用户下面的所有交易商户
         userInfo.setManagedTraders(traderService.managedByUser(user));

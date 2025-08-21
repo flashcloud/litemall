@@ -4,7 +4,7 @@
     <div class="user_avatar">
       <img :src="avatar" alt="头像" width="60" height="60">
     </div>
-    <div>{{nickName}} <van-tag type="success">{{memberDes}}</van-tag></div>
+    <div>{{nickName}} <van-tag type="success">{{memberType}}</van-tag></div>
   </div>
 </template>
 
@@ -29,7 +29,9 @@ export default {
       nickName: '昵称',
       avatar: avatar_default,
       token: '',
-      memberDes: '',
+      memberType: '',
+      memberPlan: '',
+      memberExpire: '',
       background_image: bg_default
     };
   },
@@ -44,13 +46,17 @@ export default {
         'nickName',
         'avatar',
         'Authorization',
-        'memberDes'
+        'memberType',
+        'memberPlan',
+        'memberExpire'
       );
       
       this.avatar = infoData.avatar || avatar_default;
       this.nickName = infoData.nickName || '昵称';
       this.token = infoData.Authorization || '';
-      this.memberDes = infoData.memberDes || '普通会员';
+      this.memberType = infoData.memberType || '普通会员';
+      this.memberPlan = infoData.memberPlan || '';
+      this.memberExpire = infoData.memberExpire || '';
 
       if(this.avatar.indexOf('/images/avatar/') > -1 && this.token !== '') {
         this.avatar = '/wx/auth/getAvatar?token=' + this.token;

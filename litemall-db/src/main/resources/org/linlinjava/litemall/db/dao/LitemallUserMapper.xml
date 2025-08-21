@@ -28,6 +28,7 @@
     <result column="member_order_id" jdbcType="INTEGER" property="memberOrderId" />
     <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime" />
     <result column="member_type" jdbcType="VARCHAR" property="memberType" />
+    <result column="member_plan" jdbcType="VARCHAR" property="memberPlan" />
   </resultMap>
   <resultMap id="ExtResultMap" type="org.linlinjava.litemall.db.domain.LitemallUser">
     <!--
@@ -58,6 +59,7 @@
     <result column="member_order_id" jdbcType="INTEGER" property="memberOrderId" />
     <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime" />     
     <result column="member_type" jdbcType="VARCHAR" property="memberType" />
+    <result column="member_plan" jdbcType="VARCHAR" property="memberPlan" />
   </resultMap>  
   <sql id="Example_Where_Clause">
     <!--
@@ -170,7 +172,8 @@
     -->
     id, username, `password`, gender, birthday, last_login_time, last_login_ip, user_level, 
     nickname, mobile, avatar, weixin_openid, session_key, `status`, add_time, update_time, 
-    deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type
+    deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type, 
+    member_plan
   </sql>
   <sql id="Ext_Column_List">
     <!--
@@ -179,7 +182,8 @@
     -->
     id, username, `password`, gender, birthday, last_login_time, last_login_ip, user_level, 
     nickname, mobile, avatar, weixin_openid, session_key, `status`, add_time, update_time, 
-    deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type
+    deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type, 
+    member_plan
   </sql>
   <select id="selectByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallUserExample" resultMap="ExtResultMap">
     <!--
@@ -306,15 +310,16 @@
       avatar, weixin_openid, session_key, 
       `status`, add_time, update_time, 
       deleted, trader_ids, default_trader_id, 
-      member_order_id, expire_time, member_type
-      )
+      member_order_id, expire_time, member_type, 
+      member_plan)
     values (#{username,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{gender,jdbcType=TINYINT}, 
       #{birthday,jdbcType=DATE}, #{lastLoginTime,jdbcType=TIMESTAMP}, #{lastLoginIp,jdbcType=VARCHAR}, 
       #{userLevel,jdbcType=TINYINT}, #{nickname,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, 
       #{avatar,jdbcType=VARCHAR}, #{weixinOpenid,jdbcType=VARCHAR}, #{sessionKey,jdbcType=VARCHAR}, 
       #{status,jdbcType=TINYINT}, #{addTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
       #{deleted,jdbcType=BIT}, #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}, #{defaultTraderId,jdbcType=INTEGER},
-      #{memberOrderId,jdbcType=INTEGER}, #{expireTime,jdbcType=TIMESTAMP}, #{memberType,jdbcType=VARCHAR})
+      #{memberOrderId,jdbcType=INTEGER}, #{expireTime,jdbcType=TIMESTAMP}, #{memberType,jdbcType=VARCHAR}, 
+      #{memberPlan,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallUser">
     <!--
@@ -389,6 +394,9 @@
       <if test="memberType != null">
         member_type,
       </if>
+      <if test="memberPlan != null">
+        member_plan,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="username != null">
@@ -453,6 +461,9 @@
       </if>
       <if test="memberType != null">
         #{memberType,jdbcType=VARCHAR},
+      </if>
+      <if test="memberPlan != null">
+        #{memberPlan,jdbcType=VARCHAR},
       </if>
     </trim>
   </insert>
@@ -539,6 +550,9 @@
       <if test="record.memberType != null">
         member_type = #{record.memberType,jdbcType=VARCHAR},
       </if>
+      <if test="record.memberPlan != null">
+        member_plan = #{record.memberPlan,jdbcType=VARCHAR},
+      </if>
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -571,7 +585,8 @@
       default_trader_id = #{record.defaultTraderId,jdbcType=INTEGER},
       member_order_id = #{record.memberOrderId,jdbcType=INTEGER},
       expire_time = #{record.expireTime,jdbcType=TIMESTAMP},
-      member_type = #{record.memberType,jdbcType=VARCHAR}
+      member_type = #{record.memberType,jdbcType=VARCHAR},
+      member_plan = #{record.memberPlan,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -646,6 +661,9 @@
       <if test="memberType != null">
         member_type = #{memberType,jdbcType=VARCHAR},
       </if>
+      <if test="memberPlan != null">
+        member_plan = #{memberPlan,jdbcType=VARCHAR},
+      </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -675,7 +693,8 @@
       default_trader_id = #{defaultTraderId,jdbcType=INTEGER},
       member_order_id = #{memberOrderId,jdbcType=INTEGER},
       expire_time = #{expireTime,jdbcType=TIMESTAMP},
-      member_type = #{memberType,jdbcType=VARCHAR}
+      member_type = #{memberType,jdbcType=VARCHAR},
+      member_plan = #{memberPlan,jdbcType=VARCHAR}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallUserExample" resultMap="BaseResultMap">

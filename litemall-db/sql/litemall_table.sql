@@ -870,6 +870,8 @@ CREATE TABLE `litemall_user` (
   `default_trader_id` int(11) DEFAULT '0' COMMENT '默认的所属交易商户',
   `member_order_id` int(11)  NULL DEFAULT NULL COMMENT '开通会员订单ID',
   `expire_time` datetime DEFAULT NULL COMMENT '会员到期时间',
+  `member_type` varchar(255) DEFAULT '' COMMENT '会员类型, 与litemall_goods_specification的keywords字段对应',
+  `member_plan` varchar(255) DEFAULT '' COMMENT '会员套餐',
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_name` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
