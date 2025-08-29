@@ -17,6 +17,7 @@ import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
@@ -61,6 +62,8 @@ public class AdminOrderService {
     private LogHelper logHelper;
     @Autowired
     private LitemallCouponUserService couponUserService;
+    @Autowired
+    private LitemallMemberService memberService;
 
     public Object list(String nickname, String consignee, String orderSn, LocalDateTime start, LocalDateTime end, List<Short> orderStatusArray,
                        Integer page, Integer limit, String sort, String order) {
@@ -390,8 +393,8 @@ public class AdminOrderService {
 
         //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
         try {
-            orderService.updateUserMemberStatus(order);
-        } catch (MemberOrderDataException e) {
+            memberService.updateUserMemberStatus(order);
+        } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 
