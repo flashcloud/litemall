@@ -44,5 +44,8 @@ public class WxResponseCode {
 
     public static final Integer AUTH_DOG_KEY_NOT_EXISTS = 753;
     public static final Integer AUTH_REGISTER_USERS_COUNT_MAX = 754;
+    public static final Integer AUTH_USERS_MEMBER_STATUS = 755;
+
+    public static final Integer AUTH_WECHAT_FAIL = 756;
 
 }
