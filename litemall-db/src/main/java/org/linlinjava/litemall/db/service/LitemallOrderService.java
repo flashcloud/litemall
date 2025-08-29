@@ -9,6 +9,7 @@ import org.linlinjava.litemall.db.dao.LitemallOrderMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
@@ -17,6 +18,8 @@ import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.OrderVo;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
+import org.linlinjava.litemall.db.exception.DataStatusException;
+import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
@@ -47,6 +50,8 @@ public class LitemallOrderService {
     private LitemallGoodsProductService productService;    
     @Autowired
     private LitemallGoodsService goodsService;
+    @Autowired
+    private LitemallMemberService memberService;
 
     public int add(LitemallOrder order) {
         order.setAddTime(LocalDateTime.now());
@@ -312,114 +317,5 @@ public class LitemallOrderService {
 
     public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(Integer userId) {
         return orderMapper.getTraderOrderedPCAppByUserId(userId);
-    }
-
-    /**
-     * 检查会员商品数据
-     * @param memberGoodsList
-     * @return
-     * @throws MemberOrderDataException 
-     */
-    public boolean  checkMemberGoodsData(List<LitemallGoods> memberGoodsList) throws MemberOrderDataException {
-        if (memberGoodsList.size() > 1) {
-            throw new MemberOrderDataException("一次只能购买一种会员商品");
-        } else if (memberGoodsList.size() == 1) {
-            // 如果订单中有会员商品，则只能购买一个会员商品
-            LitemallGoods memberGoods = memberGoodsList.get(0);
-            if (memberGoods.getNumber() != 1) {
-                throw new MemberOrderDataException("会员商品数量必须为1");
-            }
-        }
-        return true;
-    }    
-
-/**
-     * 如果订单是会员商品，则更新用户的会员状态
-     * @param order
-     * @param memberOrderGoods
-     * @return
- * @throws MemberOrderDataException 
-     */
-    public void updateUserMemberStatus(LitemallOrder order) throws MemberOrderDataException {
-        if (order == null) return;
-
-        List<LitemallGoods> memberGoodsList = new ArrayList<>();
-        LitemallOrderGoods memberOrderGoods = null;
-        //如果订单中的商品是会员套餐，则设置用户的会员状态
-        if (order.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
-            List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(order.getId());
-            for (LitemallOrderGoods orderGoods : orderGoodsList) {
-                LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
-                goods.setNumber(orderGoods.getNumber());
-                orderGoods.setGoodsType(goods.getGoodsType());
-                if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
-                    memberGoodsList.add(goods);
-                    memberOrderGoods = orderGoods;
-                }
-            }
-        }
-
-        if (memberOrderGoods == null) return;
-
-        if (!this.checkMemberGoodsData(memberGoodsList)) return;
-        
-        LitemallUser user = userService.findById(order.getUserId());
-        if (user == null) return;
-
-        LocalDateTime newExpDate = null;
-        String memerPlan = "";
-        if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
-            // 如果用户的会员订单已经存在，则查询会员订单状态
-            LitemallOrder oldMemberOrder = this.findById(user.getId(), user.getMemberOrderId());
-            if (oldMemberOrder != null && oldMemberOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
-                // 如果现有的会员订单对应的会员商品还没有过期，则把现有的会员订单的会员商品过期时间加上相应的时间天数
-                LitemallOrderGoods oldMemberGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
-                LocalDateTime oldExpDate = oldMemberGoods.getExpDate();
-                if (LocalDateTime.now().isBefore(oldExpDate)) {
-                    List<LitemallGoodsSpecification> memberSpeciList = productService.findByProduct(productService.findById(oldMemberGoods.getProductId()));
-                    if (memberSpeciList.size() > 0) {
-                        LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
-                        int days = memberSpeci.getSpecificationType().getDays();
-                        newExpDate = oldExpDate.plusDays(days);
-                        memerPlan = memberSpeci.getKeywords();
-                    }
-                }
-                //更改新会员订单的父订单为上一次的会员订单
-                order.setParentOrderId(oldMemberOrder.getId());
-                this.updateSelective(order);
-            } else {
-                //如果之前的会员订单已经到期，或者是第一次购买会员
-                List<LitemallGoodsSpecification> memberSpeciList = productService.findByProduct(productService.findById(memberOrderGoods.getProductId()));
-                if (memberSpeciList.size() > 0) {
-                    LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
-                    int days = memberSpeci.getSpecificationType().getDays();
-                    newExpDate = LocalDateTime.now().plusDays(days);
-                    memerPlan = memberSpeci.getKeywords();
-                }
-            }
-        } else {
-                //如果是第一次购买会员
-                List<LitemallGoodsSpecification> memberSpeciList = productService.findByProduct(productService.findById(memberOrderGoods.getProductId()));
-                if (memberSpeciList.size() > 0) {
-                    LitemallGoodsSpecification memberSpeci = memberSpeciList.get(0);
-                    int days = memberSpeci.getSpecificationType().getDays();
-                    newExpDate = LocalDateTime.now().plusDays(days);
-                    memerPlan = memberSpeci.getKeywords();
-                }            
-        }
-
-        //设置新的会员到期日和设置当前订单会员商品的效期
-        if (newExpDate != null) {
-            Integer memberOrderId = order.getId();
-            LitemallOrderGoods newMemberGoods = orderGoodsService.queryMemberOrderGoods(memberOrderId);
-            user.setMemberType(newMemberGoods.getGoodsName());
-            user.setMemberOrderId(memberOrderId);
-            user.setMemberPlan(memerPlan);
-            user.setExpireTime(newExpDate);
-            userService.updateById(user);
-
-            memberOrderGoods.setExpDate(newExpDate);
-            orderGoodsService.updateById(memberOrderGoods);
-        }
     }
 }

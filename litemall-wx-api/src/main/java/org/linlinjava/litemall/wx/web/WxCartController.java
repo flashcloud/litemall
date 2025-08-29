@@ -33,7 +33,7 @@ public class WxCartController {
     private final Log logger = LogFactory.getLog(WxCartController.class);
 
     @Autowired
-    private WxOrderService wxOrderService;
+    private LitemallMemberService memberService;
     @Autowired
     private LitemallCartService cartService;
     @Autowired
@@ -495,7 +495,7 @@ public class WxCartController {
         }
 
         try {
-            orderService.checkMemberGoodsData(memberGoodsList);
+            memberService.checkMemberGoodsData(memberGoodsList);
         } catch (MemberOrderDataException e) {
             return ResponseUtil.fail(WxResponseCode.ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }

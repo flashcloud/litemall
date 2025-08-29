@@ -31,6 +31,7 @@ import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.CouponAssignService;
+import org.linlinjava.litemall.db.service.LitemallMemberService;
 import org.linlinjava.litemall.db.service.LitemallOrderGoodsService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
@@ -104,7 +105,7 @@ public class WxAuthController {
     @Autowired LitemallTraderService traderService;
 
     @Autowired LitemallOrderService orderService;
-    @Autowired private LitemallOrderGoodsService orderGoodsService;
+    @Autowired private LitemallMemberService memberService;
 
     @Autowired private WxOrderService wxOrderService;
 
@@ -175,7 +176,7 @@ public class WxAuthController {
         }
 
         try {
-            wxOrderService.checkMemberStatus(user);
+            memberService.checkMemberStatus(user);
         } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
             return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
         } // 检查会员订单状态
@@ -351,7 +352,7 @@ public class WxAuthController {
             couponAssignService.assignForRegister(user.getId());
         } else {
             try {
-                wxOrderService.checkMemberStatus(user);
+                memberService.checkMemberStatus(user);
             } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
                 return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
             } // 检查会员订单状态

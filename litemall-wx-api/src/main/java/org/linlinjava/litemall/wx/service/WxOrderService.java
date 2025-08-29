@@ -25,7 +25,11 @@ import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
+import org.linlinjava.litemall.db.exception.DataStatusException;
+import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
+import org.linlinjava.litemall.db.exception.MemberStatusException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
@@ -118,7 +122,7 @@ public class WxOrderService {
     @Autowired
     private LitemallAftersaleService aftersaleService;
     @Autowired
-    private LitemallTraderService traderService;
+    private LitemallMemberService memberService;
 
     /**
      * 订单列表
@@ -292,6 +296,10 @@ public class WxOrderService {
         if (body == null) {
             return ResponseUtil.badArgument();
         }
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgument();
+        }
         Integer cartId = JacksonUtil.parseInteger(body, "cartId");
         Integer addressId = JacksonUtil.parseInteger(body, "addressId");
         Integer traderId = JacksonUtil.parseInteger(body, "traderId");
@@ -381,6 +389,7 @@ public class WxOrderService {
             return ResponseUtil.badArgumentValue();
         }
         BigDecimal checkedGoodsPrice = new BigDecimal(0);
+        List<LitemallGoods> memberGoodsList = new ArrayList<>();
         for (LitemallCart checkGoods : checkedGoodsList) {
             //  只有当团购规格商品ID符合才进行团购优惠
             if (grouponRules != null && grouponRules.getGoodsId().equals(checkGoods.getGoodsId())) {
@@ -388,7 +397,29 @@ public class WxOrderService {
             } else {
                 checkedGoodsPrice = checkedGoodsPrice.add(checkGoods.getPrice().multiply(new BigDecimal(checkGoods.getNumber())));
             }
+
+            //检查会员商品
+            LitemallGoods goods = goodsService.findById(checkGoods.getGoodsId());
+            goods.setNumber(checkGoods.getNumber());
+            checkGoods.setGoodsType(goods.getGoodsType());
+            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                memberGoodsList.add(goods);
+            }            
         }
+        try {
+            memberService.checkMemberGoodsData(memberGoodsList);
+        } catch (MemberOrderDataException e) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        }
+        if (memberGoodsList.size() > 0) {
+            try {
+                memberService.checkMemberCanPurchase(user);
+                //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
+                memberService.checkMemberStatus(user);
+            } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
+                return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+            }
+        }        
 
         // 获取可用的优惠券信息
         // 使用优惠券减免的金额
@@ -452,17 +483,11 @@ public class WxOrderService {
         orderService.add(order);
         orderId = order.getId();
 
-        List<LitemallGoods> memberGoodsList = new ArrayList<>();
-
         // 添加订单商品表项
         for (LitemallCart cartGoods : checkedGoodsList) {
-            //检查会员商品
             LitemallGoods goods = goodsService.findById(cartGoods.getGoodsId());
             goods.setNumber(cartGoods.getNumber());
             cartGoods.setGoodsType(goods.getGoodsType());
-            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
-                memberGoodsList.add(goods);
-            }
 
             // 订单商品
             LitemallOrderGoods orderGoods = new LitemallOrderGoods();
@@ -479,12 +504,6 @@ public class WxOrderService {
             orderGoods.setAddTime(LocalDateTime.now());
 
             orderGoodsService.add(orderGoods);
-        }
-
-        try {
-            orderService.checkMemberGoodsData(memberGoodsList);
-        } catch (MemberOrderDataException e) {
-            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 
         // 删除购物车里面的商品信息
@@ -855,8 +874,8 @@ public class WxOrderService {
 
         //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
         try {
-            orderService.updateUserMemberStatus(order);
-        } catch (MemberOrderDataException e) {
+            memberService.updateUserMemberStatus(order);
+        } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
         

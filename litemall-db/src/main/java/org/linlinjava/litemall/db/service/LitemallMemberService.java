@@ -1,0 +1,310 @@
+package org.linlinjava.litemall.db.service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.linlinjava.litemall.db.dao.LitemallGoodsMapper;
+import org.linlinjava.litemall.db.domain.LitemallGoods;
+import org.linlinjava.litemall.db.domain.LitemallGoodsExample;
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
+import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
+import org.linlinjava.litemall.db.domain.LitemallOrder;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.exception.DataStatusException;
+import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
+import org.linlinjava.litemall.db.exception.MemberOrderDataException;
+import org.linlinjava.litemall.db.exception.MemberStatusException;
+import org.linlinjava.litemall.db.util.CommonStatusConstant;
+import org.linlinjava.litemall.db.util.KeywordsConstant;
+import org.linlinjava.litemall.db.util.OrderUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.github.pagehelper.PageHelper;
+
+@Service
+public class LitemallMemberService {
+    @Resource
+    private LitemallGoodsMapper goodsMapper;
+    
+    @Autowired
+    private LitemallUserService userService;
+    @Autowired
+    private LitemallGoodsService goodsService;
+    @Autowired
+    private LitemallOrderService orderService;
+    @Autowired
+    private LitemallOrderGoodsService orderGoodsService;
+    @Autowired
+    private LitemallGoodsProductService productService;
+
+    /**
+     * 判断订单是否包含会员商品
+     * @param orderId
+     * @return
+     */
+    public boolean isMemberOrder(Integer orderId) {
+        LitemallOrderGoods memberOrderGoods = orderGoodsService.queryMemberOrderGoods(orderId);
+        return memberOrderGoods != null;
+    }    
+    
+    /**
+     * 获取会员商品
+     * 会员商品是指：关键词为SYS-MEMBER的商品
+     * @param offset
+     * @param limit
+     * @return
+     */
+    public List<LitemallGoods> queryByUserMember(int offset, int limit) {
+        LitemallGoodsExample example = new LitemallGoodsExample();
+        example.or().andKeywordsLike(KeywordsConstant.KEYWORDS_MEMBER + '%').andDeletedEqualTo(false);
+        example.setOrderByClause("add_time desc");
+        PageHelper.startPage(offset, limit);
+
+        return goodsMapper.selectByExampleSelective(example, goodsService.columns);
+    }
+
+    /**
+     * 登录时检查用户的会员状态
+     * @param user
+     * @return 如果检查通过，返回true；否则返回false
+     * @throws MemberOrderDataException
+     * @throws DataStatusException
+     */
+    public boolean checkMemberStatus(LitemallUser user) throws IllegalArgumentException, MemberOrderDataException, DataStatusException {
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        if (user.getStatus() != CommonStatusConstant.STATUS_ENABLE) {
+            throw new IllegalArgumentException("用户已被禁用");
+        }
+
+        if (user.getMemberActualPlan().equals(SpecificationType.NORMAL)) return true;    //普通会员不用检查
+        if (user.getMemberOrderId() == 0) throw new DataStatusException("用户的会员ID丢失");
+        if (user.getExpireTime() == null) throw new DataStatusException("会员的效期数据丢失");
+        //查找会员订单
+        LitemallOrder memberOrder = orderService.findById(user.getId(), user.getMemberOrderId());
+        if (memberOrder == null) throw new DataStatusException("会员订单不存在");
+        if (!memberOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) throw new DataStatusException("会员订单状态异常");
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime memberExpire = user.getExpireTime();
+
+        //验证会员订单上的数据与用户表上的会员数据是否一致
+        LitemallOrderGoods memberOrderGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
+        LitemallGoodsSpecification memberSpeci = queryMemberGoodsSpecification(memberOrder);
+        if (memberOrderGoods == null || memberSpeci == null)  throw new DataStatusException("会员订单数据异常");
+        if (!memberOrderGoods.getExpDate().equals(memberExpire))  throw new DataStatusException("会员的效期数据异常");
+        if (!memberSpeci.getSpecificationType().equals(user.getMemberActualPlan()))  throw new DataStatusException("会员的类型异常");
+
+        if (now.isBefore(memberExpire)) return true; //会员未过期
+
+        if (memberOrder.getParentOrderId() == null || memberOrder.getParentOrderId() <= 0) return false; //没有上级会员订单,并且已过期
+        
+        // 用户会员已过期，则看是否存在需要延期的会员订单
+        LitemallOrder parentOrder = orderService.findById(user.getId(), memberOrder.getParentOrderId());
+        if (parentOrder == null) throw new DataStatusException("上级会员订单不存在");
+        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY))) throw new DataStatusException("上级会员订单状态异常");
+
+        LitemallOrderGoods parentMemberOrderGoods = orderGoodsService.queryMemberOrderGoods(parentOrder.getId());
+        LitemallGoodsSpecification parentMemberSpeci = queryMemberGoodsSpecification(parentOrder);
+        if (parentMemberOrderGoods == null || parentMemberOrderGoods.getExpDate() == null) throw new DataStatusException("上级会员订单数据异常");
+
+        LocalDateTime parentExpire = parentMemberOrderGoods.getExpDate();
+        if (now.isBefore(parentExpire)) {
+            parentOrder.setParentOrderId(0);
+            orderService.updateSelective(parentOrder);
+            //上级会员未过期，则将用户的关联的会员重置为上级会员订单
+            //更新用户的会员信息
+            updateMemberAttData(user, parentMemberOrderGoods.getGoodsName(), parentOrder.getId(), parentMemberSpeci.getKeywords(), parentExpire);
+            return true; //上级会员未过期，则用户的会员状态为有效
+        } else {
+            //上级会员已过期,则放弃上级会员，减少会员状态查找的性能
+            memberOrder.setParentOrderId(0); //如果上级会员订单已经过期，则将旧订单的上级会员订单重置
+            orderService.updateSelective(memberOrder);
+            return false; //上级会员已过期，则用户的会员状态为过期
+        }
+    }    
+
+    /**
+     * 检查会员商品数据
+     * @param memberGoodsList
+     * @return
+     * @throws MemberOrderDataException 
+     */
+    public boolean  checkMemberGoodsData(List<LitemallGoods> memberGoodsList) throws MemberOrderDataException {
+        if (memberGoodsList.size() > 1) {
+            throw new MemberOrderDataException("一次只能购买一种会员商品");
+        } else if (memberGoodsList.size() == 1) {
+            // 如果订单中有会员商品，则只能购买一个会员商品
+            LitemallGoods memberGoods = memberGoodsList.get(0);
+            if (memberGoods.getNumber() != 1) {
+                throw new MemberOrderDataException("会员商品数量必须为1");
+            }
+        }
+        return true;
+    }    
+
+
+    /** 检查用户是否可以购买会员 
+     * @throws MemberStatusException */
+    public boolean checkMemberCanPurchase(LitemallUser user) throws MemberStatusException {
+        if (user.getMemberOrderId() == null || user.getMemberOrderId() == 0) return true;
+
+        LitemallOrder existsMemberOrder = orderService.findById(user.getId(), user.getMemberOrderId());
+        if (existsMemberOrder == null) return true;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime memberExpire = user.getExpireTime();
+        if (now.isAfter(memberExpire)) return true; //会员过期
+
+        //如果会员未过期，则检查他的父级会员订单，是否存在未过期的订单
+        if (existsMemberOrder.getParentOrderId() == null || existsMemberOrder.getParentOrderId() == 0) return true;
+        LitemallOrder parentOrder = orderService.findById(user.getId(), existsMemberOrder.getParentOrderId());
+        if (parentOrder == null) return true;
+        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY))) return true;
+        LitemallOrderGoods parentMemberGoods = orderGoodsService.queryMemberOrderGoods(parentOrder.getId());
+        LocalDateTime parentExpire = parentMemberGoods.getExpDate();
+        if (parentMemberGoods == null || parentExpire == null) return true;
+        if (now.isAfter(parentExpire)) {
+            //父订单必须是过期的才能购买新的会员
+            return true;
+        } else {
+            throw new MemberStatusException("不能连续订阅超过两次会员，请在本次会员到期后再续订!");
+        }
+    }
+
+    public LitemallGoodsSpecification queryMemberGoodsSpecification(LitemallOrder newOrder) throws MemberOrderDataException {
+        List<LitemallGoods> memberGoodsList = new ArrayList<>();
+        LitemallOrderGoods newMemberOrderGoods = null;
+        //如果订单中的商品是会员套餐，则设置用户的会员状态
+        if (newOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+            List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(newOrder.getId());
+            for (LitemallOrderGoods orderGoods : orderGoodsList) {
+                LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
+                goods.setNumber(orderGoods.getNumber());
+                orderGoods.setGoodsType(goods.getGoodsType());
+                if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                    memberGoodsList.add(goods);
+                    newMemberOrderGoods = orderGoods;
+                }
+            }
+        }
+
+        if (newMemberOrderGoods == null) return null;
+
+        if (!checkMemberGoodsData(memberGoodsList)) return null;
+
+        List<LitemallGoodsSpecification> newMemberSpeciList = productService.findByProduct(productService.findById(newMemberOrderGoods.getProductId()));
+        if (newMemberSpeciList.size() > 0) {
+            return newMemberSpeciList.get(0);
+        }
+        return null;
+    }
+
+
+/**
+     * 如果订单是会员商品，则更新用户的会员状态
+     * @param newOrder
+     * @param memberOrderGoods
+     * @return
+     * @throws MemberOrderDataException 
+     */
+    public void updateUserMemberStatus(LitemallOrder newOrder) throws MemberOrderDataException, MaxTwoMemberOrderException {
+        if (newOrder == null) return;
+
+        if (!isMemberOrder(newOrder.getId())) return;
+
+        LitemallUser user = userService.findById(newOrder.getUserId());
+        if (user == null) return;
+
+        //会员的启用日期以订单支付时间为准
+        LocalDateTime newMemberStartDate = newOrder.getPayTime();
+
+        // 计算新的会员到期日和会员套餐
+        LocalDateTime newMemberExpDate = null;
+        String newMemberPlan = "";
+        LitemallGoodsSpecification newMemberSpeci = queryMemberGoodsSpecification(newOrder);
+        if (newMemberSpeci != null) {
+            int days = newMemberSpeci.getSpecificationType().getDays();
+            newMemberExpDate = newMemberStartDate.plusDays(days);
+            newMemberPlan = newMemberSpeci.getKeywords();
+        }
+
+        //如果会员订单已经到期，则忽略此订单
+        if (newMemberExpDate != null && newMemberExpDate.isBefore(LocalDateTime.now())) return;
+
+        if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
+            // 如果之前用户已经存在有会员订单，并且旧的会员订单未到期，则保留旧会员订单的还剩下的天数，以便此新会员订单到期后，能自动恢复延续旧会员订单剩下的天数
+            LitemallOrder oldMemberOrder = orderService.findById(user.getId(), user.getMemberOrderId());
+            if (oldMemberOrder != null && oldMemberOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+                LitemallOrderGoods oldMemberGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
+                LocalDateTime oldExpDate = oldMemberGoods.getExpDate();
+                if (LocalDateTime.now().isBefore(oldExpDate)) {
+                    //旧会员订单剩下的天数
+                    Integer remainDays = (int) (oldExpDate.toLocalDate().toEpochDay() - LocalDate.now().toEpochDay());
+                    LocalDateTime oldNewExpDate = newMemberExpDate.plusDays(remainDays);
+                    if (oldNewExpDate.isAfter(oldExpDate)) {
+                        //如果旧订单仍然存在未到期的上级会员订单，则禁止购买此次会员
+                        if (oldMemberOrder.getParentOrderId() > 0) {
+                            LitemallOrder oldMemberParentOrder = orderService.findById(user.getId(), oldMemberOrder.getParentOrderId());
+                            if (oldMemberParentOrder != null && oldMemberParentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+                                LitemallOrderGoods oldMemberParentGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
+                                LocalDateTime oldParentExpDate = oldMemberParentGoods.getExpDate();  
+                                if (LocalDateTime.now().isBefore(oldParentExpDate)) {
+                                    throw new MaxTwoMemberOrderException("用户存在未到期的会员订单，不能购买新的会员");
+                                } else {
+                                    //如果旧订单的上级会员订单已经到期，则将旧订单的上级会员订单重置
+                                    oldMemberOrder.setParentOrderId(0);
+                                }
+                            }
+                        }
+
+                        oldMemberGoods.setExpDate(oldNewExpDate);
+                        orderGoodsService.updateById(oldMemberGoods);
+                        oldMemberOrder.setUpdateTime(LocalDateTime.now());
+                        orderService.updateSelective(oldMemberOrder);
+
+                        //更改新会员订单的父订单为上一次的会员订单，以便新订单的会员到期后，可以自动延期上一个会员订单的到期日
+                        newOrder.setParentOrderId(oldMemberOrder.getId());
+                        orderService.updateSelective(newOrder);
+                    }
+                }
+            }
+        }
+        //设置新的会员到期日和设置当前订单会员商品的效期
+        if (newMemberExpDate != null) {
+            Integer memberOrderId = newOrder.getId();
+
+            //设置新会员订单的会员商品效期
+            LitemallOrderGoods newMemberGoods = orderGoodsService.queryMemberOrderGoods(memberOrderId);
+            newMemberGoods.setExpDate(newMemberExpDate);
+            orderGoodsService.updateById(newMemberGoods);
+
+            //更新用户的会员信息
+            updateMemberAttData(user, newMemberGoods.getGoodsName(), memberOrderId, newMemberPlan, newMemberExpDate);
+        }
+    }
+
+    /**
+     * 更新用户的会员相关属性值
+     * @param user
+     * @param memberType
+     * @param memberOrderId
+     * @param memberPlan
+     * @param expireTime
+     */
+    public void updateMemberAttData(LitemallUser user, String memberType, Integer memberOrderId, String memberPlan, LocalDateTime expireTime) {
+        user.setMemberType(memberType);
+        user.setMemberOrderId(memberOrderId);
+        user.setMemberPlan(memberPlan);
+        user.setExpireTime(expireTime);
+        userService.updateById(user);
+    }
+
+    
+}

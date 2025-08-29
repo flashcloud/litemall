@@ -9,8 +9,8 @@
       </div>
       <div class="user-info">
         <div class="username">{{nickName}} <van-tag type="success">{{ memberType }}</van-tag></div>
-        <div class="member-info" v-show="memberType != '普通会员'"><van-tag type="primary">{{ memberPlan }}</van-tag> <span> {{ memberExpire }} 到期</span></div>
-        
+        <div class="member-info" v-show="memberType != '普通会员'"><van-tag type="primary">{{ memberPlan }}</van-tag> <span :style="{color: new Date(memberExpire) < Date.now() ? 'red' : 'inherit'}" data-tooltip="这是一个工具提示"> {{ (new Date(memberExpire)).toLocaleDateString() }} 到期</span></div>
+
         <div class="member-desc" v-show="memberType === '普通会员'">加入会员，享受金软助手App专属特权</div>
       </div>
     </div>
@@ -294,6 +294,17 @@ export default {
     initViews() {
       getMemberList().then(res => {
         this.membersInfo = res.data.data;
+        
+        //如果用户购买了会员，则需要刷新会员信息
+        const userInfo = this.membersInfo.userInfo;
+        setLocalStorage({
+          avatar: userInfo.avatarUrl,
+          nickName: userInfo.nickName,
+          memberType: userInfo.memberType,
+          memberPlan: userInfo.memberPlan,
+          memberExpire: userInfo.memberExpire,
+        });
+        this.getUserInfo();
 
         //构造套餐配置数据
         const buildPlans = plan => {

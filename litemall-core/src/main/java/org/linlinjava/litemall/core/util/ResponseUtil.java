@@ -148,5 +148,15 @@ public class ResponseUtil {
     public static Object unauthz() {
         return fail(506, "无操作权限");
     }
+
+    public static boolean isOk(Object response) {
+        if (response instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) response;
+            if (map.containsKey("errno") && map.get("errno").equals(0)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 

@@ -10,6 +10,7 @@ import org.linlinjava.litemall.core.validator.Sort;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.service.HomeCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -73,6 +74,9 @@ public class WxGoodsController {
 
 	@Autowired
 	private LitemallGrouponRulesService rulesService;
+
+    @Autowired
+	private LitemallMemberService memberService;
 
 	private final static ArrayBlockingQueue<Runnable> WORK_QUEUE = new ArrayBlockingQueue<>(9);
 
@@ -335,7 +339,16 @@ public class WxGoodsController {
      */
     @GetMapping("/userMembers")
     public Object getMemberList(@LoginUser Integer userId) {
-        Callable<List> memberListCallable = () -> goodsService.queryByUserMember(0, SystemConfig.getNewLimit());
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.unlogin();
+        }
+
+        Callable<List> memberListCallable = () -> memberService.queryByUserMember(0, SystemConfig.getNewLimit());
         FutureTask<List> memberListTask = new FutureTask<>(memberListCallable);
         executorService.submit(memberListTask);
 
@@ -355,6 +368,9 @@ public class WxGoodsController {
                     e.printStackTrace();
                 }
             });
+
+            UserInfo userInfo = UserInfo.cloneFromUser(user);
+            entity.put("userInfo", userInfo);
 
             entity.put("memberList", memberListTask.get());
             entity.put("productList", goodsProducts);

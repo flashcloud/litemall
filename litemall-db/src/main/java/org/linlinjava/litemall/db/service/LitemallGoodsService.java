@@ -87,22 +87,6 @@ public class LitemallGoodsService {
 
         return goodsMapper.selectByExampleSelective(example, columns);
     }
-
-    /**
-     * 获取会员商品
-     * 会员商品是指：关键词为SYS-MEMBER的商品
-     * @param offset
-     * @param limit
-     * @return
-     */
-    public List<LitemallGoods> queryByUserMember(int offset, int limit) {
-        LitemallGoodsExample example = new LitemallGoodsExample();
-        example.or().andKeywordsLike(KeywordsConstant.KEYWORDS_MEMBER + '%').andDeletedEqualTo(false);
-        example.setOrderByClause("add_time desc");
-        PageHelper.startPage(offset, limit);
-
-        return goodsMapper.selectByExampleSelective(example, columns);
-    }  
     
     /**
      * 获取软件商品
