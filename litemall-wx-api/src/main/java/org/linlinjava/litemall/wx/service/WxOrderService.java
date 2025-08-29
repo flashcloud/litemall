@@ -723,7 +723,7 @@ public class WxOrderService {
         LitemallUser user = userService.findById(userId);
         String openid = user.getWeixinOpenid();
         if (openid == null) {
-            return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "订单不能支付");
+            return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
         }
         WxPayMpOrderResult result = null;
         try {
