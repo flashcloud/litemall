@@ -33,8 +33,32 @@ export function catalogCurrent(query) {
   })
 }
 
-const AuthLoginByWeixin='/auth/login_by_weixin'; //微信登录
+const GetWeChatCode='/auth/get_wechat_code'; //微信登录获取Code
+export function getWeChatCode(data) {
+  return request({
+    url: GetWeChatCode,
+    method: 'get',
+    params: data
+  })
+}
 
+const AuthLoginByWeixin='/auth/login_by_weixin_h5'; //微信登录
+export function authLoginByWeixin(data) {
+  return request({
+    url: AuthLoginByWeixin,
+    method: 'post',
+    data
+  })
+}
+
+const ManualBindPhone='/auth/manual_bind_phone'; //绑定手机
+export function manualBindPhone(data) {
+  return request({
+    url: ManualBindPhone,
+    method: 'post',
+    data
+  })
+}
 
 const AuthLoginByAccount='/auth/login'; //账号登录
 export function authLoginByAccount(data) {

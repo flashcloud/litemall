@@ -9,6 +9,15 @@ export default [
     component: () => import('@/views/login/login')
   },
   {
+    path: '/login/bindPhone',
+    name: 'bindPhone',
+    meta: {
+      showHeader:false,
+      title:"绑定手机"
+    },
+    component: () => import('@/views/login/bind-phone')
+  },
+  {
     path: '/login/registerGetCode',
     name: 'registerGetCode',
     component: () => import('@/views/login/register-getCode')

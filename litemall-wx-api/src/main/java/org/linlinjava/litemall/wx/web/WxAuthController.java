@@ -3,8 +3,21 @@ package org.linlinjava.litemall.wx.web;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
+import me.chanjar.weixin.common.api.WxConsts;
+import me.chanjar.weixin.mp.api.WxMpService;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.storage.StorageService;
@@ -13,9 +26,10 @@ import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
-import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
+import org.linlinjava.litemall.db.exception.DataStatusException;
+import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.CouponAssignService;
 import org.linlinjava.litemall.db.service.LitemallOrderGoodsService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
@@ -29,26 +43,34 @@ import org.linlinjava.litemall.wx.service.UserTokenManager;
 import org.linlinjava.litemall.wx.service.WxOrderService;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.time.format.DateTimeFormatter;
 
 import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 
@@ -85,6 +107,32 @@ public class WxAuthController {
     @Autowired private LitemallOrderGoodsService orderGoodsService;
 
     @Autowired private WxOrderService wxOrderService;
+
+    @Value("${litemall.wx.app-id}")
+    private String appId;
+
+    @Value("${litemall.wx.app-secret}")
+    private String appSecret;
+
+    @Value("${litemall.wx.redirect-uri}")
+    private String redirectUri;
+
+    @Autowired
+    private WxMpService wxMpService;
+
+    @Bean
+    private RestTemplate restTemplate(){
+        RestTemplate restTemplate = new RestTemplate();
+        //解决nickname中文乱码的问题
+        List<HttpMessageConverter<?>> httpMessageConverters = restTemplate.getMessageConverters();
+        httpMessageConverters.stream().forEach(httpMessageConverter -> {
+            if(httpMessageConverter instanceof StringHttpMessageConverter){
+                StringHttpMessageConverter messageConverter = (StringHttpMessageConverter) httpMessageConverter;
+                messageConverter.setDefaultCharset(Charset.forName("UTF-8"));
+            }
+        });
+        return restTemplate;
+    }
 
     /**
      * 账号登录
@@ -126,17 +174,15 @@ public class WxAuthController {
             return ResponseUtil.updatedDataFailed();
         }
 
+        try {
+            wxOrderService.checkMemberStatus(user);
+        } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
+            return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
+        } // 检查会员订单状态
+
         // userInfo
-        UserInfo userInfo = new UserInfo();
+        UserInfo userInfo = UserInfo.cloneFromUser(user);
         userInfo.setUserName(username);
-        userInfo.setNickName(user.getNickname());
-        userInfo.setAvatarUrl(user.getAvatar());
-        userInfo.setGender(user.getGender());
-        userInfo.setMobile(user.getMobile());
-        userInfo.setAddTime(user.getAddTime());
-        userInfo.setMemberType(user.getMemberType());
-        userInfo.setMemberPlan(user.getMemberActualPlan().getDescription());
-        userInfo.setMemberExpire(user.getExpireTime() == null ? null : user.getExpireTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
         // 登录用户下面的所有交易商户
         userInfo.setManagedTraders(traderService.managedByUser(user));
@@ -150,6 +196,100 @@ public class WxAuthController {
         return ResponseUtil.ok(result);
     }
 
+    // 第一步：引导用户到微信授权页面获取code
+    //@CrossOrigin(origins = "https://www.baidu.com")
+    @GetMapping("/get_wechat_code")
+    // @CrossOrigin(origins = "*")
+    public Object getWeChatCode(@RequestParam String router, HttpServletResponse response) throws IOException {
+        //实际获取code的地址：https://open.weixin.qq.com/connect/oauth2/authorize
+        String url = wxMpService.getOAuth2Service().buildAuthorizationUrl(redirectUri + router, WxConsts.OAuth2Scope.SNSAPI_USERINFO, "STATE");
+        //response.sendRedirect(url); //这里不能重定向，否则跨域了，由前端直接加载URL
+        return ResponseUtil.ok(url);
+    }
+
+    private Object getWechatAccessTokenAndOpenId(String code, String grantType) {
+        
+        String tokenUrl = "https://api.weixin.qq.com/sns/oauth2/access_token?" +
+                "appid=" + appId +
+                "&secret=" + appSecret +
+                "&code=" + code +
+                "&grant_type=" + grantType;
+        // 使用RestTemplate或HttpClient获取结果
+        ResponseEntity<String> openIdResponse = restTemplate().getForEntity(tokenUrl, String.class);
+        String errcode = JacksonUtil.parseString(openIdResponse.getBody(), "errcode");
+        if (errcode != null) {
+            return ResponseUtil.fail(Integer.parseInt(errcode), openIdResponse.getBody());
+        }
+        String accessToken = JacksonUtil.parseString(openIdResponse.getBody(), "access_token");
+        String openId = JacksonUtil.parseString(openIdResponse.getBody(), "openid");
+        List<String> result = new java.util.ArrayList<String>();
+        result.add(accessToken);
+        result.add(openId);
+        return result;
+    }
+
+    // 第二步：微信回调处理
+    private Object  getWechatUserInfo(String body) throws IOException {
+        String code = JacksonUtil.parseString(body, "code");
+        String state = JacksonUtil.parseString(body, "state");
+
+        // 1. 使用code获取access_token和openid
+        String accessToken = null;
+        String openId = null;
+        Object obj = getWechatAccessTokenAndOpenId(code, "authorization_code");
+        if (obj instanceof List) {
+            List<String> result = (List<String>) obj;
+            accessToken = result.get(0);
+            openId = result.get(1);
+        } else {
+            return obj;
+        }
+        
+        // 2. 获取用户信息（如果需要）
+        String userInfoUrl = "https://api.weixin.qq.com/sns/userinfo?" +
+                "access_token=" + accessToken +
+                "&openid=" + openId +
+                "&lang=zh_CN";
+        ResponseEntity<String> userInfoResponse = restTemplate().getForEntity(userInfoUrl, String.class);
+
+        // 3. 处理用户登录逻辑（创建或更新用户）
+        UserInfo userInfo = new UserInfo();
+        userInfo.setAccessToken(accessToken);
+        userInfo.setWxOpenId(openId);
+        userInfo.setNickName(JacksonUtil.parseString(userInfoResponse.getBody(), "nickname"));
+        userInfo.setAvatarUrl(JacksonUtil.parseString(userInfoResponse.getBody(), "headimgurl"));
+        userInfo.setGender(JacksonUtil.parseByte(userInfoResponse.getBody(), "sex"));
+        userInfo.setCity(JacksonUtil.parseString(userInfoResponse.getBody(), "city"));
+        userInfo.setProvince(JacksonUtil.parseString(userInfoResponse.getBody(), "province"));
+        userInfo.setCountry(JacksonUtil.parseString(userInfoResponse.getBody(), "country"));
+        userInfo.setLanguage(JacksonUtil.parseString(userInfoResponse.getBody(), "language"));
+        WxLoginInfo wxLoginInfo = new WxLoginInfo();
+        wxLoginInfo.setCode(code);
+        wxLoginInfo.setUserInfo(userInfo);
+        
+        return wxLoginInfo;
+    }
+
+    /**
+     * 在微信浏览器内登录
+     * @param body
+     * @param request
+     * @return
+     * @throws IOException
+     */
+    @PostMapping("login_by_weixin_h5")
+    public Object loginByWeixinH5(@RequestBody String body, HttpServletRequest request) throws IOException {
+        WxLoginInfo wxLoginInfo = null;
+        Object objWxLoginInfo = getWechatUserInfo(body);
+        if (objWxLoginInfo instanceof WxLoginInfo) {
+            wxLoginInfo = (WxLoginInfo) objWxLoginInfo;
+        } else {
+            return objWxLoginInfo; // 失败返回错误信息
+        }
+
+        return loginByWeixinHelp(wxLoginInfo, request, true);
+    }    
+
     /**
      * 微信登录
      *
@@ -159,6 +299,9 @@ public class WxAuthController {
      */
     @PostMapping("login_by_weixin")
     public Object loginByWeixin(@RequestBody WxLoginInfo wxLoginInfo, HttpServletRequest request) {
+        return loginByWeixinHelp(wxLoginInfo, request, false);
+    }
+    private Object loginByWeixinHelp(WxLoginInfo wxLoginInfo, HttpServletRequest request, boolean isLoginByH5) {
         String code = wxLoginInfo.getCode();
         UserInfo userInfo = wxLoginInfo.getUserInfo();
         if (code == null || userInfo == null) {
@@ -167,23 +310,31 @@ public class WxAuthController {
 
         String sessionKey = null;
         String openId = null;
-        try {
-            WxMaJscode2SessionResult result = this.wxService.getUserService().getSessionInfo(code);
-            sessionKey = result.getSessionKey();
-            openId = result.getOpenid();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (isLoginByH5) {
+            sessionKey = wxLoginInfo.getUserInfo().getAccessToken();
+            openId = wxLoginInfo.getUserInfo().getWxOpenId();
+        } else {
+            try {
+                WxMaJscode2SessionResult result = this.wxService.getUserService().getSessionInfo(code);
+                sessionKey = result.getSessionKey();
+                openId = result.getOpenid();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         if (sessionKey == null || openId == null) {
             return ResponseUtil.fail();
         }
 
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        String encodedPassword = encoder.encode(openId);
+
         LitemallUser user = userService.queryByOid(openId);
         if (user == null) {
             user = new LitemallUser();
             user.setUsername(openId);
-            user.setPassword(openId);
+            user.setPassword(encodedPassword);
             user.setWeixinOpenid(openId);
             user.setAvatar(userInfo.getAvatarUrl());
             user.setNickname(userInfo.getNickName());
@@ -199,6 +350,12 @@ public class WxAuthController {
             // 新用户发送注册优惠券
             couponAssignService.assignForRegister(user.getId());
         } else {
+            try {
+                wxOrderService.checkMemberStatus(user);
+            } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
+                return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
+            } // 检查会员订单状态
+
             user.setLastLoginTime(LocalDateTime.now());
             user.setLastLoginIp(IpUtil.getIpAddr(request));
             user.setSessionKey(sessionKey);
@@ -209,13 +366,54 @@ public class WxAuthController {
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
+        userInfo = UserInfo.cloneFromUser(user);
 
         Map<Object, Object> result = new HashMap<Object, Object>();
+        result.put("weAccessToken", wxLoginInfo.getUserInfo().getAccessToken());
         result.put("token", token);
         result.put("userInfo", userInfo);
         return ResponseUtil.ok(result);
     }
 
+    @PostMapping("manual_bind_phone")
+    public Object manualBindPhone(@RequestBody String body, HttpServletRequest request) throws IOException {
+        String token = JacksonUtil.parseString(body, "token");
+        String phone = JacksonUtil.parseString(body, "phone");
+        if (StringUtils.isEmpty(token) || StringUtils.isEmpty(phone)) {
+            return ResponseUtil.badArgument();
+        }
+        if (!RegexUtil.isMobileSimple(phone)) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        return loginThenCheckAndUpdatePhone(token, phone);
+    }
+    
+    private Object loginThenCheckAndUpdatePhone(String token, String phone) {
+        Integer userId = UserTokenManager.getUserId(token);
+        if (userId == null) {
+            return ResponseEntity.status(501).build(); // 未登录
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.status(404).build(); // 用户不存在
+        }
+
+        Object validate = validatePhone(user, phone);
+        if (validate != null) {
+            return validate;
+        }
+
+        user.setMobile(phone);
+        if(user.getWeixinOpenid() != null && user.getWeixinOpenid().length() > 0) {
+            user.setUsername(phone); // 微信用户需要将手机号作为用户名
+        }
+        if (userService.updateById(user) == 0) {
+            return ResponseUtil.updatedDataFailed();
+        }        
+        return ResponseUtil.ok();
+    }    
 
     /**
      * 请求注册验证码
@@ -298,10 +496,11 @@ public class WxAuthController {
             return ResponseUtil.fail(AUTH_NAME_REGISTERED, "用户名已注册");
         }
 
-        userList = userService.queryByMobile(mobile);
-        if (userList.size() > 0) {
-            return ResponseUtil.fail(AUTH_MOBILE_REGISTERED, "手机号已注册");
+        Object validate = validatePhone(null, mobile);
+        if (validate != null) {
+            return validate;
         }
+
         if (!RegexUtil.isMobileSimple(mobile)) {
             return ResponseUtil.fail(AUTH_INVALID_MOBILE, "手机号格式不正确");
         }
@@ -527,18 +726,13 @@ public class WxAuthController {
         // if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
         //     return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
 
-        List<LitemallUser> userList = userService.queryByMobile(mobile);
-        LitemallUser user = null;
-        if (userList.size() > 0) {
-            return ResponseUtil.fail(AUTH_MOBILE_REGISTERED, "手机号已注册");
-        }
 
-        userList = userService.queryByUsername(mobile);
-        if (userList.size() > 0) {
-            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "手机号注册的用户名已存在");
-        }
+        LitemallUser user = userService.findById(userId);
 
-        user = userService.findById(userId);
+        Object validate =  validatePhone(user, mobile);
+        if (validate != null) {
+            return validate;
+        }
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         if (!encoder.matches(password, user.getPassword())) {
@@ -756,7 +950,14 @@ public class WxAuthController {
         String iv = JacksonUtil.parseString(body, "iv");
         WxMaPhoneNumberInfo phoneNumberInfo = this.wxService.getUserService().getPhoneNoInfo(user.getSessionKey(), encryptedData, iv);
         String phone = phoneNumberInfo.getPhoneNumber();
+
+        Object validationResult = validatePhone(user, phone);
+        if (validationResult != null) {
+            return validationResult;
+        }
+
         user.setMobile(phone);
+        user.setUsername(phone); // 手机号作为用户名
         if (userService.updateById(user) == 0) {
             return ResponseUtil.updatedDataFailed();
         }
@@ -793,5 +994,22 @@ public class WxAuthController {
 
     private String getAvatarAbsFolder() {
         return storageService.getLocalStorage().getAvatarAbsFolder();
+    }
+
+    private Object validatePhone(LitemallUser user, String phone) {
+        if (user == null || user.getUsername().equals(phone) == false) {
+            List<LitemallUser> userList = userService.queryByUsername(phone);
+            if (userList.size() > 0) {
+                return ResponseUtil.fail(AUTH_NAME_REGISTERED, "该手机号已被注册");
+            }
+        }
+
+        if (user == null || user.getMobile().equals(phone) == false) {
+            List<LitemallUser> userList = userService.queryByMobile(phone);
+            if (userList.size() > 0) {
+                return ResponseUtil.fail(AUTH_NAME_REGISTERED, "该手机号已被绑定");
+            }
+        }
+        return null;
     }
 }

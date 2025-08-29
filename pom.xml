@@ -108,6 +108,13 @@
             </dependency>
 
             <dependency>
+                <groupId>com.github.binarywang</groupId>
+                <artifactId>weixin-java-mp</artifactId>
+                <version>4.1.0</version>
+            </dependency>
+
+
+            <dependency>
                 <groupId>com.github.qcloudsms</groupId>
                 <artifactId>qcloudsms</artifactId>
                 <version>1.0.5</version>

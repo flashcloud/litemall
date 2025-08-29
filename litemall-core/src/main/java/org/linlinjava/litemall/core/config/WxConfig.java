@@ -4,6 +4,11 @@ import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.api.impl.WxMaServiceImpl;
 import cn.binarywang.wx.miniapp.config.WxMaConfig;
 import cn.binarywang.wx.miniapp.config.impl.WxMaDefaultConfigImpl;
+import me.chanjar.weixin.mp.api.WxMpService;
+import me.chanjar.weixin.mp.api.impl.WxMpServiceImpl;
+import me.chanjar.weixin.mp.config.WxMpConfigStorage;
+import me.chanjar.weixin.mp.config.impl.WxMpDefaultConfigImpl;
+
 import com.github.binarywang.wxpay.config.WxPayConfig;
 import com.github.binarywang.wxpay.service.WxPayService;
 import com.github.binarywang.wxpay.service.impl.WxPayServiceImpl;
@@ -54,4 +59,21 @@ public class WxConfig {
         wxPayService.setConfig(payConfig);
         return wxPayService;
     }
+
+    @Bean
+    public WxMpConfigStorage wxMpConfigStorage() {
+        WxMpDefaultConfigImpl config = new WxMpDefaultConfigImpl();
+        config.setAppId(properties.getAppId());
+        config.setSecret(properties.getAppSecret());
+        config.setToken(properties.getToken());
+        config.setAesKey(properties.getAesKey());
+        return config;
+    }
+
+    @Bean
+    public WxMpService wxMpService(WxMpConfigStorage wxMpConfigStorage) {
+        WxMpService wxMpService = new WxMpServiceImpl();
+        wxMpService.setWxMpConfigStorage(wxMpConfigStorage);
+        return wxMpService;
+    }    
 }

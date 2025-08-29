@@ -42,7 +42,7 @@
     </md-field-group>
 
 
-      <div class="text-desc text-center bottom_positon">技术支持: 成都市上谷科技有限公司</div>
+      <div class="text-desc text-center bottom_positon">Copyright 2008 - 2025 成都市上谷科技有限公司. All Rights Reserved <br> <a href="https://beian.miit.gov.cn" target="_blank" title="工信部域名备案查询">蜀ICP备17034488号</a></div>
 
 	</div>
 </template>
@@ -51,12 +51,43 @@
 import field from '@/components/field/';
 import fieldGroup from '@/components/field-group/';
 
-import { authLoginByAccount } from '@/api/api';
+import { authLoginByAccount, getWeChatCode, authLoginByWeixin } from '@/api/api';
 import { setLocalStorage } from '@/utils/local-storage';
 import { emailReg, mobileReg } from '@/utils/validate';
 
 import { Toast } from 'vant';
 
+function isWeChatBrowser() {
+    var ua = navigator.userAgent.toLowerCase();
+    return ua.indexOf('micromessenger') !== -1;
+}
+
+// 登录成功后的处理逻辑
+function after_login(self, loginFunc, loginData) {
+    loginFunc(loginData).then(res => {
+        self.userInfo = res.data.data.userInfo;
+        setLocalStorage({
+          Authorization: res.data.data.token,
+          avatar: self.userInfo.avatarUrl,
+          nickName: self.userInfo.nickName,
+          memberType: self.userInfo.memberType,
+          memberPlan: self.userInfo.memberPlan,
+          memberExpire: self.userInfo.memberExpire
+        });
+
+        if (!self.userInfo.mobile || self.userInfo.mobile == '') {
+          self.$router.push({ name: 'bindPhone' });
+        } else {
+          self.routerRedirect();
+        }
+      }).catch(error => {
+        if (error.data) {
+            Toast.fail(error.data.errmsg);
+        } else {
+            Toast.fail('登录失败，请重试' + error.toString());
+        }
+      });  
+}
 
 export default {
   name: 'login-request',
@@ -65,6 +96,36 @@ export default {
     [fieldGroup.name]: fieldGroup,
     Toast
   },
+
+  created() {
+    //用微信扫本登录页面网址二维码，在微信内浏览器用微信登录
+    if (isWeChatBrowser()) {
+      const href = window.location.href;
+      if (href.indexOf('?code=') > -1 && href.endsWith('#/login')) {
+        //微信回调的网址有误，修复
+        let newUrl = href.replace('#/login', '');
+        newUrl = newUrl.replace('?code=', '#/login?code=');
+        window.location.href = newUrl;
+        return;
+      }
+      const wechatCode = this.$route.query.code;
+      const state = this.$route.query.state;
+      if (wechatCode !== undefined) {
+        // 微信浏览器内，用code获取openid来使用微信登录
+        after_login(this, authLoginByWeixin, { code: wechatCode, state: state });
+        return;
+      }
+
+      // 微信浏览器，获取code
+      getWeChatCode({ router: 'login'}).then(res => {
+          const weLoginUrl = res.data.data;
+          window.location.href = weLoginUrl;
+      }).catch(error => {
+          Toast.fail(error.data.errmsg);
+      });
+    }
+  },
+
   data() {
     return {
       account: '',
@@ -86,21 +147,7 @@ export default {
 
     login() {
       let loginData = this.getLoginData();
-      authLoginByAccount(loginData).then(res => {
-        this.userInfo = res.data.data.userInfo;
-        setLocalStorage({
-          Authorization: res.data.data.token,
-          avatar: this.userInfo.avatarUrl,
-          nickName: this.userInfo.nickName,
-          memberType: this.userInfo.memberType,
-          memberPlan: this.userInfo.memberPlan,
-          memberExpire: this.userInfo.memberExpire
-        });
-
-        this.routerRedirect();
-      }).catch(error => {
-        Toast.fail(error.data.errmsg);
-      });
+      after_login(this, authLoginByAccount, loginData);
     },
 
     loginSubmit() {

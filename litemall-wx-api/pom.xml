@@ -50,6 +50,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>weixin-java-mp</artifactId>
+        </dependency>
+
+        <dependency>
 		     <groupId>io.springfox</groupId>
 			 <artifactId>springfox-swagger2</artifactId>
 		</dependency>

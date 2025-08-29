@@ -1,10 +1,12 @@
 package org.linlinjava.litemall.wx.dto;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 
 public class UserInfo {
     private String userName;
@@ -15,6 +17,9 @@ public class UserInfo {
     private String city;
     private String language;
     private Byte gender;
+    private String accessToken;
+    private String sessionKey;
+    private String wxOpenId;
     private List<LitemallTrader> managedTraders;
 
     private String mobile;
@@ -23,6 +28,44 @@ public class UserInfo {
     private String memberPlan;
     private String memberType;
     private String memberExpire;
+
+    public static UserInfo cloneFromUser(LitemallUser user) {
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUserName(user.getUsername());
+        userInfo.setNickName(user.getNickname());
+        userInfo.setAvatarUrl(user.getAvatar());
+        userInfo.setGender(user.getGender());
+        userInfo.setMobile(user.getMobile());
+        userInfo.setAddTime(user.getAddTime());
+        userInfo.setMemberType(user.getMemberType());
+        userInfo.setMemberPlan(user.getMemberActualPlan().getDescription());
+        userInfo.setMemberExpire(user.getExpireTime() == null ? null : user.getExpireTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));        
+        return userInfo;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getSessionKey() {
+        return sessionKey;
+    }
+
+    public void setSessionKey(String sessionKey) {
+        this.sessionKey = sessionKey;
+    }
+
+    public String getWxOpenId() {
+        return wxOpenId;
+    }
+
+    public void setWxOpenId(String wxOpenId) {
+        this.wxOpenId = wxOpenId;
+    }
 
     public String getCountry() {
         return country;
