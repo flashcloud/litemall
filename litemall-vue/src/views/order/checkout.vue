@@ -85,9 +85,9 @@
 </template>
 
 <script>
-import { Card, Tag, ard, Field, SubmitBar, Toast  } from 'vant';
+import { Card, Tag, ard, Field, SubmitBar, Toast, Notify } from 'vant';
 import { CouponCell, CouponList, Popup } from 'vant';
-import { cartCheckout, orderSubmit, couponSelectList} from '@/api/api';
+import { cartCheckout, orderSubmit, couponSelectList, getWXUserOpenId} from '@/api/api';
 import { getLocalStorage, setLocalStorage } from '@/utils/local-storage';
 import dayjs from 'dayjs';
 
@@ -168,18 +168,38 @@ export default {
         grouponRulesId: 0,
         message: this.message
       }).then(res => {
-        
-        // 下单成功，重置下单参数。
-        setLocalStorage({AddressId: 0, TraderId: 0, CartId: 0, CouponId: 0});
-
         let orderId = res.data.data.orderId;
+        const appId = 'wxbbd720ac29068df3';
+        // getWXUserOpenId({appId: appId, orderId: orderId}).then( res => {
+        //     // 下单成功，重置下单参数。
+        //     setLocalStorage({AddressId: 0, TraderId: 0, CartId: 0, CouponId: 0});            
+        //     this.$notify({ type: 'danger', message: res.request.responseURL })
+        //     // 跳转到微信授权页面
+        //     window.location.href = res.request.responseURL;
+        // }).catch( error => {
+        //     this.isDisabled = false;
+        //     if (error.data) {
+        //         this.$notify({ type: 'danger', message: '获取微信授权失败\n' + error.data.errmsg })
+        //         //this.$toast('获取微信授权失败\n' + error.data.errmsg);
+        //     } else {
+        //         this.$toast("获取微信授权失败:" + error.message);
+        //     }
+        // })
+        // return;
+        // 下单成功，重置下单参数。
+        setLocalStorage({AddressId: 0, TraderId: 0, CartId: 0, CouponId: 0});        
         this.$router.push({
           name: 'payment',
           params: { orderId: orderId }
         });
       }).catch(error => {
         this.isDisabled = false;
-        this.$toast("下单失败");
+        if (error.data) {
+            this.$notify({ type: 'danger', message: '下单失败\n' + error.data.errmsg })
+            //this.$toast('下单失败\n' + error.data.errmsg);
+        } else {
+            this.$toast("下单失败");
+        }
       })
 
     },
@@ -277,6 +297,7 @@ export default {
 
   components: {
     [Toast.name]: Toast ,
+    [Notify.name]: Notify,
     [SubmitBar.name]: SubmitBar,
     [Card.name]: Card,
     [Field.name]: Field,

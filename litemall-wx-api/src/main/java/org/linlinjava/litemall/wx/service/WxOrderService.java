@@ -782,10 +782,17 @@ public class WxOrderService {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能支付");
         }
 
+        LitemallUser user = userService.findById(userId);
+        String openid = user.getWeixinOpenid();
+        if (openid == null) {
+            return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
+        }
+
         WxPayMwebOrderResult result = null;
         try {
             WxPayUnifiedOrderRequest orderRequest = new WxPayUnifiedOrderRequest();
             orderRequest.setOutTradeNo(order.getOrderSn());
+            orderRequest.setOpenid(openid);
             orderRequest.setTradeType("MWEB");
             orderRequest.setBody("订单：" + order.getOrderSn());
             // 元转成分
