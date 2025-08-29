@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import {getWeChatCode, getWxPhone, manualBindPhone } from '@/api/api';
+import {getWeChatCode, manualBindPhone } from '@/api/api';
 import { getLocalStorage } from '@/utils/local-storage';
 import { Toast } from 'vant';
 import CustomInput from '@/components/cust-form/CustomInput';
