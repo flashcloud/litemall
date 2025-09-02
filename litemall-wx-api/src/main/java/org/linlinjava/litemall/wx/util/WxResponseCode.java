@@ -47,5 +47,6 @@ public class WxResponseCode {
     public static final Integer AUTH_USERS_MEMBER_STATUS = 755;
 
     public static final Integer AUTH_WECHAT_FAIL = 756;
+    public static final Integer AUTH_USERS_PHONE_BIND = 757;
 
 }

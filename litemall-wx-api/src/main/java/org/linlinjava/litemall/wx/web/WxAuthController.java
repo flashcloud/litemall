@@ -401,6 +401,10 @@ public class WxAuthController {
             return ResponseEntity.status(404).build(); // 用户不存在
         }
 
+        if (user.getMobile() != null && user.getMobile().length() > 0) {
+            return ResponseUtil.fail(AUTH_USERS_PHONE_BIND, "已绑定手机号 " + user.getMobile());
+        }
+
         Object validate = validatePhone(user, phone);
         if (validate != null) {
             return validate;
@@ -409,6 +413,10 @@ public class WxAuthController {
         user.setMobile(phone);
         if(user.getWeixinOpenid() != null && user.getWeixinOpenid().length() > 0) {
             user.setUsername(phone); // 微信用户需要将手机号作为用户名
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            //获取手机后6位作为密码
+            String encodedPassword = encoder.encode(phone.substring(phone.length() - 6));
+            user.setPassword(encodedPassword);
         }
         if (userService.updateById(user) == 0) {
             return ResponseUtil.updatedDataFailed();
