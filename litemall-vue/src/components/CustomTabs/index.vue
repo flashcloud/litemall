@@ -142,6 +142,9 @@ export default {
   .tabs-content {
     padding: 10px;
     min-height: 200px;
+    border: solid 1px #029688;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
   }
 }
 
@@ -164,6 +167,9 @@ export default {
     
     .tabs-content {
       padding: 5px;
+      border: solid 1px #017065;
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;      
     }
   }
 }
@@ -171,7 +177,7 @@ export default {
 /* 绿钻主题变体 */
 .custom-tabs.green-diamond-theme {
   .tabs-header {
-    background: linear-gradient(135deg, #000000 0%, #8B4513 100%);
+    background: linear-gradient(135deg, #029688 0%, #017065 100%);
   }
 }
 

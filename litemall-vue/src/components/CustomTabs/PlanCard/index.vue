@@ -109,7 +109,7 @@ export default {
   transition: all 0.3s ease;
   
   &.active {
-    border-color: #8B4513;
+    border-color: #017065;
     border-width: 2px;
     box-shadow: 0 0 10px rgba(139, 69, 19, 0.3);
   }

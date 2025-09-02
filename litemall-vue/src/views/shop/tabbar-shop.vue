@@ -14,28 +14,12 @@
       </van-swipe-item>
     </van-swipe>
 
-    <van-panel title="优惠券"
+    <van-panel title="优惠券" desc="限时点击领取"
                style=" padding-bottom: 10px;">
-      <div class="van-coupon-item"
-           v-for="(coupon,index) in shopInfos.couponList"
-           :key="index"
-           @click="getCoupon(coupon.id)">
-        <div class="van-coupon-item__content">
-          <div class="van-coupon-item__head">
-            <h2>
-              <span>¥</span>
-              {{coupon.discount}} 元
-            </h2>
-            <p>{{coupon.desc }} - {{coupon.tag}}</p>
-          </div>
-          <div class="van-coupon-item__body">
-            <h2>{{coupon.name}}</h2>
-            <p>有效期：{{coupon.days}} 天</p>
-
-          </div>
-        </div>
-
-      </div>
+        <span class="van-coupon-item2" v-for="(coupon,index) in shopInfos.couponList" :key="index" @click="getCoupon(coupon.id)">
+            <span class="van-coupon-item2_amount">¥ {{coupon.discount}}元 </span>
+            <span class="van-coupon-item2_desc">{{ coupon.name }},有效期{{ coupon.days }}天</span>
+        </span>
     </van-panel>
 
     <van-panel>
@@ -256,6 +240,25 @@ export default {
   width: 80px;
   height: 84px;
 }
+
+.van-cell__label {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.van-coupon-item2 {
+    padding-left: 20px;
+}
+
+.van-coupon-item2_amount {
+    font-weight: 800;
+    color: #017065;
+}
+.van-coupon-item2_desc {
+    color: #666;
+    font-size: 80%;
+}
+
 .van-coupon-item {
   overflow: hidden;
   border-radius: 4px;
@@ -297,7 +300,7 @@ export default {
   min-width: 90px;
 }
 .van-coupon-item__head h2 {
-  color: #f44;
+  color: #017065;
   font-size: 18px;
 }
 .van-coupon-item__head h2 span {

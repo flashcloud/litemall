@@ -294,7 +294,7 @@ export default {
 }
 
 .info-title {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 600;
   color: #999;
   margin: 0 0 20px 0;
@@ -314,13 +314,13 @@ export default {
 }
 
 .info-text {
-  font-size: 14px;
+  font-size: 12px;
   color: #999;
 }
 
 @media (max-width: 480px) {
   .bind-phone-container {
-    padding: 20px 16px;
+    padding: 20px 30px;
   }
   
   .title {

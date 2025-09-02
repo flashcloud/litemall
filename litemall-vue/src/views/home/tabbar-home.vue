@@ -390,7 +390,7 @@ export default {
   min-width: 90px;
 }
 .van-coupon-item__head h2 {
-  color: #f44;
+  color: #017065;
   font-size: 24px;
 }
 .van-coupon-item__head h2 span {

@@ -54,3 +54,8 @@ upload
 gen_code
 .vscode/launch.json
 .vscode/settings.json
+litemall-vue/src/assets/images/user_head_bg_red.png
+litemall-vue/src/assets/images/user_head_bg_green.png
+litemall-vue/public/resources/img/grsoft-app-ico.png
+litemall-vue/public/resources/img/app-download-qr.png
+litemall-vue/public/app-download.html

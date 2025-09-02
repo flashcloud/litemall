@@ -8,12 +8,20 @@
         <img :src="avatar" alt="用户头像" />
       </div>
       <div class="user-info">
-        <div class="username">{{nickName}} <van-tag type="success">{{ memberType }}</van-tag></div>
-        <div class="member-info" v-show="memberType != '普通会员'"><van-tag type="primary">{{ memberPlan }}</van-tag> <span :style="{color: new Date(memberExpire) < Date.now() ? 'red' : 'inherit'}" data-tooltip="这是一个工具提示"> {{ (new Date(memberExpire)).toLocaleDateString() }} 到期</span></div>
+        <div class="username">{{nickName}} <van-tag type="success" class="member-type-bg-color">{{ memberType }}</van-tag></div>
+        <div class="member-info" v-show="memberType != '普通会员'"><span :style="{color: new Date(memberExpire) < Date.now() ? 'red' : 'inherit'}" data-tooltip="">{{ memberPlan }}, {{ (new Date(memberExpire)).toLocaleDateString() }} 到期</span></div>
 
         <div class="member-desc" v-show="memberType === '普通会员'">加入会员，享受金软助手App专属特权</div>
       </div>
     </div>
+
+    <!-- 流光溢彩下载按钮组件 -->
+    <streaming-download-button 
+        button-text="点击下载金软助手App"
+        download-url="/app-download.html"
+        :open-in-new-tab="true"
+        @download-click="handleAppDownload"
+    />
 
     <!-- 使用自定义Tabs组件 -->
     <custom-tabs
@@ -147,6 +155,7 @@ import { getLocalStorage } from '@/utils/local-storage';
 import CustomTabs from '@/components/CustomTabs/index.vue';
 import MembershipPlans from '@/components/CustomTabs/MembershipPlans/index.vue';
 import MemberPrivilegesTable from '@/components/MemberPrivilegesTable/index.vue';
+import StreamingDownloadButton from '@/components/StreamingDownloadButton/index.vue';
 
 import { setLocalStorage, removeLocalStorage } from '@/utils/local-storage';
 import { authInfo, authLoginByAccount, authLogout, getMemberList, cartFastAdd, authProfile } from '@/api/api';
@@ -170,6 +179,7 @@ export default {
     [Icon.name]: Icon,
     [Checkbox.name]: Checkbox,
     [Tag.name]: Tag,
+    StreamingDownloadButton,
   },
 
     created() {
@@ -589,7 +599,7 @@ export default {
   font-size: 14px;
   color: white;
   margin-top: 8px;
-  background-color: black;
+  background-color: #999;
   padding: 12px 16px;
   border-radius: 8px;
   border: 1px solid #ffeaa7;
@@ -974,5 +984,9 @@ export default {
     transform: translateY(0);
     opacity: 0.7;
   }
+}
+.member-type-bg-color {
+    background-color: #029688;
+    color: white;
 }
 </style>

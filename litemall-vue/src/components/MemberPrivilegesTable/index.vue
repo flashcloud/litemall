@@ -188,7 +188,7 @@ export default {
     padding: 14px 12px;
     text-align: center;
     border: none;
-    font-size: 14px;
+    font-size: 13px;
     vertical-align: middle;
   }
   
@@ -214,7 +214,6 @@ export default {
 .privilege-column {
   background-color: #fafafa !important;
   color: #666;
-  font-weight: 500;
   text-align: left !important;
   padding-left: 16px !important;
   min-width: 120px;
@@ -232,15 +231,12 @@ export default {
 
 // 黄金主题样式
 .svip-column {
-  background: linear-gradient(135deg, #f5e6a3 0%, #f7e7a4 100%) !important;
-  color: #8b4513;
+//   background: linear-gradient(135deg, #f5e6a3 0%, #f7e7a4 100%) !important;
   
   .svip-header {
     font-size: 16px;
     font-weight: bold;
     font-style: italic;
-    color: #8b4513;
-    text-shadow: 0 1px 2px rgba(139, 69, 19, 0.3);
     line-height: 1.2;
     
     .member-title-line1,
@@ -259,7 +255,6 @@ export default {
     font-weight: bold;
     font-style: italic;
     color: #e74c3c;
-    text-shadow: 0 1px 2px rgba(231, 76, 60, 0.3);
     line-height: 1.2;
     
     .member-title-line1,
@@ -404,7 +399,7 @@ export default {
     .member-header {
       .member-title-line1,
       .member-title-line2 {
-        font-size: 11px;
+        font-size: 14px;
       }
     }
   }
