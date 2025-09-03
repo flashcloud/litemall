@@ -90,7 +90,7 @@ public class LitemallMemberService {
         //查找会员订单
         LitemallOrder memberOrder = orderService.findById(user.getId(), user.getMemberOrderId());
         if (memberOrder == null) throw new DataStatusException("会员订单不存在");
-        if (!memberOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) throw new DataStatusException("会员订单状态异常");
+        if (!memberOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM)) throw new DataStatusException("会员订单状态异常");
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime memberExpire = user.getExpireTime();
@@ -109,7 +109,7 @@ public class LitemallMemberService {
         // 用户会员已过期，则看是否存在需要延期的会员订单
         LitemallOrder parentOrder = orderService.findById(user.getId(), memberOrder.getParentOrderId());
         if (parentOrder == null) throw new DataStatusException("上级会员订单不存在");
-        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY))) throw new DataStatusException("上级会员订单状态异常");
+        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM))) throw new DataStatusException("上级会员订单状态异常");
 
         LitemallOrderGoods parentMemberOrderGoods = orderGoodsService.queryMemberOrderGoods(parentOrder.getId());
         LitemallGoodsSpecification parentMemberSpeci = queryMemberGoodsSpecification(parentOrder);
@@ -172,7 +172,7 @@ public class LitemallMemberService {
         if (existsMemberOrder.getParentOrderId() == null || existsMemberOrder.getParentOrderId() == 0) return true;
         LitemallOrder parentOrder = orderService.findById(user.getId(), existsMemberOrder.getParentOrderId());
         if (parentOrder == null) return true;
-        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY))) return true;
+        if (!(parentOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM))) return true;
         LitemallOrderGoods parentMemberGoods = orderGoodsService.queryMemberOrderGoods(parentOrder.getId());
         LocalDateTime parentExpire = parentMemberGoods.getExpDate();
         if (parentMemberGoods == null || parentExpire == null) return true;
@@ -189,7 +189,7 @@ public class LitemallMemberService {
         LitemallOrderGoods newMemberOrderGoods = null;
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(newOrder.getId());
         //如果订单中的商品是会员套餐，则设置用户的会员状态
-        if (newOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+        if (newOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY) || newOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM)) {
             for (LitemallOrderGoods orderGoods : orderGoodsList) {
                 LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
                 goods.setNumber(orderGoods.getNumber());
@@ -247,7 +247,7 @@ public class LitemallMemberService {
         if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
             // 如果之前用户已经存在有会员订单，并且旧的会员订单未到期，则保留旧会员订单的还剩下的天数，以便此新会员订单到期后，能自动恢复延续旧会员订单剩下的天数
             LitemallOrder oldMemberOrder = orderService.findById(user.getId(), user.getMemberOrderId());
-            if (oldMemberOrder != null && oldMemberOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+            if (oldMemberOrder != null && oldMemberOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM)) {
                 LitemallOrderGoods oldMemberGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
                 LocalDateTime oldExpDate = oldMemberGoods.getExpDate();
                 if (LocalDateTime.now().isBefore(oldExpDate)) {
@@ -258,7 +258,7 @@ public class LitemallMemberService {
                         //如果旧订单仍然存在未到期的上级会员订单，则禁止购买此次会员
                         if (oldMemberOrder.getParentOrderId() > 0) {
                             LitemallOrder oldMemberParentOrder = orderService.findById(user.getId(), oldMemberOrder.getParentOrderId());
-                            if (oldMemberParentOrder != null && oldMemberParentOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
+                            if (oldMemberParentOrder != null && oldMemberParentOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CONFIRM)) {
                                 LitemallOrderGoods oldMemberParentGoods = orderGoodsService.queryMemberOrderGoods(user.getMemberOrderId());
                                 LocalDateTime oldParentExpDate = oldMemberParentGoods.getExpDate();  
                                 if (LocalDateTime.now().isBefore(oldParentExpDate)) {
@@ -295,8 +295,9 @@ public class LitemallMemberService {
             updateMemberAttData(user, newMemberGoods.getGoodsName(), memberOrderId, newMemberPlan, newMemberExpDate);
         }
 
+        //更新订单状态为自动确认，跳过发货和用户手动确认状态
         newOrder.setConfirmTime(LocalDateTime.now());
-        newOrder.setOrderStatus(OrderUtil.STATUS_CONFIRM);
+        newOrder.setOrderStatus(OrderUtil.STATUS_AUTO_CONFIRM);
         orderService.updateSelective(newOrder);
 
         return true;
