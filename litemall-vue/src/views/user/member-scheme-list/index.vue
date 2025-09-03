@@ -115,7 +115,11 @@
         />
 
         <div class="auto-renew-note">
-            *特别说明：UDI扫码必须配合PC端金软UDI版软件使用 <van-icon name="question-o" />
+            <div style="display: block;">*特别说明：</div>
+            <ul>
+                <li>1. UDI扫码必须配合PC端金软UDI版软件使用</li>
+                <li>2. 会员权益仅限于购买时选择的套餐，一经售出，概不退换</li>
+            </ul>
         </div>        
 
         <!-- 确认支付按钮 -->
@@ -133,7 +137,7 @@
             </van-button>
             
             <!-- 协议条款 -->
-            <div class="agreement">
+            <div class="agreement" v-show="!agreeTerms">
             <van-checkbox v-model="agreeTerms" size="14px">
                 开通前阅读
             </van-checkbox>
@@ -222,7 +226,7 @@ export default {
       activeTab: 0,
       membersInfo: null,
       memberTabs: [],
-      agreeTerms: false,
+      agreeTerms: true,
       isLoading: false,
       planPrices: {},
       selectedPlan: {
@@ -548,7 +552,7 @@ export default {
   margin-bottom: 20px;
   font-size: 12px;
   color: #666;
-  display: flex;
+  display: block;
   align-items: center;
   gap: 4px;
   

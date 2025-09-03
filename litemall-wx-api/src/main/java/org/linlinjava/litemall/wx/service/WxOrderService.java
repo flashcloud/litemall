@@ -41,7 +41,10 @@ import org.linlinjava.litemall.core.util.IpUtil;
 import org.linlinjava.litemall.wx.task.OrderUnpaidTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -78,6 +81,8 @@ import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 @Service
 public class WxOrderService {
     private final Log logger = LogFactory.getLog(WxOrderService.class);
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private LitemallUserService userService;
@@ -389,7 +394,6 @@ public class WxOrderService {
             return ResponseUtil.badArgumentValue();
         }
         BigDecimal checkedGoodsPrice = new BigDecimal(0);
-        List<LitemallGoods> memberGoodsList = new ArrayList<>();
         for (LitemallCart checkGoods : checkedGoodsList) {
             //  只有当团购规格商品ID符合才进行团购优惠
             if (grouponRules != null && grouponRules.getGoodsId().equals(checkGoods.getGoodsId())) {
@@ -397,29 +401,12 @@ public class WxOrderService {
             } else {
                 checkedGoodsPrice = checkedGoodsPrice.add(checkGoods.getPrice().multiply(new BigDecimal(checkGoods.getNumber())));
             }
-
-            //检查会员商品
-            LitemallGoods goods = goodsService.findById(checkGoods.getGoodsId());
-            goods.setNumber(checkGoods.getNumber());
-            checkGoods.setGoodsType(goods.getGoodsType());
-            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
-                memberGoodsList.add(goods);
-            }            
         }
-        try {
-            memberService.checkMemberGoodsData(memberGoodsList);
-        } catch (MemberOrderDataException e) {
-            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        Object checkMemberGoodsResult = checkCartMemberGoods(user, checkedGoodsList);
+        if (!ResponseUtil.isOk(checkMemberGoodsResult)) {
+            // 会员商品检查未通过
+            return checkMemberGoodsResult;
         }
-        if (memberGoodsList.size() > 0) {
-            try {
-                memberService.checkMemberCanPurchase(user);
-                //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
-                memberService.checkMemberStatus(user);
-            } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
-                return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
-            }
-        }        
 
         // 获取可用的优惠券信息
         // 使用优惠券减免的金额
@@ -824,6 +811,9 @@ public class WxOrderService {
      */
     @Transactional
     public Object payNotify(HttpServletRequest request, HttpServletResponse response) {
+        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
         String xmlResult = null;
         try {
             xmlResult = IOUtils.toString(request.getInputStream(), request.getCharacterEncoding());
@@ -883,6 +873,7 @@ public class WxOrderService {
         try {
             memberService.updateUserMemberStatus(order);
         } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
+            transactionManager.rollback(status);
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
         
@@ -958,6 +949,10 @@ public class WxOrderService {
         OrderHandleOption handleOption = OrderUtil.build(order);
         if (!handleOption.isRefund()) {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能取消");
+        }
+
+        if (memberService.isMemberOrder(order.getId())) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, "会员订单不支持退款");
         }
 
         // 设置订单申请退款状态
@@ -1220,5 +1215,40 @@ public class WxOrderService {
         }
 
         return userService.queryByIds(traderOrderGoodsVo.getHasRegisterUserIds());
+    }
+
+    /**
+     * 检查购物车中的会员商品
+     * @param user
+     * @param checkedGoodsList
+     * @return
+     */
+    public Object checkCartMemberGoods(LitemallUser user, List<LitemallCart> checkedGoodsList) {
+        List<LitemallGoods> memberGoodsList = new ArrayList<>();
+        for (LitemallCart checkGoods : checkedGoodsList) {
+            //检查会员商品
+            LitemallGoods goods = goodsService.findById(checkGoods.getGoodsId());
+            goods.setNumber(checkGoods.getNumber());
+            checkGoods.setGoodsType(goods.getGoodsType());
+            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+                memberGoodsList.add(goods);
+            }
+        }
+        try {
+            memberService.checkMemberGoodsData(checkedGoodsList.size(), memberGoodsList);
+        } catch (IllegalArgumentException | MemberOrderDataException e) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        }
+        if (memberGoodsList.size() > 0) {
+            try {
+                memberService.checkMemberCanPurchase(user);
+                //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
+                memberService.checkMemberStatus(user);
+            } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
+                return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+            }
+        }
+
+        return ResponseUtil.ok();
     }
 }

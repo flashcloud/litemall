@@ -13,7 +13,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
-import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
@@ -21,11 +20,13 @@ import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
-import org.linlinjava.litemall.db.util.GrouponConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -43,6 +44,9 @@ import static org.linlinjava.litemall.admin.util.AdminResponseCode.*;
 
 public class AdminOrderService {
     private final Log logger = LogFactory.getLog(AdminOrderService.class);
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private LitemallOrderGoodsService orderGoodsService;
@@ -367,7 +371,11 @@ public class AdminOrderService {
         return ResponseUtil.ok();
     }
 
+    @Transactional
     public Object pay(String body) {
+        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);
+
         Integer orderId = JacksonUtil.parseInteger(body, "orderId");
         String newMoney = JacksonUtil.parseString(body, "newMoney");
 
@@ -395,6 +403,8 @@ public class AdminOrderService {
         try {
             memberService.updateUserMemberStatus(order);
         } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
+            //回滚事务
+            transactionManager.rollback(status);
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 

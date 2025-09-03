@@ -145,6 +145,8 @@ export default {
           orderRefund({ orderId: id }).then(() => {
             this.init();
             this.$toast('已申请订单退款');
+          }).catch((error) => {
+            this.$toast.fail('申请退款失败: ' + error.data.errmsg);
           });
         })
         .catch(() => {});

@@ -74,12 +74,12 @@ public class WxCartController {
         // 更好的效果应该是告知用户商品失效，允许用户点击按钮来清除失效商品。
         for (LitemallCart cart : list) {
             LitemallGoods goods = goodsService.findById(cart.getGoodsId());
-            cart.setGoodsType(goods.getGoodsType());
             if (goods == null || !goods.getIsOnSale()) {
                 cartService.deleteById(cart.getId());
                 logger.debug("系统自动删除失效购物车商品 goodsId=" + cart.getGoodsId() + " productId=" + cart.getProductId());
             }
             else{
+                cart.setGoodsType(goods.getGoodsType());
                 cartList.add(cart);
             }
         }
@@ -495,8 +495,8 @@ public class WxCartController {
         }
 
         try {
-            memberService.checkMemberGoodsData(memberGoodsList);
-        } catch (MemberOrderDataException e) {
+            memberService.checkMemberGoodsData(checkedGoodsList.size(), memberGoodsList);
+        } catch (IllegalArgumentException | MemberOrderDataException e) {
             return ResponseUtil.fail(WxResponseCode.ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
 

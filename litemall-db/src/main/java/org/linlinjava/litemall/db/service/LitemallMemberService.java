@@ -137,7 +137,10 @@ public class LitemallMemberService {
      * @return
      * @throws MemberOrderDataException 
      */
-    public boolean  checkMemberGoodsData(List<LitemallGoods> memberGoodsList) throws MemberOrderDataException {
+    public boolean  checkMemberGoodsData(Integer totalItemLength, List<LitemallGoods> memberGoodsList) throws IllegalArgumentException,MemberOrderDataException {
+        if (totalItemLength < 0 || totalItemLength < memberGoodsList.size()) {
+            throw new IllegalArgumentException("totalItemLength参数不合法");
+        }
         if (memberGoodsList.size() > 1) {
             throw new MemberOrderDataException("一次只能购买一种会员商品");
         } else if (memberGoodsList.size() == 1) {
@@ -145,6 +148,9 @@ public class LitemallMemberService {
             LitemallGoods memberGoods = memberGoodsList.get(0);
             if (memberGoods.getNumber() != 1) {
                 throw new MemberOrderDataException("会员商品数量必须为1");
+            }
+            if (totalItemLength > 1) {
+                throw new MemberOrderDataException("会员商品不能与普通商品一起购买，请单独下单");
             }
         }
         return true;
@@ -178,12 +184,12 @@ public class LitemallMemberService {
         }
     }
 
-    public LitemallGoodsSpecification queryMemberGoodsSpecification(LitemallOrder newOrder) throws MemberOrderDataException {
+    public LitemallGoodsSpecification queryMemberGoodsSpecification(LitemallOrder newOrder) throws IllegalArgumentException, MemberOrderDataException {
         List<LitemallGoods> memberGoodsList = new ArrayList<>();
         LitemallOrderGoods newMemberOrderGoods = null;
+        List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(newOrder.getId());
         //如果订单中的商品是会员套餐，则设置用户的会员状态
         if (newOrder.getOrderStatus().equals(OrderUtil.STATUS_PAY)) {
-            List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(newOrder.getId());
             for (LitemallOrderGoods orderGoods : orderGoodsList) {
                 LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
                 goods.setNumber(orderGoods.getNumber());
@@ -197,7 +203,7 @@ public class LitemallMemberService {
 
         if (newMemberOrderGoods == null) return null;
 
-        if (!checkMemberGoodsData(memberGoodsList)) return null;
+        if (!checkMemberGoodsData(orderGoodsList.size(), memberGoodsList)) return null;
 
         List<LitemallGoodsSpecification> newMemberSpeciList = productService.findByProduct(productService.findById(newMemberOrderGoods.getProductId()));
         if (newMemberSpeciList.size() > 0) {
@@ -211,16 +217,16 @@ public class LitemallMemberService {
      * 如果订单是会员商品，则更新用户的会员状态
      * @param newOrder
      * @param memberOrderGoods
-     * @return
-     * @throws MemberOrderDataException 
+     * @return boolean 如果是会员订单，则返回true
+     * @throws MemberOrderDataException | MaxTwoMemberOrderException | IllegalArgumentException
      */
-    public void updateUserMemberStatus(LitemallOrder newOrder) throws MemberOrderDataException, MaxTwoMemberOrderException {
-        if (newOrder == null) return;
+    public boolean updateUserMemberStatus(LitemallOrder newOrder) throws IllegalArgumentException, MemberOrderDataException, MaxTwoMemberOrderException {
+        if (newOrder == null) return false;
 
-        if (!isMemberOrder(newOrder.getId())) return;
+        if (!isMemberOrder(newOrder.getId())) return false;
 
         LitemallUser user = userService.findById(newOrder.getUserId());
-        if (user == null) return;
+        if (user == null) return false;
 
         //会员的启用日期以订单支付时间为准
         LocalDateTime newMemberStartDate = newOrder.getPayTime();
@@ -236,7 +242,7 @@ public class LitemallMemberService {
         }
 
         //如果会员订单已经到期，则忽略此订单
-        if (newMemberExpDate != null && newMemberExpDate.isBefore(LocalDateTime.now())) return;
+        if (newMemberExpDate != null && newMemberExpDate.isBefore(LocalDateTime.now())) return false;
 
         if (user.getMemberOrderId() != null && user.getMemberOrderId() > 0) {
             // 如果之前用户已经存在有会员订单，并且旧的会员订单未到期，则保留旧会员订单的还剩下的天数，以便此新会员订单到期后，能自动恢复延续旧会员订单剩下的天数
@@ -288,6 +294,12 @@ public class LitemallMemberService {
             //更新用户的会员信息
             updateMemberAttData(user, newMemberGoods.getGoodsName(), memberOrderId, newMemberPlan, newMemberExpDate);
         }
+
+        newOrder.setConfirmTime(LocalDateTime.now());
+        newOrder.setOrderStatus(OrderUtil.STATUS_CONFIRM);
+        orderService.updateSelective(newOrder);
+
+        return true;
     }
 
     /**
