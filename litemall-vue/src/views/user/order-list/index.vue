@@ -52,7 +52,7 @@
                           type="danger"
                           @click.stop="confirmOrder(el.id)">确认收货</van-button>
               <van-button size="small"
-                          v-if="el.handleOption.delete"
+                          v-if="el.canDelete"
                           @click.stop="delOrder(el.id)">删除订单</van-button>
               <van-button size="small"
                           v-if="el.handleOption.comment"
@@ -123,6 +123,8 @@ export default {
           orderDelete({ orderId: id }).then(() => {
             this.init();
             this.$toast('已删除订单');
+          }).catch((error) => {
+            this.$toast.fail('删除订单失败! ' + error.data.errmsg);
           });
         })
         .catch(() => {});

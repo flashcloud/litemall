@@ -60,7 +60,7 @@
                     round
                     type="danger">去支付</van-button>
         <van-button size="small"
-                    v-if="handleOption.delete"
+                    v-if="canDelete"
                     @click="deleteOrder(orderInfo.id)"
                     style=" float:right"
                     type="danger">删除订单</van-button>
@@ -108,6 +108,7 @@ export default {
       orderInfo: {},
       orderGoods: [],
       handleOption: {},
+      canDelete: false,
       expressInfo: {}
     };
   },
@@ -127,6 +128,8 @@ export default {
           orderDelete({ orderId: id }).then(() => {
             this.$toast('已删除订单');
             this.$router.go(-1);
+          }).catch((error) => {
+            this.$toast.fail('删除订单失败! ' + error.data.errmsg);
           });
         })
         .catch(() => {});
@@ -179,6 +182,7 @@ export default {
         this.orderInfo = data.orderInfo;
         this.orderGoods = data.orderGoods;
         this.handleOption = data.orderInfo.handleOption;
+        this.canDelete = data.orderInfo.canDelete;
         this.expressInfo = data.expressInfo;
       });
     }

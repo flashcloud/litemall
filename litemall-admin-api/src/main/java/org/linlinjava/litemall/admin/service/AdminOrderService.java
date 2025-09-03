@@ -325,12 +325,18 @@ public class AdminOrderService {
         }
 
         // 如果订单不是关闭状态(已取消、系统取消、已退款、用户已确认、系统已确认)，则不能删除
-        Short status = order.getOrderStatus();
-        if (!status.equals(OrderUtil.STATUS_CANCEL) && !status.equals(OrderUtil.STATUS_AUTO_CANCEL) &&
-                !status.equals(OrderUtil.STATUS_CONFIRM) &&!status.equals(OrderUtil.STATUS_AUTO_CONFIRM) &&
-                !status.equals(OrderUtil.STATUS_REFUND_CONFIRM)) {
-            return ResponseUtil.fail(ORDER_DELETE_FAILED, "订单不能删除");
+        // Short status = order.getOrderStatus();
+        // if (!status.equals(OrderUtil.STATUS_CANCEL) && !status.equals(OrderUtil.STATUS_AUTO_CANCEL) &&
+        //         !status.equals(OrderUtil.STATUS_CONFIRM) &&!status.equals(OrderUtil.STATUS_AUTO_CONFIRM) &&
+        //         !status.equals(OrderUtil.STATUS_REFUND_CONFIRM)) {
+        //     return ResponseUtil.fail(ORDER_DELETE_FAILED, "订单不能删除");
+        // }
+        
+        //只能删除取消状态的订单
+        if (!order.getCanDelete()) {
+            return ResponseUtil.fail(ORDER_DELETE_FAILED, "只能删除取消状态的订单");
         }
+
         // 删除订单
         orderService.deleteById(orderId);
         // 删除订单商品

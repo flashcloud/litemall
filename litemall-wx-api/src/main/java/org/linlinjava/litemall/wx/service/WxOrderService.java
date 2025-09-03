@@ -158,6 +158,7 @@ public class WxOrderService {
             orderVo.put("orderSn", o.getOrderSn());
             orderVo.put("actualPrice", o.getActualPrice());
             orderVo.put("orderStatusText", OrderUtil.orderStatusText(o));
+            orderVo.put("canDelete", o.getCanDelete());
             orderVo.put("handleOption", OrderUtil.build(o));
             orderVo.put("aftersaleStatus", o.getAftersaleStatus());
 
@@ -249,6 +250,7 @@ public class WxOrderService {
         orderVo.put("freightPrice", order.getFreightPrice());
         orderVo.put("actualPrice", order.getActualPrice());
         orderVo.put("orderStatusText", OrderUtil.orderStatusText(order));
+        orderVo.put("canDelete", order.getCanDelete());
         orderVo.put("handleOption", OrderUtil.build(order));
         orderVo.put("aftersaleStatus", order.getAftersaleStatus());
         orderVo.put("expCode", order.getShipChannel());
@@ -1040,6 +1042,10 @@ public class WxOrderService {
 
         OrderHandleOption handleOption = OrderUtil.build(order);
         if (!handleOption.isDelete()) {
+            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能删除");
+        }
+
+        if (!order.getCanDelete()) {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能删除");
         }
 
