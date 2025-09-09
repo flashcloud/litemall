@@ -69,7 +69,7 @@ public class AliyunSmsSender implements SmsSender {
     }
 
     @Override
-    public SmsResult sendWithTemplate(String phone, String templateId, String[] params) {
+    public SmsResult sendWithTemplate(String phone, String templateId, java.util.Map<String, String> params) {
         DefaultProfile profile = DefaultProfile.getProfile(this.regionId, this.accessKeyId, this.accessKeySecret);
         IAcsClient client = new DefaultAcsClient(profile);
 
@@ -90,20 +90,12 @@ public class AliyunSmsSender implements SmsSender {
 
           如果开发者在阿里云短信申请的模板参数是其他命名，请开发者自行调整这里的代码，或者直接写死。
          */
-        String templateParam = "{}";
-        if(params.length == 1){
-            Map<String, String> data = new HashMap<>();
-            data.put("code", params[0]);
-            templateParam = JacksonUtil.toJson(data);
-        }
-        else if(params.length > 1){
-            Map<String, String> data = new HashMap<>();
-            data.put("code", params[0]);
-            for(int i = 1; i < params.length; i++){
-                data.put("code" + i, params[i]);
-            }
-            templateParam = JacksonUtil.toJson(data);
-        }
+        if (params == null || params.size()== 0)
+            throw new IllegalArgumentException("阿里云短信模板参数不能为空");
+        if (!params.containsKey("code"))
+            throw new IllegalArgumentException("阿里云短信模板参数必须包含code，且区分大小写");
+
+        String templateParam  = JacksonUtil.toJson(params);
         request.putQueryParameter("TemplateParam", templateParam);
 
         try {

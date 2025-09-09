@@ -51,7 +51,7 @@ public class NotifyService {
      * @param params      通知模版内容里的参数，类似"您的验证码为{1}"中{1}的值
      */
     @Async
-    public void notifySmsTemplate(String phoneNumber, NotifyType notifyType, String[] params) {
+    public void notifySmsTemplate(String phoneNumber, NotifyType notifyType, Map<String, String> params) {
         if (smsSender == null) {
             return;
         }
@@ -72,7 +72,7 @@ public class NotifyService {
      * @param params      通知模版内容里的参数，类似"您的验证码为{1}"中{1}的值
      * @return
      */
-    public SmsResult notifySmsTemplateSync(String phoneNumber, NotifyType notifyType, String[] params) {
+    public SmsResult notifySmsTemplateSync(String phoneNumber, NotifyType notifyType, Map<String, String> params) {
         if (smsSender == null)
             return null;
 
