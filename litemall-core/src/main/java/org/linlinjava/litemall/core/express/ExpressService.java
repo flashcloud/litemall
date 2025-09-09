@@ -53,6 +53,14 @@ public class ExpressService {
         return properties.getVendors();
     }
 
+    public String getVendor(String vendorCode) {
+        for (Map<String, String> item : properties.getVendors()) {
+            if (item.get("code").equals(vendorCode))
+                return item.get("name");
+        }
+        return null;
+    }
+
     /**
      * 获取物流信息
      *

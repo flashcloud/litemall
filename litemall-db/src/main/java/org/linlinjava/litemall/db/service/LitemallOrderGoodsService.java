@@ -32,19 +32,6 @@ public class LitemallOrderGoodsService {
         return orderGoodsMapper.selectByExample(example);
     }
 
-    public LitemallOrderGoods queryMemberOrderGoods(Integer orderId) {
-        List<LitemallOrderGoods> orderGoodsList = queryByOid(orderId);
-        for (LitemallOrderGoods orderGoods : orderGoodsList) {
-            LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
-            goods.setNumber(orderGoods.getNumber());
-            orderGoods.setGoodsType(goods.getGoodsType());
-            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
-                return orderGoods; // 返回第一个会员商品
-            }
-        }
-        return null;
-    }
-
     public LitemallOrderGoods findById(Integer id) {
         return orderGoodsMapper.selectByPrimaryKey(id);
     }

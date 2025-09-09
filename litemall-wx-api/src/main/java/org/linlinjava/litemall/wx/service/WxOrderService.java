@@ -23,6 +23,7 @@ import org.linlinjava.litemall.core.system.SystemConfig;
 import org.linlinjava.litemall.core.task.TaskService;
 import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
+import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
@@ -51,9 +52,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +87,10 @@ public class WxOrderService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private LitemallAdminService litemallAdminService;
+    @Autowired
+    private LitemallAdminService adminService;
     @Autowired
     private LitemallUserService userService;
     @Autowired
@@ -445,7 +452,7 @@ public class WxOrderService {
         order.setOrderSn(orderService.generateOrderSn(userId));
         order.setOrderStatus(OrderUtil.STATUS_CREATE);
         order.setConsignee(checkedAddress == null ? "" : checkedAddress.getName());
-        order.setMobile(checkedAddress == null ? "" : checkedAddress.getTel());
+        order.setMobile(checkedAddress == null || checkedAddress.getTel() == null || checkedAddress.getTel().isEmpty() ? user.getMobile()  : checkedAddress.getTel());
         order.setMessage(message);
         String detailedAddress = (checkedAddress == null ? "" : checkedAddress.getProvince()) + " " +
                 (checkedAddress == null ? "" : checkedAddress.getCity()) + " " +
@@ -589,17 +596,34 @@ public class WxOrderService {
                     grouponService.updateById(grouponSource);
                 }
             }
-
-            //TODO 发送邮件和短信通知，这里采用异步发送
-            // 订单支付成功以后，会发送短信给用户，以及发送邮件给管理员
-            notifyService.notifyMail("新订单通知", order.toString());
-            // 这里微信的短信平台对参数长度有限制，所以将订单号只截取后6位
-            notifyService.notifySmsTemplateSync(order.getMobile(), NotifyType.PAY_SUCCEED, new String[]{order.getOrderSn().substring(8, 14)});
         }
         else {
             // 订单支付超期任务
             taskService.addTask(new OrderUnpaidTask(orderId));
         }
+
+        //TODO 发送邮件和短信通知，这里采用异步发送
+        // 订单支付成功以后，会发送短信给用户(使用阿里云短信必须是JSON格式， 腾讯云短信模板参数是数组)，以及发送邮件给管理员
+        notifyService.notifyMail("新订单通知", order.toString());
+        // 这里微信的短信平台对参数长度有限制，所以将订单号只截取后6位
+        final String orderSn = order.getOrderSn().substring(8, 14);
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName1", user.getNickname());
+        params.put("nickName2", user.getNickname());
+        params.put("orderSn", order.getOrderSn());//阿里短信平台无限制
+        //对订单金额进行格式化，保留两位小数
+        String orderPrice = order.getActualPrice().setScale(2, BigDecimal.ROUND_HALF_UP).toString();
+        params.put("total", orderPrice);
+        if (order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            // 通知用户(先不发短信)
+            //notifyService.notifySmsTemplateSync(order.getMobile(), NotifyType.SUBMIT_ORDER, params);
+        }
+        // 通知商户
+        List<String> adminMobiles = adminService.allGetedSmsPhones();
+        adminMobiles.forEach(adminMobile -> {
+            notifyService.notifySmsTemplateSync(adminMobile, NotifyType.SUBMIT_ORDER, params);
+        });
 
         Map<String, Object> data = new HashMap<>();
         data.put("orderId", orderId);
@@ -854,6 +878,11 @@ public class WxOrderService {
             return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
         }
 
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user == null) {
+            return WxPayNotifyResponse.fail("用户不存在 id=" + order.getUserId());
+        }
+
         // 检查这个订单是否已经处理过
         if (OrderUtil.hasPayed(order)) {
             return WxPayNotifyResponse.success("订单已经处理成功!");
@@ -872,8 +901,9 @@ public class WxOrderService {
         }
 
         //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
+        boolean isMemberOrder = false;
         try {
-            memberService.updateUserMemberStatus(order);
+            isMemberOrder = memberService.updateUserMemberStatus(order);
         } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
             transactionManager.rollback(status);
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
@@ -913,7 +943,45 @@ public class WxOrderService {
         // 订单支付成功以后，会发送短信给用户，以及发送邮件给管理员
         notifyService.notifyMail("新订单通知", order.toString());
         // 这里微信的短信平台对参数长度有限制，所以将订单号只截取后6位
-        notifyService.notifySmsTemplateSync(order.getMobile(), NotifyType.PAY_SUCCEED, new String[]{orderSn.substring(8, 14)});
+        final String orderSnOfPart = orderSn.substring(8, 14);
+        boolean sendMemberSms = true;
+        NotifyType notifyType = null;
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName", user.getNickname());
+        if(isMemberOrder){
+            notifyType = NotifyType.ORDER_MEMBER;
+            params.put("now", order.getPayTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            try {
+                LitemallGoodsSpecification memberSpeci = memberService.queryMemberGoodsSpecification(order);
+                LitemallGoods memberGoods = goodsService.findById(memberSpeci.getGoodsId());
+                params.put("memberType", memberGoods.getName() + " - " + memberSpeci.getValue());
+                if (memberSpeci.getValue().contains("连续")) {
+                    params.put("continueType", "自动续费");
+                } else {
+                    params.put("continueType", "不再享受会员权益");
+                }
+            } catch (IllegalArgumentException | MemberOrderDataException e) {
+                logger.error("获取会员订单信息失败，无法发送会员购买短信，订单ID：" + order.getId());
+                sendMemberSms = false;
+            }
+            params.put("orderSn", orderSn);
+        } else {
+            notifyType = NotifyType.PAY_SUCCEED;
+            params.put("orderSn", orderSn);
+            String orderPrice = order.getActualPrice().setScale(2, BigDecimal.ROUND_HALF_UP).toString();
+            params.put("totalAmount", orderPrice);
+        }
+
+        if (sendMemberSms && order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            notifyService.notifySmsTemplateSync(order.getMobile(), notifyType, params);
+
+            // 通知商户
+            List<String> adminMobiles = adminService.allGetedSmsPhones();
+            for (String adminMobile : adminMobiles) {
+                notifyService.notifySmsTemplateSync(adminMobile, notifyType, params);
+            }
+        }
 
         // 取消订单超时未支付任务
         taskService.removeTask(new OrderUnpaidTask(order.getId()));
@@ -935,6 +1003,12 @@ public class WxOrderService {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgument();
+        }
+
         Integer orderId = JacksonUtil.parseInteger(body, "orderId");
         if (orderId == null) {
             return ResponseUtil.badArgument();
@@ -966,6 +1040,19 @@ public class WxOrderService {
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 有用户申请退款，邮件通知运营人员
         notifyService.notifyMail("退款申请", order.toString());
+
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName", user.getNickname());
+        params.put("orderSn", order.getOrderSn());//阿里短信平台无限制
+        if (order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            notifyService.notifySmsTemplate(order.getMobile(), NotifyType.REFUND_REQ, params);
+        }
+        //通知商户
+        List<String> adminMobiles = litemallAdminService.allGetedSmsPhones();
+        for (String adminMobile : adminMobiles) {
+            notifyService.notifySmsTemplateSync(adminMobile, NotifyType.REFUND_REQ, params);
+        }
 
         return ResponseUtil.ok();
     }

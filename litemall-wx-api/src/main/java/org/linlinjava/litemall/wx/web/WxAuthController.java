@@ -70,6 +70,7 @@ import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -451,7 +452,9 @@ public class WxAuthController {
         if (!successful) {
             return ResponseUtil.fail(AUTH_CAPTCHA_FREQUENCY, "验证码未超时1分钟，不能发送");
         }
-        notifyService.notifySmsTemplate(phoneNumber, NotifyType.CAPTCHA, new String[]{code});
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", code);
+        notifyService.notifySmsTemplate(phoneNumber, NotifyType.CAPTCHA, params);
 
         return ResponseUtil.ok();
     }
@@ -625,7 +628,9 @@ public class WxAuthController {
         if (!successful) {
             return ResponseUtil.fail(AUTH_CAPTCHA_FREQUENCY, "验证码未超时1分钟，不能发送");
         }
-        notifyService.notifySmsTemplate(phoneNumber, NotifyType.CAPTCHA, new String[]{code});
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", code);
+        notifyService.notifySmsTemplate(phoneNumber, NotifyType.CAPTCHA, params);
 
         return ResponseUtil.ok();
     }

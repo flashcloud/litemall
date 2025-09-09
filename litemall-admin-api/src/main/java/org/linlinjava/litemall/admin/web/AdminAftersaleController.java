@@ -13,6 +13,7 @@ import org.linlinjava.litemall.admin.util.AdminResponseCode;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.util.JacksonUtil;
+import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
@@ -20,6 +21,7 @@ import org.linlinjava.litemall.db.domain.LitemallAftersale;
 import org.linlinjava.litemall.db.domain.LitemallGoodsProduct;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.AftersaleConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
@@ -29,7 +31,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.linlinjava.litemall.admin.util.AdminResponseCode.ORDER_REFUND_FAILED;
 
@@ -39,6 +43,8 @@ import static org.linlinjava.litemall.admin.util.AdminResponseCode.ORDER_REFUND_
 public class AdminAftersaleController {
     private final Log logger = LogFactory.getLog(AdminAftersaleController.class);
 
+    @Autowired
+    private LitemallUserService userService;
     @Autowired
     private LitemallAftersaleService aftersaleService;
     @Autowired
@@ -176,6 +182,14 @@ public class AdminAftersaleController {
         }
         Integer orderId = aftersaleOne.getOrderId();
         LitemallOrder order = orderService.findById(orderId);
+        if(order == null){
+            return ResponseUtil.badArgumentValue();
+        }
+
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user == null) {
+            return ResponseUtil.badArgument();
+        }        
 
         // 微信退款
         WxPayRefundRequest wxPayRefundRequest = new WxPayRefundRequest();
@@ -223,8 +237,13 @@ public class AdminAftersaleController {
         // 发送短信通知，这里采用异步发送
         // 退款成功通知用户, 例如“您申请的订单退款 [ 单号:{1} ] 已成功，请耐心等待到账。”
         // TODO 注意订单号只发后6位
-        notifyService.notifySmsTemplate(order.getMobile(), NotifyType.REFUND,
-                new String[]{order.getOrderSn().substring(8, 14)});
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName", user.getNickname());
+        params.put("orderSn", order.getOrderSn());//阿里短信平台无限制
+        if (order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            notifyService.notifySmsTemplate(order.getMobile(), NotifyType.REFUND_SUCCESS, params);
+        }
 
         logHelper.logOrderSucceed("退款", "订单编号 " + order.getOrderSn() + " 售后编号 " + aftersale.getAftersaleSn());
         return ResponseUtil.ok();

@@ -11,9 +11,11 @@ import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.util.JacksonUtil;
+import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
@@ -32,9 +34,11 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +52,10 @@ public class AdminOrderService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private ExpressService expressService;
+    @Autowired
+    private LitemallAdminService litemallAdminService;
     @Autowired
     private LitemallOrderGoodsService orderGoodsService;
     @Autowired
@@ -122,38 +130,51 @@ public class AdminOrderService {
             return ResponseUtil.badArgument();
         }
 
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user == null) {
+            return ResponseUtil.badArgument();
+        }
+
         if (order.getActualPrice().compareTo(new BigDecimal(refundMoney)) != 0) {
             return ResponseUtil.badArgumentValue();
         }
 
         // 如果订单不是退款状态，则不能退款
-        if (!order.getOrderStatus().equals(OrderUtil.STATUS_REFUND)) {
-            return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
-        }
+        if (order.isThirdPay()) {
+            //可以强制退货
+            //if (!order.getOrderStatus().equals(OrderUtil.STATUS_REFUND)) {
+            //    return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
+            //}
 
-        // 微信退款
-        WxPayRefundRequest wxPayRefundRequest = new WxPayRefundRequest();
-        wxPayRefundRequest.setOutTradeNo(order.getOrderSn());
-        wxPayRefundRequest.setOutRefundNo("refund_" + order.getOrderSn());
-        // 元转成分
-        Integer totalFee = order.getActualPrice().multiply(new BigDecimal(100)).intValue();
-        wxPayRefundRequest.setTotalFee(totalFee);
-        wxPayRefundRequest.setRefundFee(totalFee);
+            // 微信退款
+            WxPayRefundRequest wxPayRefundRequest = new WxPayRefundRequest();
+            wxPayRefundRequest.setOutTradeNo(order.getOrderSn());
+            wxPayRefundRequest.setOutRefundNo("refund_" + order.getOrderSn());
+            // 元转成分
+            Integer totalFee = order.getActualPrice().multiply(new BigDecimal(100)).intValue();
+            wxPayRefundRequest.setTotalFee(totalFee);
+            wxPayRefundRequest.setRefundFee(totalFee);
 
-        WxPayRefundResult wxPayRefundResult;
-        try {
-            wxPayRefundResult = wxPayService.refund(wxPayRefundRequest);
-        } catch (WxPayException e) {
-            logger.error(e.getMessage(), e);
-            return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
-        }
-        if (!wxPayRefundResult.getReturnCode().equals("SUCCESS")) {
-            logger.warn("refund fail: " + wxPayRefundResult.getReturnMsg());
-            return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
-        }
-        if (!wxPayRefundResult.getResultCode().equals("SUCCESS")) {
-            logger.warn("refund fail: " + wxPayRefundResult.getReturnMsg());
-            return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
+            WxPayRefundResult wxPayRefundResult;
+            try {
+                wxPayRefundResult = wxPayService.refund(wxPayRefundRequest);
+            } catch (WxPayException e) {
+                logger.error(e.getMessage(), e);
+                return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
+            }
+            if (!wxPayRefundResult.getReturnCode().equals("SUCCESS")) {
+                logger.warn("refund fail: " + wxPayRefundResult.getReturnMsg());
+                return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
+            }
+            if (!wxPayRefundResult.getResultCode().equals("SUCCESS")) {
+                logger.warn("refund fail: " + wxPayRefundResult.getReturnMsg());
+                return ResponseUtil.fail(ORDER_REFUND_FAILED, "订单退款失败");
+            }
+
+            order.setRefundContent(wxPayRefundResult.getRefundId());
+            order.setRefundType("微信退款接口");
+        } else {
+            order.setRefundType("后台主动退款");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -162,8 +183,6 @@ public class AdminOrderService {
         order.setEndTime(now);
         // 记录订单退款相关信息
         order.setRefundAmount(order.getActualPrice());
-        order.setRefundType("微信退款接口");
-        order.setRefundContent(wxPayRefundResult.getRefundId());
         order.setRefundTime(now);
         if (orderService.updateWithOptimisticLocker(order) == 0) {
             throw new RuntimeException("更新数据已失效");
@@ -191,8 +210,13 @@ public class AdminOrderService {
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 退款成功通知用户, 例如“您申请的订单退款 [ 单号:{1} ] 已成功，请耐心等待到账。”
         // 注意订单号只发后6位
-        notifyService.notifySmsTemplate(order.getMobile(), NotifyType.REFUND,
-                new String[]{order.getOrderSn().substring(8, 14)});
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName", user.getNickname());
+        params.put("orderSn", order.getOrderSn());//阿里短信平台无限制
+        if (order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            notifyService.notifySmsTemplate(order.getMobile(), NotifyType.REFUND_SUCCESS, params);
+        }
 
         logHelper.logOrderSucceed("退款", "订单编号 " + order.getOrderSn());
         return ResponseUtil.ok();
@@ -220,6 +244,11 @@ public class AdminOrderService {
 
         LitemallOrder order = orderService.findById(orderId);
         if (order == null) {
+            return ResponseUtil.badArgument();
+        }
+
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user == null) {
             return ResponseUtil.badArgument();
         }
 
@@ -298,10 +327,19 @@ public class AdminOrderService {
             return ResponseUtil.updatedDateExpired();
         }
 
+        List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(orderId);
+
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 发货会发送通知短信给用户:          *
         // "您的订单已经发货，快递公司 {1}，快递单 {2} ，请注意查收"
-        notifyService.notifySmsTemplate(order.getMobile(), NotifyType.SHIP, new String[]{shipChannel, shipSn});
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("code", "1234"); //Code参数，必传
+        params.put("nickName", user.getNickname());
+        params.put("orderDate", order.getAddTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        params.put("goods", orderGoodsList.size() > 0 ? orderGoodsList.get(0).getGoodsName() + (orderGoodsList.size() > 1 ? "等" + orderGoodsList.size() + "件商品" : "") : "");
+        params.put("shipType", expressService.getVendor(order.getShipChannel()));
+        params.put("shipSn", shipSn);
+        notifyService.notifySmsTemplate(order.getMobile(), NotifyType.SHIP, params);
 
         logHelper.logOrderSucceed("发货", "订单编号 " + order.getOrderSn());
         return ResponseUtil.ok();
