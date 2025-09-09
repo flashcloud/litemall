@@ -144,7 +144,14 @@ public class AdminOrderService {
             //可以强制退货
             //if (!order.getOrderStatus().equals(OrderUtil.STATUS_REFUND)) {
             //    return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
-            //}
+            // }
+            if (order.getOrderStatus().equals(OrderUtil.STATUS_REFUND_CONFIRM) ||
+                    order.getOrderStatus().equals(OrderUtil.STATUS_CANCEL) ||
+                    order.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CANCEL) ||
+                    order.getOrderStatus().equals(OrderUtil.STATUS_ADMIN_CANCEL) ||
+                    order.getOrderStatus().equals(OrderUtil.STATUS_CREATE)) {
+                return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "当前订单状态禁止退款操作");
+            }
 
             // 微信退款
             WxPayRefundRequest wxPayRefundRequest = new WxPayRefundRequest();
