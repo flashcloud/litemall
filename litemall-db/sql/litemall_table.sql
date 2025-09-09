@@ -85,6 +85,8 @@ CREATE TABLE `litemall_admin` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
   `role_ids` varchar(127) DEFAULT '[]' COMMENT '角色列表',
+  `mobile` varchar(20) NULL DEFAULT '' COMMENT '手机号码',
+  `get_msg` tinyint(1) DEFAULT '0' COMMENT '接收消息通知',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COMMENT='管理员表';
 /*!40101 SET character_set_client = @saved_cs_client */;

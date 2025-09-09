@@ -59,6 +59,10 @@ public class AdminAdminController {
         if (StringUtils.isEmpty(password) || password.length() < 6) {
             return ResponseUtil.fail(ADMIN_INVALID_PASSWORD, "管理员密码长度不能小于6");
         }
+
+        if (admin.getMobile() != null && admin.getMobile().length() > 0 && !RegexUtil.isMobileSimple(admin.getMobile())) {
+            return ResponseUtil.fail(USER_INVALID_MOBILE, "手机号格式不正确");
+        }
         return null;
     }
 

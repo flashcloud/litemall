@@ -881,6 +881,8 @@ export default {
     table: {
       id: '管理员ID',
       username: '管理员名称',
+      mobile: '手机号码',
+      get_msg: '手机接收通知',
       avatar: '管理员头像',
       role_ids: '管理员角色',
       actions: '操作'
@@ -888,12 +890,19 @@ export default {
     form: {
       username: '管理员名称',
       password: '管理员密码',
+      mobile: '手机号码',
+      get_msg: '接收短信通知',
       avatar: '管理员头像',
       role_ids: '管理员角色'
     },
     placeholder: {
       filter_username: '请输入管理员名称',
-      role_ids: '请选择'
+      role_ids: '请选择',
+      get_msg: '填写手机号才能接收通知'
+    },
+    value: {
+      get_msg_true: '启用',
+      get_msg_false: '关闭'
     }
   },
   sys_notice: {

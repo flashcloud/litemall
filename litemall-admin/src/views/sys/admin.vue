@@ -14,7 +14,12 @@
       <el-table-column align="center" :label="$t('sys_admin.table.id')" prop="id" sortable />
 
       <el-table-column align="center" :label="$t('sys_admin.table.username')" prop="username" />
-
+      <el-table-column align="center" :label="$t('sys_admin.table.mobile')" prop="mobile" />
+      <el-table-column align="center" :label="$t('sys_admin.table.get_msg')" prop="getMsg">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.getMsg ? 'success' : 'error' ">{{ $t(scope.row.getMsg ? 'sys_admin.value.get_msg_true' : 'sys_admin.value.get_msg_false') }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column align="center" :label="$t('sys_admin.table.avatar')" prop="avatar">
         <template slot-scope="scope">
           <img v-if="scope.row.avatar" :src="scope.row.avatar" width="40">
@@ -45,6 +50,15 @@
         </el-form-item>
         <el-form-item :label="$t('sys_admin.form.password')" prop="password">
           <el-input v-model="dataForm.password" type="password" auto-complete="off" />
+        </el-form-item>
+        <el-form-item :label="$t('sys_admin.form.mobile')" prop="mobile">
+          <el-input v-model="dataForm.mobile" />
+        </el-form-item>
+        <el-form-item :label="$t('sys_admin.form.get_msg')" prop="getMsg">
+          <el-select v-model="dataForm.getMsg" :placeholder="$t('sys_admin.placeholder.get_msg')">
+            <el-option :value="true" :label="$t('sys_admin.value.get_msg_true')" />
+            <el-option :value="false" :label="$t('sys_admin.value.get_msg_false')" />
+          </el-select>
         </el-form-item>
         <el-form-item :label="$t('sys_admin.form.avatar')" prop="avatar">
           <el-upload
@@ -134,6 +148,8 @@ export default {
         id: undefined,
         username: undefined,
         password: undefined,
+        mobile: undefined,
+        getMsg: false,
         avatar: undefined,
         roleIds: []
       },
@@ -147,7 +163,10 @@ export default {
         username: [
           { required: true, message: '管理员名称不能为空', trigger: 'blur' }
         ],
-        password: [{ required: true, message: '密码不能为空', trigger: 'blur' }]
+        password: [{ required: true, message: '密码不能为空', trigger: 'blur' }],
+        mobile: [
+          { pattern: /^1[3456789]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
+        ]
       },
       downloadLoading: false
     }
@@ -198,6 +217,8 @@ export default {
       this.dataForm = {
         id: undefined,
         username: undefined,
+        mobile: undefined,
+        getMsg: false,
         password: undefined,
         avatar: undefined,
         roleIds: []

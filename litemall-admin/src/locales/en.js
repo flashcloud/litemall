@@ -881,6 +881,8 @@ export default {
     table: {
       id: 'ID',
       username: 'Username',
+      mobile: 'Mobile',
+      get_msg: 'Get notifications',
       avatar: 'Avatar',
       role_ids: 'Roles',
       actions: 'Actions'
@@ -888,12 +890,19 @@ export default {
     form: {
       username: 'Username',
       password: 'Password',
+      mobile: 'Mobile',
+      get_msg: 'Get notifications',
       avatar: 'Avatar',
       role_ids: 'Roles'
     },
     placeholder: {
       filter_username: 'Username',
-      role_ids: 'Please choose'
+      role_ids: 'Please choose',
+      get_msg: 'used to receive notification messages with mobile'
+    },
+    value: {
+      get_msg_true: 'On',
+      get_msg_false: 'Off'
     }
   },
   sys_notice: {

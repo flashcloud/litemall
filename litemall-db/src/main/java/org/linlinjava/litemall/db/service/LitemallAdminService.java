@@ -11,10 +11,11 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class LitemallAdminService {
-    private final Column[] result = new Column[]{Column.id, Column.username, Column.avatar, Column.roleIds};
+    private final Column[] result = new Column[]{Column.id, Column.username, Column.mobile, Column.getMsg, Column.avatar, Column.roleIds};
     @Resource
     private LitemallAdminMapper adminMapper;
 
@@ -68,5 +69,13 @@ public class LitemallAdminService {
         LitemallAdminExample example = new LitemallAdminExample();
         example.or().andDeletedEqualTo(false);
         return adminMapper.selectByExample(example);
+    }
+
+    public List<String> allGetedSmsPhones() {
+        LitemallAdminExample example = new LitemallAdminExample();
+        example.or().andDeletedEqualTo(false).andMobileIsNotNull().andMobileNotEqualTo("").andGetMsgEqualTo(true);
+        List<LitemallAdmin> admins = adminMapper.selectByExample(example);
+        //返回所有接收短信的管理员手机号，并且去重
+        return admins.stream().map(LitemallAdmin::getMobile).distinct().collect(Collectors.toList());
     }
 }
