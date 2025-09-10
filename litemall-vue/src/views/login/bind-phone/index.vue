@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import {getWeChatCode, manualBindPhone } from '@/api/api';
+import {getWeChatCode, authCaptcha, manualBindPhone } from '@/api/api';
 import { getLocalStorage } from '@/utils/local-storage';
 import { Toast } from 'vant';
 import CustomInput from '@/components/cust-form/CustomInput';
@@ -150,16 +150,17 @@ export default {
         this.$message.warning('请输入正确的手机号')
         return
       }
-      
-      try {
-        // 发送验证码的API调用
-        // await this.$api.sendVerifyCode({ phone: this.phoneNumber })
-        
-        this.startCountDown()
-        Toast.success('验证码已发送')
-      } catch (error) {
-        Toast.fail('验证码发送失败，请重试')
-      }
+
+        authCaptcha({
+            mobile: this.phoneNumber,
+            type: 'bind-mobile'
+        }).then(() => {
+            Toast.success('验证码已发送');
+            this.startCountDown()
+        }).catch(error => {
+            Toast.fail("验证码发送失败，请重试: " + error.data.errmsg);
+            this.resetCountDown();
+        });
     },
     
     startCountDown() {
@@ -174,7 +175,16 @@ export default {
         }
       }, 1000)
     },
-    
+
+    //恢复倒计时
+    resetCountDown() {
+      this.isCountingDown = false
+      this.countDown = 60
+      if (this.timer) {
+        clearInterval(this.timer)
+      }
+    },
+
     async confirmBind() {
       if (!this.canSubmit) return
       

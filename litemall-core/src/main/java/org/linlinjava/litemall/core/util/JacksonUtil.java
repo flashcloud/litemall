@@ -15,6 +15,18 @@ public class JacksonUtil {
 
     private static final Log logger = LogFactory.getLog(JacksonUtil.class);
 
+    public static boolean hasField(String body, String field) {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node;
+        try {
+            node = mapper.readTree(body);
+            return node.has(field);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+        }
+        return false;
+    }
+
     public static String parseString(String body, String field) {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode node;

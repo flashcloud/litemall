@@ -8,16 +8,6 @@ import me.chanjar.weixin.mp.api.WxMpService;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.storage.StorageService;
@@ -32,7 +22,6 @@ import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.CouponAssignService;
 import org.linlinjava.litemall.db.service.LitemallMemberService;
-import org.linlinjava.litemall.db.service.LitemallOrderGoodsService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
@@ -65,10 +54,8 @@ import javax.validation.constraints.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -381,11 +368,18 @@ public class WxAuthController {
     public Object manualBindPhone(@RequestBody String body, HttpServletRequest request) throws IOException {
         String token = JacksonUtil.parseString(body, "token");
         String phone = JacksonUtil.parseString(body, "phone");
+        String code = JacksonUtil.parseString(body, "code");
         if (StringUtils.isEmpty(token) || StringUtils.isEmpty(phone)) {
             return ResponseUtil.badArgument();
         }
         if (!RegexUtil.isMobileSimple(phone)) {
             return ResponseUtil.badArgumentValue();
+        }
+
+        //判断验证码是否正确
+        String cacheCode = CaptchaCodeManager.getCachedCaptcha(phone);
+        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code)) {
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
         }
 
         return loginThenCheckAndUpdatePhone(token, phone);
@@ -445,7 +439,7 @@ public class WxAuthController {
         }
 
         if (!notifyService.isSmsEnable()) {
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNSUPPORT, "小程序后台验证码服务不支持");
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNSUPPORT, "后台验证码服务未开启");
         }
         String code = CharUtil.getRandomNum(6);
         boolean successful = CaptchaCodeManager.addToCache(phoneNumber, code);
@@ -455,6 +449,24 @@ public class WxAuthController {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("code", code);
         notifyService.notifySmsTemplate(phoneNumber, NotifyType.CAPTCHA, params);
+
+        return ResponseUtil.ok();
+    }
+
+    @PostMapping("can_register_phone")
+    public Object isCanRegisterPhone(@RequestBody String body, HttpServletRequest request) {
+        String phone = JacksonUtil.parseString(body, "phone");
+        if (StringUtils.isEmpty(phone)) {
+            return ResponseUtil.badArgument();
+        }
+        if (!RegexUtil.isMobileSimple(phone)) {
+            return ResponseUtil.fail(AUTH_INVALID_MOBILE, "手机号格式不正确");
+        }
+
+        Object result = validatePhone(null, phone);
+        if (result != null) {
+            return result;
+        }
 
         return ResponseUtil.ok();
     }
@@ -519,7 +531,7 @@ public class WxAuthController {
         //判断验证码是否正确
         String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
         if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code)) {
-            // return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误"); //暂时不验证
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
         }
 
         String openId = "";
@@ -621,7 +633,7 @@ public class WxAuthController {
         }
 
         if (!notifyService.isSmsEnable()) {
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNSUPPORT, "小程序后台验证码服务不支持");
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNSUPPORT, "后台验证码服务未开启");
         }
         String code = CharUtil.getRandomNum(6);
         boolean successful = CaptchaCodeManager.addToCache(phoneNumber, code);
@@ -661,25 +673,38 @@ public class WxAuthController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
 
+        boolean isAppReset = JacksonUtil.hasField(body, "oldPassword") && JacksonUtil.hasField(body, "newPassword");
+        boolean isWebReset = JacksonUtil.hasField(body, "password");
+
+        //App重置的方式
         String oldPassword = JacksonUtil.parseString(body, "oldPassword");
         String newPassword = JacksonUtil.parseString(body, "newPassword");
+        // 网页重置的方式
+        String password = JacksonUtil.parseString(body, "password");
+
         String mobile = JacksonUtil.parseString(body, "mobile");
         String code = JacksonUtil.parseString(body, "code");
 
-        if (mobile == null || code == null || newPassword == null || oldPassword == null) {
+        if (mobile == null || code == null || (isAppReset && (newPassword == null || oldPassword == null)) || (isWebReset && password == null)) {
             return ResponseUtil.badArgument();
         }
+        
+        if (isWebReset) {
+            newPassword = password;
+            oldPassword = null;
+        }
 
-        //TODO: 验证码
         //判断验证码是否正确
-        //String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
-        //if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
-        //    return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
+        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        if (!encoder.matches(oldPassword, user.getPassword())) {
-            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号的原密码不对");
-        }        
+        if (isAppReset) {
+            if (!encoder.matches(oldPassword, user.getPassword())) {
+                return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号的原密码不对");
+            }
+        }
 
         List<LitemallUser> userList = userService.queryByMobile(mobile);
         if (userList.size() > 1) {
@@ -734,11 +759,14 @@ public class WxAuthController {
             return ResponseUtil.badArgument();
         }
 
-        //TODO: 验证码
+        if (!RegexUtil.isMobileSimple(mobile)) {
+            return ResponseUtil.fail(AUTH_INVALID_MOBILE, "手机号格式不正确");
+        }
+
         //判断验证码是否正确
-        // String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
-        // if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
-        //     return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
+        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
 
 
         LitemallUser user = userService.findById(userId);

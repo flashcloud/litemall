@@ -90,6 +90,14 @@ export function authProfile(data) {
     data
   })
 }
+const AuthPhoneCanRegister='/auth/can_register_phone'; //账号注册
+export function authPhoneCanRegister(data) {
+  return request({
+    url: AuthPhoneCanRegister,
+    method: 'post',
+    data
+  });
+}
 const AuthRegister='/auth/register'; //账号注册
 export function authRegister(data) {
   return request({
@@ -106,6 +114,16 @@ export function authReset(data) {
     data
   })
 }
+
+const AuthResetPhone='/auth/resetPhone'; //手机重置
+export function authResetPhone(data) {
+  return request({
+    url: AuthResetPhone,
+    method: 'post',
+    data
+  })
+}
+
 const AuthRegisterCaptcha='/auth/regCaptcha'; //注册验证码
 export function authRegisterCaptcha(data) {
   return request({

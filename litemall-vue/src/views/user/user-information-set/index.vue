@@ -91,7 +91,7 @@ export default {
         removeLocalStorage('memberType')
         removeLocalStorage('memberPlan')
         removeLocalStorage('memberExpire')        
-        this.$router.push({ name: 'home' });
+        this.$router.push({ name: 'login' });
       });
 
     }

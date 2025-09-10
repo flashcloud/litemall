@@ -18,6 +18,7 @@
 </template>
 
 <script>
+import { authPhoneCanRegister } from '@/api/api';
 import field from '@/components/field/';
 import fieldGroup from '@/components/field-group/';
 import { mobileReg } from '@/utils/validate';
@@ -38,14 +39,23 @@ export default {
         this.mobile = ''
         return
       }
-    	try {
-        this.$router.push({
-          name: 'registerSubmit',
-          params: { phone: this.mobile}
-        });
-      } catch (error) {
-        console.log(error.message);
-      }
+
+      authPhoneCanRegister({ phone: this.mobile }).then(res => {
+        if(res.data.errno === 0){
+            try {
+                this.$router.push({
+                name: 'registerSubmit',
+                params: { phone: this.mobile}
+                });
+            } catch (error) {
+                console.log(error.message);
+            }
+        } else {
+            this.$toast.fail(res.data.errmsg);
+        }
+      }).catch (error => {
+          this.$toast.fail(error.data.errmsg);
+      });
     }
   },
 

@@ -8,7 +8,7 @@
 				<span v-else>获取验证码</span>
 			</div>
 		</md-field>
-		<md-field v-model="username" icon="username" placeholder="请输入用户名"/>
+		<md-field v-model="username" icon="username" placeholder="请输入用户名" disabled/>
 		<md-field v-model="password" icon="lock" placeholder="请输入密码"/>
 		<md-field v-model="repeatPassword" icon="lock" placeholder="请再次确认密码"/>
 
@@ -40,6 +40,7 @@ export default {
 	},
 	mounted:function(){
 		this.getCode();
+        this.username = this.phone;
 	},
 
   methods: {
@@ -87,7 +88,7 @@ export default {
       const code = this.code;
       const repeatPassword = this.repeatPassword;
       const mobile = this.phone;
-      const username = this.username;
+      const username = this.phone;
       return {
         code: code,
         username: username,

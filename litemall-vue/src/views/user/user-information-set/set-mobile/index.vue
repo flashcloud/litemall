@@ -2,10 +2,10 @@
 	<div>
 		<van-cell-group>
 			<van-field
-				label="登录密码"
+				label="原登录密码"
 				v-model="password"
 				type="password"
-				placeholder="请输入登录密码"
+				placeholder="请输入旧的登录密码"
 				 />
 
 			<van-field
@@ -14,7 +14,7 @@
 				placeholder="请输入新手机号"
 				/>
 
-			<van-field
+			<!-- <van-field
 				label="验证码"
 				v-model="code"
 				@click-icon="getCode"
@@ -29,7 +29,24 @@
 					</countdown>
 					<span v-else>获取验证码</span>
 				</span>
-			</van-field>
+			</van-field> -->
+
+			<van-field
+				label="验证码"
+				v-model="code"
+				@click-icon="getCode"
+				placeholder="请输入验证码">
+
+				<span slot="button"
+					class="verifi_code red"
+					:class="{verifi_code_counting: counting}"
+					@click="getCode">
+					<countdown v-if="counting" :time="60000" @end="countdownend">
+					  <template slot-scope="props">{{ +props.seconds || 60 }}秒后获取</template>
+					</countdown>
+					<span v-else>获取验证码</span>
+				</span>
+			</van-field>            
 		</van-cell-group>
 
 		<div class="bottom_btn">
@@ -40,9 +57,10 @@
 
 
 <script>
-import { authCaptcha } from '@/api/api';
+import { authCaptcha, authResetPhone, authLogout } from '@/api/api';
 
 import { Field } from 'vant';
+import { removeLocalStorage } from '@/utils/local-storage';
 
 export default {
   data: () => ({
@@ -72,14 +90,46 @@ export default {
       this.counting = false;
     },
     vuelidate() {
+      if(this.password === ''){
+        this.$toast.fail('请输入原登录密码');
+        return false;
+      }        
       if(this.mobile === ''){
-        this.$toast.fail('请输入号码');
+        this.$toast.fail('请输入新手机号');
         return false;
       }
       return true;
     },
+    loginOut() {
+      authLogout().then(res => {
+        removeLocalStorage('Authorization')
+        removeLocalStorage('avatar')
+        removeLocalStorage('nickName')
+        removeLocalStorage('memberType')
+        removeLocalStorage('memberPlan')
+        removeLocalStorage('memberExpire')        
+        this.$router.push({ name: 'login' });
+      });
+
+    },    
     saveMobile() {
-      console.log('保存手机号');
+        if(this.code === ''){
+            this.$toast.fail('请输入验证码');
+            return false;
+        }
+        if (this.vuelidate()) {
+            authResetPhone({
+                password: this.password,
+                mobile: this.mobile,
+                code: this.code
+            })
+            .then(() => {
+                this.$dialog.alert({ message: '保存成功, 请使用新手机号' + this.mobile + '重新登录.' })
+                this.loginOut();
+            }).catch (error => {
+                Toast.fail(error.data.errmsg);
+            });
+        }
     }
   },
 
