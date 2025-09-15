@@ -56,6 +56,8 @@ public class LitemallOrderService {
     public int add(LitemallOrder order) {
         order.setAddTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
+        order.setInvoiceUrl("");
+        order.setPayVoucherUrl("");
         return litemallOrderMapper.insertSelective(order);
     }
 

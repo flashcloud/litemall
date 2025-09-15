@@ -17,31 +17,52 @@
       <div class="pay_way_title">选择支付方式</div>
       <van-radio-group v-model="payWay">
         <van-cell-group>
-          <van-cell>
+          <!-- <van-cell>
             <template slot="title">
               <img src="../../../assets/images/ali_pay.png" alt="支付宝" width="82" height="29">
             </template>
             <van-radio name="ali"/>
-          </van-cell>
+          </van-cell> -->
           <van-cell>
             <template slot="title">
               <img src="../../../assets/images/wx_pay.png" alt="微信支付" width="113" height="23">
             </template>            
             <van-radio name="wx"/>
           </van-cell>
+          <van-cell>
+            <template slot="title">
+                <svg width="130" height="29" viewBox="0 0 130 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 银联卡片图标 -->
+                <rect x="2" y="5" width="20" height="14" rx="2" fill="white" stroke="#1A3E72" stroke-width="1.5"/>
+                <rect x="6" y="9" width="12" height="6" fill="#1A3E72"/>
+                <rect x="6" y="11" width="12" height="2" fill="#FFD700"/>
+                <text x="35" y="19" font-family="Arial" font-size="17" fill="#555">线下支付</text>
+                </svg>
+            </template>
+            <van-radio name="offline" @click="clickOfflinePay"/>
+          </van-cell>
         </van-cell-group>
       </van-radio-group>
     </div>
 
     <van-button class="pay_submit" @click="pay" type="primary" bottomAction>去支付</van-button>
+    <offline-payment-modal
+      v-model="offlinePayVisible"
+      :actual-price="order.orderInfo.actualPrice * 100"
+      :button-text="'确认支付'"
+      :on-button-click="pay"
+      :on-upload="handleUploadVoucher"
+      @close="handleOfflineModalClose"
+    />
   </div>
 </template>
 
 <script>
-import { Radio, RadioGroup, Dialog } from 'vant';
-import { orderDetail, orderPrepay, orderH5pay } from '@/api/api';
+import { Radio, RadioGroup, Dialog, Uploader, ActionSheet } from 'vant';
+import { orderDetail, orderPrepay, orderH5pay, storageUpload } from '@/api/api';
 import _ from 'lodash';
 import { getLocalStorage, setLocalStorage } from '@/utils/local-storage';
+import OfflinePaymentModal from '@/components/offline-pay/index.vue';
 
 export default {
   name: 'payment',
@@ -53,7 +74,9 @@ export default {
         orderInfo: {},
         orderGoods: []
       },
-      orderId: 0
+      orderId: 0,
+      offlinePayVisible: false,
+      payVoucherUrl: ''
     };
   },
   created() {
@@ -63,21 +86,68 @@ export default {
     }
   },
   methods: {
+    clickOfflinePay() {
+      this.offlinePayVisible = true;
+    },
+    handleUploadVoucher(file, callback) {
+      storageUpload(file.file).then(res => {
+        if (res.data.errno === 0) {
+          this.payVoucherUrl = res.data.data.url;
+          callback(this.payVoucherUrl);
+          this.payWay = 'offline';
+        } else {
+            this.payVoucherUrl='';
+            callback(this.payVoucherUrl);
+            Dialog.alert({ message: res.data.errmsg });
+        }
+      }).catch(err => {
+          this.payVoucherUrl='';
+          callback(this.payVoucherUrl);
+          Dialog.alert({ message: '上传支付凭据失败，请稍后再试' });
+      });
+    },
+    handleOfflineModalClose() {
+      if (this.payWay === 'offline' && this.payVoucherUrl === '') {
+        this.payWay = 'wx';
+      }
+    },
     getOrder(orderId) {
       orderDetail({orderId: orderId}).then(res => {
         this.order = res.data.data;
       });
     },
     pay() {
+        if (this.payWay === 'offline' && this.payVoucherUrl === '') {
+          Dialog.alert({ message: '请成功办理线下支付后，点击上传付款凭据，再继续' });
+          return;
+        }
+
+        if (this.payWay === 'offline') {
+            let that = this;
+            orderPrepay({ orderId: this.orderId, payType: this.payWay, payVoucher: this.payVoucherUrl })
+                .then(res => {
+                Dialog.alert({ message: '支付凭证上传成功，请等待审核' });
+                that.$router.replace({
+                    name: 'paymentStatus',
+                    params: {
+                    status: 'success'
+                    }
+                });
+                })
+                .catch(err => {
+                    Dialog.alert({ message: err.data.errmsg });
+                    return;
+                });
+            return;
+         }
+
+         this.payVoucherUrl = '';
       
-      Dialog.alert({
-        message: '你选择了' + (this.payWay === 'wx' ? '微信支付' : '支付宝支付')
-      }).then(() => {
         if (this.payWay === 'wx') {
           let ua = navigator.userAgent.toLowerCase();
           let isWeixin = ua.indexOf('micromessenger') != -1;
           if (isWeixin) {
-            orderPrepay({ orderId: this.orderId })
+            orderPrepay({ orderId: this.orderId, payType: this.payWay})
               .then(res => {
                 let data = res.data.data;
                 let prepay_data = JSON.stringify({
@@ -142,7 +212,6 @@ export default {
         } else {
           //todo : alipay
         }
-      });
     },
     onBridgeReady() {
       let that = this;
@@ -182,7 +251,10 @@ export default {
   components: {
     [Radio.name]: Radio,
     [RadioGroup.name]: RadioGroup,
-    [Dialog.name]: Dialog
+    [Dialog.name]: Dialog,
+    [Uploader.name]: Uploader,
+    [ActionSheet.name]: ActionSheet,
+    OfflinePaymentModal
   }
 };
 </script>
@@ -210,5 +282,17 @@ export default {
 .pay_way_title {
   padding: 15px;
   background-color: #fff;
+}
+
+.offline_pay_body {
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 50px;
+}
+.offline_pay_body ul {
+    padding-left: 40px;
+}
+.offline_pay_body li span {
+    font-weight: bold;
 }
 </style>

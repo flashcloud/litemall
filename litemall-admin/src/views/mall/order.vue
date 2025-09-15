@@ -170,6 +170,12 @@
         </template>
       </el-table-column>
 
+      <el-table-column align="center" :label="$t('mall_order.table.pay_type')" prop="payTypeName">
+        <template slot-scope="scope">
+          <el-tag>{{ scope.row.payTypeName }}</el-tag>
+        </template>
+      </el-table-column>
+
       <el-table-column align="center" :label="$t('mall_order.table.order_price')" prop="orderPrice">
         <template slot-scope="scope">
           {{ scope.row.orderPrice }} 元
@@ -195,6 +201,8 @@
       <el-table-column align="center" :label="$t('mall_order.table.ship_sn')" prop="shipSn" />
 
       <el-table-column align="center" :label="$t('mall_order.table.ship_channel')" prop="shipChannel" />
+
+      <!-- <el-table-column align="center" :label="发票" prop="invoiceUrl" /> -->
 
       <el-table-column align="center" :label="$t('mall_order.table.actions')" width="90" class-name="oper">
         <template slot-scope="scope">
@@ -334,9 +342,13 @@
             </span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_pay_info')">
-            <span>{{ $t('mall_order.text.detail_pay_channel', { pay_channel: '微信支付' }) }}</span>
+            <span>{{ $t('mall_order.text.detail_pay_channel', { pay_channel: orderDetail.order.payTypeName }) }}</span>
             <span>{{ $t('mall_order.text.detail_pay_time', { pay_time: orderDetail.order.payTime })
             }}</span>
+            <span> {{ $t('mall_order.text.detail_pay_voucher_url') }}</span>
+            <span><a style="color: #409EFF" href="#" @click="openImageInNewTab(orderDetail.order.payVoucherUrl)">{{ orderDetail.order.payVoucherUrl == '' ? '无' : '点击查看' }}</a></span>
+            <span> {{ $t('mall_order.text.detail_invoice_url') }}</span>
+            <span><a style="color: #409EFF" href="#" @click="openImageInNewTab(orderDetail.order.invoiceUrl)">{{ orderDetail.order.invoiceUrl == '' ? '无' : '点击查看' }}</a></span>
           </el-form-item>
           <el-form-item :label="$t('mall_order.form.detail_ship_info')">
             <span>{{ $t('mall_order.text.detail_ship_channel', {
@@ -532,6 +544,50 @@
       </div>
     </el-dialog>
 
+    <!-- 上传发票对话框 -->
+    <el-dialog :visible.sync="uploadInvoiceDialogVisible" :title="$t('mall_order.dialog.upload_invoice', {orderId: uploadInvoiceForm.orderId})">
+      <el-form
+        ref="uploadInvoiceForm"
+        :model="uploadInvoiceForm"
+        status-icon
+        label-position="left"
+        label-width="100px"
+        style="width: 400px; margin-left:50px;"
+      >
+        <el-form-item :label="$t('mall_order.form.pay_new_money')" prop="newMoney">
+          <el-input v-model="uploadInvoiceForm.newMoney" :disabled="true" />
+        </el-form-item>
+
+        <el-form-item :label="$t('mall_order.form.invoice_url')" prop="invoiceUrl">
+          <el-upload
+            :headers="headers"
+            :action="uploadPath"
+            :show-file-list="false"
+            :on-success="uploadPicUrl"
+            class="avatar-uploader"
+            accept=".jpg,.jpeg,.png,.gif,.pdf"
+          >
+            <img v-if="uploadInvoiceForm.invoiceUrl && uploadInvoiceForm.invoiceUrl.indexOf('.pdf') === -1" :src="uploadInvoiceForm.invoiceUrl" class="avatar" width="100" height="100">
+            <embed
+              v-else-if="uploadInvoiceForm.invoiceUrl && uploadInvoiceForm.invoiceUrl.indexOf('.pdf') > -1"
+              type="application/pdf"
+              :src="uploadInvoiceForm.invoiceUrl + '#page=1&view=fitH,100'"
+              width="50"
+              height="50"
+              style="border: 1px solid #ccc;"
+            >
+            <div class="upload_container">
+              <i class="el-icon-plus avatar-uploader-icon" />
+            </div>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="uploadInvoiceDialogVisible = false">{{ $t('app.button.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmUploadInvoice">{{ $t('app.button.confirm') }}</el-button>
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -597,12 +653,24 @@
 .el-form-item span {
     border-bottom: 1px solid #bababb;
 }
+
+.upload_container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+}
 </style>
 
 <script>
-import { detailOrder, listOrder, listChannel, refundOrder, payOrder, deleteOrder, shipOrder } from '@/api/order'
+import { detailOrder, listOrder, listChannel, refundOrder, payOrder, deleteOrder, shipOrder, uploadInvoice } from '@/api/order'
 import Pagination from '@/components/Pagination' // Secondary package based on el-pagination
 import checkPermission from '@/utils/permission' // 权限判断函数
+import { uploadPath } from '@/api/storage'
+import { getToken } from '@/utils/auth'
 
 const statusMap = {
   101: '未付款',
@@ -639,6 +707,11 @@ const actionOptions = [{
 }, {
   value: '5',
   label: '退款',
+  icon: 'el-icon-sunrise',
+  param: ''
+}, {
+  value: '6',
+  label: '上传发票',
   icon: 'el-icon-sunrise',
   param: ''
 }]
@@ -721,8 +794,22 @@ export default {
         refundMoney: undefined
       },
       refundDialogVisible: false,
+      uploadInvoiceForm: {
+        orderId: undefined,
+        invoiceUrl: undefined,
+        newMoney: undefined
+      },
+      uploadInvoiceDialogVisible: false,
+      uploadPath,
       downloadLoading: false,
       channels: []
+    }
+  },
+  computed: {
+    headers() {
+      return {
+        'X-Litemall-Admin-Token': getToken()
+      }
     }
   },
   created() {
@@ -783,6 +870,9 @@ export default {
           break
         case '5':
           this.handleRefund(c.row)
+          break
+        case '6':
+          this.handleUploadInvoice(c.row)
           break
         default:
           return
@@ -960,6 +1050,37 @@ export default {
         }
       })
     },
+    handleUploadInvoice(row) {
+      this.uploadInvoiceForm.orderId = row.id
+      this.uploadInvoiceForm.newMoney = row.actualPrice
+      this.uploadInvoiceForm.invoiceUrl = row.invoiceUrl
+      this.uploadInvoiceDialogVisible = true
+      this.$nextTick(() => {
+        this.$refs['uploadInvoiceForm'].clearValidate()
+      })
+    },
+    confirmUploadInvoice() {
+      this.$refs['uploadInvoiceForm'].validate((valid) => {
+        if (valid) {
+          uploadInvoice(this.uploadInvoiceForm).then(response => {
+            this.uploadInvoiceDialogVisible = false
+            this.$notify.success({
+              title: '成功',
+              message: '确认上传发票成功'
+            })
+            this.getList()
+          }).catch(response => {
+            this.$notify.error({
+              title: '失败',
+              message: response.data.errmsg
+            })
+          })
+        }
+      })
+    },
+    uploadPicUrl: function(response) {
+      this.uploadInvoiceForm.invoiceUrl = response.data.url
+    },
     handleDownload() {
       this.downloadLoading = true
       import('@/vendor/Export2Excel').then(excel => {
@@ -972,6 +1093,11 @@ export default {
     printOrder() {
       this.$print(this.$refs.print)
       this.orderDialogVisible = false
+    },
+    openImageInNewTab(imageUrl) {
+      if (imageUrl) {
+        window.open(imageUrl, '_blank')
+      }
     }
   }
 }

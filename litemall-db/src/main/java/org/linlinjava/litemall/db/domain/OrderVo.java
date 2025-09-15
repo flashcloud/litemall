@@ -23,6 +23,9 @@ public class OrderVo {
     private String shipSn;
     private String message;
     private LocalDateTime payTime;
+    private Byte payType;
+    private String payTypeName;
+    private String invoiceUrl;
     private List<OrderGoodsVo> goodsVoList;
 
     private String traderName;
@@ -61,6 +64,27 @@ public class OrderVo {
         this.parentOrderId = parentOrderId;
     }
 
+    public String getPayTypeName() {
+        return this.payTypeName;
+    }
+
+    public Byte getPayType() {
+        return payType;
+    }
+    public void setPayType(Byte payType) {
+        this.payType = payType;
+
+        LitemallOrder order = new LitemallOrder();
+        order.setPayType(this.payType);
+        this.payTypeName = order.getPayTypeEnum().typeName();
+    }
+
+    public String getInvoiceUrl() {
+        return invoiceUrl;
+    }
+    public void setInvoiceUrl(String invoiceUrl) {
+        this.invoiceUrl = invoiceUrl;
+    }    
 
     public LocalDateTime getPayTime() {
         return payTime;

@@ -186,4 +186,12 @@ public class OrderUtil {
     public static boolean isAutoConfirmStatus(LitemallOrder litemallOrder) {
         return OrderUtil.STATUS_AUTO_CONFIRM == litemallOrder.getOrderStatus().shortValue();
     }
+
+    public static boolean isDisabled(LitemallOrder litemallOrder) {
+        return (litemallOrder.getOrderStatus().equals(OrderUtil.STATUS_CREATE) ||
+                litemallOrder.getOrderStatus().equals(OrderUtil.STATUS_REFUND_CONFIRM) ||
+                litemallOrder.getOrderStatus().equals(OrderUtil.STATUS_CANCEL) ||
+                litemallOrder.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CANCEL) ||
+                litemallOrder.getOrderStatus().equals(OrderUtil.STATUS_ADMIN_CANCEL));
+    }
 }

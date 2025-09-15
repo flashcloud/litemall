@@ -519,6 +519,15 @@ export function couponReceive(data) {
 const CouponExchange='/coupon/exchange'; //优惠券兑换
 
 const StorageUpload='/storage/upload'; //图片上传,
+export function storageUpload(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request({
+    url: StorageUpload,
+    method: 'post',
+    data: formData
+  })
+}
 
 const UserIndex='/user/index'; //个人页面用户相关信息
 export function userIndex() {

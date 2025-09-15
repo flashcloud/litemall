@@ -39,6 +39,8 @@ litemall:
       template:
         - name: submitOrder
           templateId: SMS_000000000
+        - name: payOffline
+          templateId: SMS_000000000
         - name: paySucceed
           templateId: SMS_000000000
         - name: orderMember
@@ -50,6 +52,8 @@ litemall:
         - name: refund
           templateId: SMS_000000000
         - name: refundSuccess
+          templateId: SMS_000000000
+        - name: uploadOrderInvoice
           templateId: SMS_000000000
       tencent:
         appid: 111111111

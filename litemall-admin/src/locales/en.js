@@ -328,6 +328,8 @@ export default {
       detail_address: '(address) {address} ',
       detail_price_info: '(actual){actual_price}元 = (goods){goods_price}元 + (freight){freight_price}元 - (coupon){coupon_price}元 - (integral){integral_price}元',
       detail_pay_channel: '(payment channel) {pay_channel} ',
+      detail_pay_voucher_url: '(payment voucher) ',
+      detail_invoice_url: '(invoice) ',
       detail_pay_time: '(payment time) {pay_time} ',
       detail_ship_channel: '(shipment company) {ship_channel} ',
       detail_ship_sn: '(shipment SN) {ship_sn} ',
@@ -349,6 +351,7 @@ export default {
       user_name: 'User name',
       add_time: 'Time added',
       order_status: 'Status',
+      pay_type: 'Payment type',
       order_price: 'Order price',
       actual_price: 'Actual price',
       pay_time: 'Time paid',
@@ -376,7 +379,8 @@ export default {
       detail: 'Details：Order ID：{orderId}',
       pay: 'Pay：Order ID：{orderId}',
       ship: 'Ship：Order ID：{orderId}',
-      refund: 'Refund：Order ID：{orderId}'
+      refund: 'Refund：Order ID：{orderId}',
+      upload_invoice: 'Upload Invoice：Order ID：{orderId}'
     },
     form: {
       detail_order_id: 'Order ID',
@@ -398,7 +402,8 @@ export default {
       pay_new_money: 'Payment amount',
       ship_channel: 'Ship company',
       ship_sn: 'Ship SN',
-      refund_money: 'Refund amount'
+      refund_money: 'Refund amount',
+      invoice_url: 'Invoice'
     },
     placeholder: {
       filter_order_id: 'Order ID',

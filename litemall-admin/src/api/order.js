@@ -36,6 +36,14 @@ export function refundOrder(data) {
   })
 }
 
+export function uploadInvoice(data) {
+  return request({
+    url: '/order/upload-invoice',
+    method: 'post',
+    data
+  })
+}
+
 export function payOrder(data) {
   return request({
     url: '/order/pay',

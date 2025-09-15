@@ -12,6 +12,7 @@ import com.github.binarywang.wxpay.service.WxPayService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.express.ExpressService;
+import org.linlinjava.litemall.core.notify.CommonNotifyService;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.util.JacksonUtil;
@@ -70,6 +71,8 @@ public class AdminOrderService {
     private WxPayService wxPayService;
     @Autowired
     private NotifyService notifyService;
+    @Autowired
+    private CommonNotifyService commonNotifyService;
     @Autowired
     private LogHelper logHelper;
     @Autowired
@@ -145,11 +148,7 @@ public class AdminOrderService {
             //if (!order.getOrderStatus().equals(OrderUtil.STATUS_REFUND)) {
             //    return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "订单不能确认收货");
             // }
-            if (order.getOrderStatus().equals(OrderUtil.STATUS_REFUND_CONFIRM) ||
-                    order.getOrderStatus().equals(OrderUtil.STATUS_CANCEL) ||
-                    order.getOrderStatus().equals(OrderUtil.STATUS_AUTO_CANCEL) ||
-                    order.getOrderStatus().equals(OrderUtil.STATUS_ADMIN_CANCEL) ||
-                    order.getOrderStatus().equals(OrderUtil.STATUS_CREATE)) {
+            if (OrderUtil.isDisabled(order)) {
                 return ResponseUtil.fail(ORDER_CONFIRM_NOT_ALLOWED, "当前订单状态禁止退款操作");
             }
 
@@ -228,6 +227,50 @@ public class AdminOrderService {
         logHelper.logOrderSucceed("退款", "订单编号 " + order.getOrderSn());
         return ResponseUtil.ok();
     }
+
+    @Transactional
+    public Object uploadInvoice(String body) {
+        Integer orderId = JacksonUtil.parseInteger(body, "orderId");
+        String invoiceUrl = JacksonUtil.parseString(body, "invoiceUrl");
+
+        if (orderId == null || StringUtils.isEmpty(invoiceUrl)) {
+            return ResponseUtil.badArgument();
+        }
+
+        LitemallOrder order = orderService.findById(orderId);
+        if (order == null) {
+            return ResponseUtil.badArgument();
+        }
+
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user == null) return ResponseUtil.badArgument();
+
+        if (OrderUtil.isDisabled(order)) {
+            return ResponseUtil.fail(ORDER_PAY_FAILED, "当前订单状态禁止上传发票");
+        }
+
+        order.setInvoiceUrl(invoiceUrl);
+        if (orderService.updateWithOptimisticLocker(order) == 0) {
+            return WxPayNotifyResponse.fail("更新数据已失效");
+        }
+
+        List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(orderId);
+
+        //通知用户发票已经开具
+        if (order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("code", "1234"); //Code参数，必传
+            params.put("nickName", user.getNickname());
+            params.put("orderDate", order.getAddTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            params.put("goods", orderGoodsList.size() > 0 ? orderGoodsList.get(0).getGoodsName() + (orderGoodsList.size() > 1 ? "等" + orderGoodsList.size() + "件商品" : "") : "");
+            params.put("orderSn", order.getOrderSn());//阿里短信平台无限制
+            String orderPrice = order.getActualPrice().setScale(2, BigDecimal.ROUND_HALF_UP).toString();
+            params.put("totalAmount", orderPrice);
+            notifyService.notifySmsTemplate(order.getMobile(), NotifyType.UPLOAD_ORDER_INVOICE, params);
+        }
+
+        return ResponseUtil.ok();
+    }    
 
     /**
      * 发货
@@ -342,7 +385,7 @@ public class AdminOrderService {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("code", "1234"); //Code参数，必传
         params.put("nickName", user.getNickname());
-        params.put("orderDate", order.getAddTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        params.put("orderDate", order.getAddTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         params.put("goods", orderGoodsList.size() > 0 ? orderGoodsList.get(0).getGoodsName() + (orderGoodsList.size() > 1 ? "等" + orderGoodsList.size() + "件商品" : "") : "");
         params.put("shipType", expressService.getVendor(order.getShipChannel()));
         params.put("shipSn", shipSn);
@@ -439,7 +482,7 @@ public class AdminOrderService {
         if (order == null) {
             return ResponseUtil.badArgument();
         }
-        if (!order.getOrderStatus().equals(OrderUtil.STATUS_CREATE)) {
+        if (!(order.getOrderStatus().equals(OrderUtil.STATUS_CREATE) || (order.getOrderStatus().equals(OrderUtil.STATUS_PAY) && order.getPayTime() == null))) {
             return ResponseUtil.fail(ORDER_PAY_FAILED, "当前订单状态不支持线下收款");
         }
 
@@ -451,13 +494,18 @@ public class AdminOrderService {
         }
 
         //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
+        boolean isMemberOrder = false;
         try {
-            memberService.updateUserMemberStatus(order);
+            isMemberOrder = memberService.updateUserMemberStatus(order);
         } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
             //回滚事务
             transactionManager.rollback(status);
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
+
+        //TODO 发送邮件和短信通知，这里采用异步发送
+        // 订单支付成功以后，会发送短信给用户，以及发送邮件给管理员
+        commonNotifyService.notifyWhenPaySucceed(order, false);
 
         return ResponseUtil.ok();
     }

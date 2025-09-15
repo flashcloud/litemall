@@ -328,6 +328,8 @@ export default {
       detail_address: '（地址）{address}',
       detail_price_info: '(实际费用){actual_price}元 = (商品总价){goods_price}元 + (快递费用){freight_price}元 - (优惠减免){coupon_price}元 - (积分减免){integral_price}元',
       detail_pay_channel: '（支付渠道）{pay_channel}',
+      detail_pay_voucher_url: '(支付凭证) ',
+      detail_invoice_url: '(发票) ',
       detail_pay_time: '（支付时间）{pay_time}',
       detail_ship_channel: '（快递公司）{ship_channel}',
       detail_ship_sn: '（快递单号）{ship_sn}',
@@ -349,6 +351,7 @@ export default {
       user_name: '下单用户',
       add_time: '下单时间',
       order_status: '订单状态',
+      pay_type: '支付方式',
       order_price: '订单金额',
       actual_price: '实付金额',
       pay_time: '支付时间',
@@ -376,7 +379,8 @@ export default {
       detail: '订单详情：订单ID：{orderId}',
       pay: '订单收款：订单ID：{orderId}',
       ship: '发货：订单ID：{orderId}',
-      refund: '退款：订单ID：{orderId}'
+      refund: '退款：订单ID：{orderId}',
+      upload_invoice: '上传发票：订单ID：{orderId}'
     },
     form: {
       detail_order_id: '订单ID',
@@ -398,7 +402,8 @@ export default {
       pay_new_money: '付款金额',
       ship_channel: '快递公司',
       ship_sn: '快递编号',
-      refund_money: '退款金额'
+      refund_money: '退款金额',
+      invoice_url: '发票'
     },
     placeholder: {
       filter_order_id: '请输入订单ID号',

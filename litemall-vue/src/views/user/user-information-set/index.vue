@@ -5,7 +5,7 @@
         <van-uploader :afterRead="avatarAfterRead">
           <div class="user_avatar_upload">
             <img
-              :src="avatar + '?x-oss-process=image/resize,m_fill,h_50,w_50'"
+              :src="avatar"
               alt="你的头像"
               v-if="avatar"
             >
@@ -53,7 +53,8 @@ export default {
       avatar: '',
       nickName: '',
       gender: 0,
-      mobile: ''
+      mobile: '',
+      token: ''
     };
   },
 
@@ -76,11 +77,21 @@ export default {
       this.showSex = false;
     },
     getUserInfo() {
+      const infoData = getLocalStorage(
+        'Authorization',
+      );
+      this.token = infoData.Authorization || '';
+
       authInfo().then(res => {
         this.avatar = res.data.data.avatar;
         this.nickName = res.data.data.nickName;
         this.gender = res.data.data.gender;
         this.mobile = res.data.data.mobile;
+
+
+        if( this.avatar && this.avatar.indexOf('/images/avatar/') > -1 && this.token !== '') {
+            this.avatar = '/wx/auth/getAvatar?token=' + this.token;
+        }
       })
     },
     loginOut() {

@@ -16,6 +16,7 @@ import org.apache.ibatis.annotations.Param;
 import org.joda.time.DateTime;
 import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.express.dao.ExpressInfo;
+import org.linlinjava.litemall.core.notify.CommonNotifyService;
 import org.linlinjava.litemall.core.notify.NotifyService;
 import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.qcode.QCodeService;
@@ -113,6 +114,8 @@ public class WxOrderService {
     private WxPayService wxPayService;
     @Autowired
     private NotifyService notifyService;
+    @Autowired
+    private CommonNotifyService commonNotifyService;
     @Autowired
     private LitemallGrouponRulesService grouponRulesService;
     @Autowired
@@ -263,6 +266,9 @@ public class WxOrderService {
         orderVo.put("expCode", order.getShipChannel());
         orderVo.put("expName", expressService.getVendorName(order.getShipChannel()));
         orderVo.put("expNo", order.getShipSn());
+        orderVo.put("payType", order.getPayTypeEnum().typeName());
+        orderVo.put("payVoucherUrl", order.getPayVoucherUrl());
+        orderVo.put("invoiceUrl", order.getInvoiceUrl());
 
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(order.getId());
 
@@ -727,13 +733,54 @@ public class WxOrderService {
             return ResponseUtil.badArgumentValue();
         }
 
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgument();
+        }
+
+        //支付方式及相关凭据
+        String payTypeString = JacksonUtil.parseString(body, "payType");
+        LitemallOrder.PayTypeEnum payType = LitemallOrder.PayTypeEnum.toType(payTypeString);
+        if (payType == null || payType == LitemallOrder.PayTypeEnum.UNKNOWN) {
+            return ResponseUtil.badArgumentValue();
+        }
+        String payVoucher = JacksonUtil.parseString(body, "payVoucher");
+        if (payType == LitemallOrder.PayTypeEnum.OFFLINE && (payVoucher == null || payVoucher.isEmpty())) {
+            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "需要上传付款凭据");
+        }
+        if (payType == LitemallOrder.PayTypeEnum.OFFLINE) {
+            order.setPayVoucherUrl(payVoucher);
+        }
+        order.setPayType(payType.typeEn());
+
         // 检测是否能够取消
         OrderHandleOption handleOption = OrderUtil.build(order);
         if (!handleOption.isPay()) {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能支付");
         }
 
-        LitemallUser user = userService.findById(userId);
+        // 线下支付，设置订单为待发货状态, 并短信通知商户
+        if (payType == LitemallOrder.PayTypeEnum.OFFLINE) {
+            order.setOrderStatus(OrderUtil.STATUS_PAY);
+            //order.setPayTime(LocalDateTime.now());    //线下支付时间由商户确认收款时设置
+            if (orderService.updateWithOptimisticLocker(order) == 0) {
+                return ResponseUtil.updatedDateExpired();
+            }
+
+            // 通知商户
+            List<String> adminMobiles = adminService.allGetedSmsPhones();
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("code", "1234"); //Code参数，必传
+            params.put("nickName", user.getNickname());
+            params.put("orderSn", order.getOrderSn());
+            String orderPrice = order.getActualPrice().setScale(2, BigDecimal.ROUND_HALF_UP).toString();
+            params.put("totalAmount", orderPrice);
+            for (String adminMobile : adminMobiles) {
+                notifyService.notifySmsTemplateSync(adminMobile, NotifyType.PAY_OFFLINE, params);
+            }
+            return ResponseUtil.ok();
+        }
+
         String openid = user.getWeixinOpenid();
         if (openid == null) {
             return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
@@ -878,11 +925,6 @@ public class WxOrderService {
             return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
         }
 
-        LitemallUser user = userService.findById(order.getUserId());
-        if (user == null) {
-            return WxPayNotifyResponse.fail("用户不存在 id=" + order.getUserId());
-        }
-
         // 检查这个订单是否已经处理过
         if (OrderUtil.hasPayed(order)) {
             return WxPayNotifyResponse.success("订单已经处理成功!");
@@ -941,47 +983,7 @@ public class WxOrderService {
 
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 订单支付成功以后，会发送短信给用户，以及发送邮件给管理员
-        notifyService.notifyMail("新订单通知", order.toString());
-        // 这里微信的短信平台对参数长度有限制，所以将订单号只截取后6位
-        final String orderSnOfPart = orderSn.substring(8, 14);
-        boolean sendMemberSms = true;
-        NotifyType notifyType = null;
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("code", "1234"); //Code参数，必传
-        params.put("nickName", user.getNickname());
-        if(isMemberOrder){
-            notifyType = NotifyType.ORDER_MEMBER;
-            params.put("now", order.getPayTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            try {
-                LitemallGoodsSpecification memberSpeci = memberService.queryMemberGoodsSpecification(order);
-                LitemallGoods memberGoods = goodsService.findById(memberSpeci.getGoodsId());
-                params.put("memberType", memberGoods.getName() + " - " + memberSpeci.getValue());
-                if (memberSpeci.getValue().contains("连续")) {
-                    params.put("continueType", "自动续费");
-                } else {
-                    params.put("continueType", "不再享受会员权益");
-                }
-            } catch (IllegalArgumentException | MemberOrderDataException e) {
-                logger.error("获取会员订单信息失败，无法发送会员购买短信，订单ID：" + order.getId());
-                sendMemberSms = false;
-            }
-            params.put("orderSn", orderSn);
-        } else {
-            notifyType = NotifyType.PAY_SUCCEED;
-            params.put("orderSn", orderSn);
-            String orderPrice = order.getActualPrice().setScale(2, BigDecimal.ROUND_HALF_UP).toString();
-            params.put("totalAmount", orderPrice);
-        }
-
-        if (sendMemberSms && order.getMobile() != null && RegexUtil.isMobileSimple(order.getMobile())) {
-            notifyService.notifySmsTemplateSync(order.getMobile(), notifyType, params);
-
-            // 通知商户
-            List<String> adminMobiles = adminService.allGetedSmsPhones();
-            for (String adminMobile : adminMobiles) {
-                notifyService.notifySmsTemplateSync(adminMobile, notifyType, params);
-            }
-        }
+        commonNotifyService.notifyWhenPaySucceed(order, true);
 
         // 取消订单超时未支付任务
         taskService.removeTask(new OrderUnpaidTask(order.getId()));

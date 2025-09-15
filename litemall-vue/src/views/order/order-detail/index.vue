@@ -86,10 +86,28 @@
         <span>{{orderInfo.expNo }}</span>
       </van-cell>
     </van-cell-group>
+
+    <van-cell-group style="margin-top: 20px;">
+      <van-cell title="支付方式">
+        <span>{{ orderInfo.payType }}</span>
+      </van-cell>
+      <van-cell title="支付凭证"  v-if="orderInfo.payVoucherUrl != '' && orderInfo.payType == '线下'">
+        <span><img :src="orderInfo.payVoucherUrl" width="50" height="50" @click="openImageInNewTab(orderInfo.payVoucherUrl)" style="cursor: pointer;"></span>
+      </van-cell>
+      <van-cell title="购买发票">
+        <span>
+            <img v-if="orderInfo.invoiceUrl && orderInfo.invoiceUrl.indexOf('.pdf') === -1" :src="orderInfo.invoiceUrl" width="50" height="50" @click="openImageInNewTab(orderInfo.invoiceUrl)" style="cursor: pointer;">
+            <div @click="openImageInNewTab(orderInfo.invoiceUrl)">
+                <pdf v-if="orderInfo.invoiceUrl && orderInfo.invoiceUrl.indexOf('.pdf') > -1" :src="orderInfo.invoiceUrl" style="display: inline-block; width: 25%" />
+            </div>
+        </span>
+      </van-cell>
+    </van-cell-group>
   </div>
 </template>
 
 <script>
+import pdf from 'vue-pdf';
 import { Card, Field, SubmitBar, Button, Cell, CellGroup, Dialog } from 'vant';
 import _ from 'lodash';
 import {
@@ -185,6 +203,11 @@ export default {
         this.canDelete = data.orderInfo.canDelete;
         this.expressInfo = data.expressInfo;
       });
+    },
+    openImageInNewTab(imageUrl) {
+        if (imageUrl) {
+            window.open(imageUrl, '_blank');
+        }
     }
   },
 
@@ -195,7 +218,8 @@ export default {
     [Button.name]: Button,
     [SubmitBar.name]: SubmitBar,
     [Card.name]: Card,
-    [Field.name]: Field
+    [Field.name]: Field,
+    pdf
   }
 };
 </script>
