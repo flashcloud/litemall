@@ -267,6 +267,7 @@ public class WxOrderService {
         orderVo.put("expName", expressService.getVendorName(order.getShipChannel()));
         orderVo.put("expNo", order.getShipSn());
         orderVo.put("payType", order.getPayTypeEnum().typeName());
+        orderVo.put("payTime", order.getPayTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         orderVo.put("payVoucherUrl", order.getPayVoucherUrl());
         orderVo.put("invoiceUrl", order.getInvoiceUrl());
 

@@ -88,6 +88,9 @@
     </van-cell-group>
 
     <van-cell-group style="margin-top: 20px;">
+      <van-cell title="支付时间">
+        <span>{{ orderInfo.payTime }}</span>
+      </van-cell>
       <van-cell title="支付方式">
         <span>{{ orderInfo.payType }}</span>
       </van-cell>
