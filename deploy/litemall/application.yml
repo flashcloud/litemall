@@ -64,17 +64,28 @@ litemall:
       enable: false
       # 如果是腾讯云短信，则设置active的值tencent
       # 如果是阿里云短信，则设置active的值aliyun
-      active: tencent
+      active: aliyun
       sign: litemall
       template:
+      template:
+        - name: submitOrder
+          templateId: SMS_000000000
+        - name: payOffline
+          templateId: SMS_000000000
         - name: paySucceed
-          templateId: 156349
+          templateId: SMS_000000000
+        - name: orderMember
+          templateId: SMS_000000000
         - name: captcha
-          templateId: 156433
+          templateId: SMS_000000000
         - name: ship
-          templateId: 158002
+          templateId: SMS_000000000
         - name: refund
-          templateId: 159447
+          templateId: SMS_000000000
+        - name: refundSuccess
+          templateId: SMS_000000000
+        - name: uploadOrderInvoice
+          templateId: SMS_000000000
       tencent:
         appid: 111111111
         appkey: xxxxxxxxxxxxxx
