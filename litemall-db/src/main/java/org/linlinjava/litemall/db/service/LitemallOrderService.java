@@ -28,6 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -317,7 +319,35 @@ public class LitemallOrderService {
         return orderMapper.getTraderOrderedPCAppBy(serial, null, null);
     }    
 
+    public List<TraderOrderGoodsVo> getTraderOrderedGoodsByUser(Integer userId) {
+        List<TraderOrderGoodsVo> result = orderMapper.getTraderOrderedGoodsByUserId(userId);
+        for (TraderOrderGoodsVo goodsVo : result) {
+            buildTraderOrderGoodsVo(goodsVo);
+        }
+        return result;
+    }
+
     public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(Integer userId) {
-        return orderMapper.getTraderOrderedPCAppByUserId(userId);
+        List<TraderOrderGoodsVo> result = orderMapper.getTraderOrderedPCAppByUserId(userId);
+        for (TraderOrderGoodsVo goodsVo : result) {
+            buildTraderOrderGoodsVo(goodsVo);
+        }
+        return result;
+    }
+
+    private void buildTraderOrderGoodsVo(TraderOrderGoodsVo orderGoodsVo) {
+        if (orderGoodsVo == null) {
+            return;
+        }
+
+        orderGoodsVo.setOrderStatusText(OrderUtil.orderStatusText(orderGoodsVo));
+
+        LitemallGoods goods = new LitemallGoods();
+        goods.setKeywords(orderGoodsVo.getKeywords());
+        orderGoodsVo.setGoodsTypeName(goods.getGoodsType().getDes());
+
+        LitemallOrder order = new LitemallOrder();
+        order.setPayType(orderGoodsVo.getPayType());
+        orderGoodsVo.setPayTypeName(order.getPayTypeName());
     }
 }

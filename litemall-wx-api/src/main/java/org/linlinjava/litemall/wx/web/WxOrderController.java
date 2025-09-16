@@ -94,7 +94,27 @@ public class WxOrderController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
 
-        List<TraderOrderGoodsVo> result =  wxOrderService.getTraderOrderGoodsByUser(user);
+        List<TraderOrderGoodsVo> result =  wxOrderService.getTraderOrderedGoodsByUser(user);
+        if (result == null || result.isEmpty()) {
+            return ResponseUtil.okList(result);
+        }
+        return ResponseUtil.okList(result);
+    }
+
+/**
+     * 交易商户订购的软件订单列表
+     *
+     * @param userId 用户ID
+     * @return 交易商户订单列表
+     */
+    @GetMapping("traderOrderPcAppList")
+    public Object traderOrderPcAppList(@LoginUser Integer userId) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        List<TraderOrderGoodsVo> result =  wxOrderService.getTraderOrderedPCAppByUser(user);
         if (result == null || result.isEmpty()) {
             return ResponseUtil.okList(result);
         }

@@ -16,5 +16,6 @@ public interface OrderMapper {
     TraderOrderGoodsVo getTraderOrderedPCAppBy(@Param("serial") String serial, @Param("userId") Integer userId, @Param("id") Integer id);
     TraderOrderGoodsVo getTraderOrderedPCAppById(@Param("userId") Integer userId, @Param("id") Integer id);
     TraderOrderGoodsVo getTraderOrderedPCAppBySerial(@Param("serial") String serial);
+    List<TraderOrderGoodsVo> getTraderOrderedGoodsByUserId(@Param("userId") Integer userId);
     List<TraderOrderGoodsVo> getTraderOrderedPCAppByUserId(@Param("userId") Integer userId);
 }

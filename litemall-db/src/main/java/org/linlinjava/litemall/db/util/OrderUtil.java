@@ -1,6 +1,7 @@
 package org.linlinjava.litemall.db.util;
 
 import org.linlinjava.litemall.db.domain.LitemallOrder;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,11 @@ public class OrderUtil {
         throw new IllegalStateException("orderStatus不支持");
     }
 
+    public static String orderStatusText(TraderOrderGoodsVo orderVo) {
+        LitemallOrder litemallOrder = new LitemallOrder();
+        litemallOrder.setOrderStatus(orderVo.getOrderStatus());
+        return orderStatusText(litemallOrder);
+    }
 
     public static OrderHandleOption build(LitemallOrder order) {
         int status = order.getOrderStatus().intValue();

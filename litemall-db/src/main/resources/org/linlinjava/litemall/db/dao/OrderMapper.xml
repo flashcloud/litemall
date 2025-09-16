@@ -136,12 +136,15 @@
     <resultMap id="traderOrderGoods" type="org.linlinjava.litemall.db.domain.TraderOrderGoodsVo">
         <id column="id" property="id"/>
         <result column="order_id" property="orderId"/>
+        <result column="order_sn" property="orderSn"/>
+        <result column="order_status" property="orderStatus"/>
         <result column="trader_id" property="traderId"/>
         <result column="pay_time" property="payTime"/>
         <result column="company_name" property="companyName"/>
         <result column="nickname" property="companyNickname"/>
         <result column="taxid" property="taxid"/>
         <result column="goods_name" property="goodsName"/>
+        <result column="keywords" property="keywords"/>
         <result column="specifications" property="specifications" typeHandler="org.linlinjava.litemall.db.mybatis.JsonStringArrayTypeHandler"/>
         <result column="price" property="price"/>
         <result column="serial" property="serial"/>
@@ -149,6 +152,10 @@
         <result column="max_clients_count" property="maxClientsCount"/>
         <result column="max_register_users_count" property="maxRegisterUsersCount"/>
         <result column="has_register_user_ids" jdbcType="VARCHAR" property="hasRegisterUserIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
+        <result column="exp_date" property="expDateTime"/>
+        <result column="pay_type" property="payType"/>
+        <result column="pay_voucher_url" property="payVoucherUrl"/>
+        <result column="invoice_url" property="invoiceUrl"/>
     </resultMap>
     <resultMap type="org.linlinjava.litemall.db.domain.OrderVo" id="orderList">
         <id column="id" property="id"/>
@@ -245,14 +252,28 @@
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         WHERE oi.id = #{id,jdbcType=INTEGER} AND t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
     </select>      
+    <select id="getTraderOrderedGoodsByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
+        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
+        FROM litemall_order o
+        INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
+        INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
+        ORDER BY o.add_time DESC
+    </select>    
     <select id="getTraderOrderedPCAppByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, 
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids
+        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         WHERE t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
+        ORDER BY o.add_time DESC
         <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
     </select>
 </mapper>

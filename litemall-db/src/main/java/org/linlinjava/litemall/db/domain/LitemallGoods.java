@@ -10,9 +10,17 @@ import org.linlinjava.litemall.db.util.KeywordsConstant;
 
 public class LitemallGoods {
     public enum GoodsType {
-        NORMAL,
-        MEMBER,
-        GRSOFT_SOFTWARE,
+        NORMAL("普通商品"),
+        MEMBER("会员"),
+        GRSOFT_SOFTWARE("软件");
+
+        private final String des;
+        GoodsType(String des) {
+            this.des = des;
+        }
+        public String getDes() {
+            return des;
+        }
     }
 
     public GoodsType getGoodsType() {

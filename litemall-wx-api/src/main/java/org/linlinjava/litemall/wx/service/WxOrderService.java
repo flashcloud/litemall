@@ -267,7 +267,7 @@ public class WxOrderService {
         orderVo.put("expName", expressService.getVendorName(order.getShipChannel()));
         orderVo.put("expNo", order.getShipSn());
         orderVo.put("payType", order.getPayTypeEnum().typeName());
-        orderVo.put("payTime", order.getPayTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        orderVo.put("payTime", order.getPayTime() != null ? order.getPayTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : "");
         orderVo.put("payVoucherUrl", order.getPayVoucherUrl());
         orderVo.put("invoiceUrl", order.getInvoiceUrl());
 
@@ -1289,7 +1289,11 @@ public class WxOrderService {
         return orderService.getTraderOrderedPCAppBySerial(serial);
     }
 
-    public List<TraderOrderGoodsVo> getTraderOrderGoodsByUser(LitemallUser user) {
+    public List<TraderOrderGoodsVo> getTraderOrderedGoodsByUser(LitemallUser user) {
+        return orderService.getTraderOrderedGoodsByUser(user.getId());
+    }
+
+    public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(LitemallUser user) {
         List<TraderOrderGoodsVo> result = orderService.getTraderOrderedPCAppByUser(user.getId());
         for (TraderOrderGoodsVo goodsVo : result) {
             goodsVo.setPrice(BigDecimal.valueOf(0.0));//价格不显示
