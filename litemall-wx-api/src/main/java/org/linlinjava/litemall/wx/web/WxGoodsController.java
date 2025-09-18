@@ -339,15 +339,7 @@ public class WxGoodsController {
      */
     @GetMapping("/userMembers")
     public Object getMemberList(@LoginUser Integer userId) {
-        if (userId == null) {
-            return ResponseUtil.unlogin();
-        }
-
-        LitemallUser user = userService.findById(userId);
-        if (user == null) {
-            return ResponseUtil.unlogin();
-        }
-
+        //为什么userId不能为null?
         Callable<List> memberListCallable = () -> memberService.queryByUserMember(0, SystemConfig.getNewLimit());
         FutureTask<List> memberListTask = new FutureTask<>(memberListCallable);
         executorService.submit(memberListTask);
@@ -368,9 +360,6 @@ public class WxGoodsController {
                     e.printStackTrace();
                 }
             });
-
-            UserInfo userInfo = UserInfo.cloneFromUser(user);
-            entity.put("userInfo", userInfo);
 
             entity.put("memberList", memberListTask.get());
             entity.put("productList", goodsProducts);

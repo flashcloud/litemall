@@ -26,6 +26,7 @@ import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
+import org.linlinjava.litemall.wx.annotation.support.LoginUserHandlerMethodArgumentResolver;
 import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.dto.WxLoginInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
@@ -124,7 +125,7 @@ public class WxAuthController {
     }
 
     /**
-     * 账号登录
+     * 账号或token登录
      *
      * @param body    请求内容，{ username: xxx, password: xxx }
      * @param request 请求对象
@@ -134,26 +135,45 @@ public class WxAuthController {
     public Object login(@RequestBody String body, HttpServletRequest request) {
         String username = JacksonUtil.parseString(body, "username");
         String password = JacksonUtil.parseString(body, "password");
-        if (username == null) {
-            username = JacksonUtil.parseString(body, "mobile");
-        }
-        if (username == null || password == null) {
-            return ResponseUtil.badArgument();
-        }
-
-        List<LitemallUser> userList = userService.queryByUsername(username);
+        String token = "";
         LitemallUser user = null;
-        if (userList.size() > 1) {
-            return ResponseUtil.serious();
-        } else if (userList.size() == 0) {
-            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号不存在");
-        } else {
-            user = userList.get(0);
-        }
+        if (!StringUtils.isEmpty(password)) {
+            // 如果 password 非空，则使用账号密码登录
+            if (username == null) {
+                username = JacksonUtil.parseString(body, "mobile");
+            }
+            if (username == null || password == null) {
+                return ResponseUtil.badArgument();
+            }
 
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        if (!encoder.matches(password, user.getPassword())) {
-            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号密码不对");
+            List<LitemallUser> userList = userService.queryByUsername(username);
+            if (userList.size() > 1) {
+                return ResponseUtil.serious();
+            } else if (userList.size() == 0) {
+                return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号不存在");
+            } else {
+                user = userList.get(0);
+            }
+
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            if (!encoder.matches(password, user.getPassword())) {
+                return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号密码不对");
+            }
+        } else {
+            //如果 password 为空，则使用request的header传入的 token 登录
+            token = request.getHeader(LoginUserHandlerMethodArgumentResolver.LOGIN_TOKEN_KEY);
+            if (token == null) {
+                return ResponseEntity.status(501).build(); // 未登录
+            }
+            Integer userId = UserTokenManager.getUserId(token);
+            if (userId == null) {
+                return ResponseUtil.fail(AUTH_TOKEN_EXPIRED, "登录会话过期"); // 未登录
+            }
+
+            user = userService.findById(userId);
+            if (user == null) {
+                return ResponseEntity.status(404).build(); // 用户不存在
+            }
         }
 
         // 更新登录情况
@@ -177,7 +197,9 @@ public class WxAuthController {
         userInfo.setManagedTraders(traderService.managedByUser(user));
 
         // token
-        String token = UserTokenManager.generateToken(user.getId());
+        if (StringUtils.isEmpty(token)) {
+            token = UserTokenManager.generateToken(user.getId());
+        }
 
         Map<Object, Object> result = new HashMap<Object, Object>();
         result.put("token", token);

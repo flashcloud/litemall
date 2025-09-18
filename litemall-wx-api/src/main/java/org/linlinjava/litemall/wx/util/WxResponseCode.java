@@ -48,5 +48,6 @@ public class WxResponseCode {
 
     public static final Integer AUTH_WECHAT_FAIL = 756;
     public static final Integer AUTH_USERS_PHONE_BIND = 757;
+    public static final Integer AUTH_TOKEN_EXPIRED = 758;
 
 }

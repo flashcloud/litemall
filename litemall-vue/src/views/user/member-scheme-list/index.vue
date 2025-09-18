@@ -8,10 +8,11 @@
         <img :src="avatar" alt="用户头像" />
       </div>
       <div class="user-info">
-        <div class="username">{{nickName}} <van-tag type="success" class="member-type-bg-color">{{ memberType }}</van-tag></div>
-        <div class="member-info" v-show="memberType != '普通会员'"><span :style="{color: new Date(memberExpire) < Date.now() ? 'red' : 'inherit'}" data-tooltip="">{{ memberPlan }}, {{ (new Date(memberExpire)).toLocaleDateString() }} 到期</span></div>
-
-        <div class="member-desc" v-show="memberType === '普通会员'">加入会员，享受金软助手App专属特权</div>
+        <div class="username">{{nickName}} <van-tag type="success" class="member-type-bg-color" v-if="managedTraders.length > 0">主管理员</van-tag></div>
+        <div class="member-info" v-if="userName != ''"> 登录账号：{{ userName }}</div>
+        <!-- <div class="member-desc" v-show="memberType === '普通会员'">加入会员，享受金软助手App专属特权</div> -->
+         <div class="member-info" v-if="addedDays != 0">金软助手已陪伴您{{ addedDays }}天 </div>
+        <div class="member-info"><van-tag type="success" class="member-type-bg-color">{{ memberType }}</van-tag> &nbsp; <span v-show="memberType != '普通会员'" :style="{color: new Date(memberExpire) < Date.now() ? 'red' : 'inherit'}" data-tooltip="">{{ memberPlan }}, {{ (new Date(memberExpire)).toLocaleDateString().replaceAll('/', '-') }} 到期</span></div>
       </div>
     </div>
 
@@ -194,19 +195,14 @@ export default {
         this.$nextTick(() => {
             // 检查是否是移动端访问
             this.isMobile = this.$route.query.isMobile || false;
+            this.setupSecureAuth();
             if (this.isMobile) {
                 // 如果是移动端，获取登录信息
-                this.userName = this.$route.query.userName || '';
-                this.password = this.$route.query.password || '';
-                
-                if (this.userName && this.password) {
-                    this.login();
-                } else {
-                    this.$router.push({ name: 'login' });
-                }
+                this.setupSecureAuth();
             } else {
                 // 如果是PC端，获取用户信息
                 this.getUserInfo();
+                this.isAuthenticated = true;
             }
         });
     },
@@ -214,10 +210,12 @@ export default {
   data() {
     return {
       userName: '',
-      password: '',
       isMobile: false,
+      isAuthenticated: false,
       nickName: '昵称',
+      addedDays: 0,
       memberType: '',
+      managedTraders: [],
       memberPlan: '',
       memberExpire: '',
       avatar: avatar_default,
@@ -252,8 +250,31 @@ export default {
     };
   },
   methods: {
-    login() {
-      let loginData = {username: this.userName, password: this.password};
+    // 监听来自Flutter的认证数据
+    setupSecureAuth() {
+      window.addEventListener('authenDataReady', (event) => {
+        if (this.isAuthenticated) {
+            return; // 已经认证过，避免重复处理
+        }
+        this.isAuthenticated = true;
+
+        const { accessToken, username } = event.detail;
+        //this.$http.defaults.headers.common['Authorization'] = { accessToken }; // 立即设置认证头
+        setLocalStorage({
+          Authorization: accessToken
+        });// 存储token到本地存储, Litemall-Vue会从本地存储读取token,放到HTTP头中，发起请求
+
+        this.userName = username
+        if (this.userName) {
+            this.loginByThird();
+        } else {
+            this.$router.push({ name: 'login' });
+        }
+      });
+    },
+    // 使用第三方登录, 如手机App
+    loginByThird() {
+      let loginData = {username: this.userName};
       
       authLoginByAccount(loginData).then(res => {
         const userInfo = res.data.data.userInfo;
@@ -262,12 +283,23 @@ export default {
           avatar: userInfo.avatarUrl,
           nickName: userInfo.nickName,
           memberType: userInfo.memberType,
-          memberPlan: this.userInfo.memberPlan,
-          memberExpire: this.userInfo.memberExpire,
+          memberPlan: userInfo.memberPlan,
+          memberExpire: userInfo.memberExpire,
         });
+        this.addedDays = userInfo.addedDays || 0;
+        this.managedTraders = userInfo.managedTraders || [];
         this.getUserInfo();
       }).catch(error => {
-        Toast.fail(error.data.errmsg);
+        if (error.data.errno === 758) {
+            //登录的token会话过期
+            try {
+                ThirdLoginChannel.postMessage('token_expired'); //供Flutter调用，通知需要重新登录
+            } catch (e) {
+                Toast.fail(error.data.errmsg);
+            }
+        } else {
+            Toast.fail(error.data.errmsg);
+        }
       });
     },
     loginOut() {
@@ -308,17 +340,6 @@ export default {
     initViews() {
       getMemberList().then(res => {
         this.membersInfo = res.data.data;
-        
-        //如果用户购买了会员，则需要刷新会员信息
-        const userInfo = this.membersInfo.userInfo;
-        setLocalStorage({
-          avatar: userInfo.avatarUrl,
-          nickName: userInfo.nickName,
-          memberType: userInfo.memberType,
-          memberPlan: userInfo.memberPlan,
-          memberExpire: userInfo.memberExpire,
-        });
-        this.getUserInfo();
 
         //构造套餐配置数据
         const buildPlans = plan => {
@@ -535,10 +556,31 @@ export default {
       font-weight: bold;
       color: #333;
       margin-bottom: 4px;
+
+      .van-tag {
+        margin-left: 2x;
+        font-size: 11px;
+        font-weight: normal;
+        height: 20px;
+        line-height: 15px;
+        padding: 3px 6px 2px 6px;
+        border-radius: 20px;
+      }
     }
     .member-info {
-        font-size: 10px;
-        color: #666;
+        padding-top: 4px;
+        font-size: 12px;
+        color:#999;
+        .van-tag {
+            font-size: 11px;
+            color:#029688;
+            height: 18px;
+            line-height: 12px;
+            padding: 3px 4px 2px 4px;
+            border-radius: 4px;
+            border:1px solid #029688;
+            background-color: #fff;
+        }
     }
     .member-desc {
       font-size: 14px;
