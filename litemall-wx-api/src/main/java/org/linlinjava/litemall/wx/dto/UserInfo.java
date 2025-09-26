@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 
@@ -27,6 +26,7 @@ public class UserInfo {
     private int addDays;
     private String memberPlan;
     private String memberType;
+    private String memberTypeKey;   //会员类型的key值
     private String memberExpire;
 
     public static UserInfo cloneFromUser(LitemallUser user) {
@@ -38,6 +38,7 @@ public class UserInfo {
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
         userInfo.setMemberType(user.getMemberType());
+        userInfo.setMemberTypeKey(user.getMemberTypeKey());
         userInfo.setMemberPlan(user.getMemberActualPlan().getDescription());
         userInfo.setMemberExpire(user.getExpireTime() == null ? null : user.getExpireTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));        
         return userInfo;
@@ -173,6 +174,13 @@ public class UserInfo {
 
     public void setMemberType(String memberDes) {
         this.memberType = memberDes;
+    }
+
+    public String getMemberTypeKey() {
+        return memberTypeKey;
+    }
+    public void setMemberTypeKey(String memberTypeKey) {
+        this.memberTypeKey = memberTypeKey;
     }
 
     public String getMemberExpire() {

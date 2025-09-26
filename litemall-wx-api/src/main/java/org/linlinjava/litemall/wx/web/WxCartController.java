@@ -8,7 +8,9 @@ import org.linlinjava.litemall.core.system.SystemConfig;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
+import org.linlinjava.litemall.db.exception.MemberStatusException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.WxOrderService;
@@ -33,6 +35,8 @@ public class WxCartController {
     private final Log logger = LogFactory.getLog(WxCartController.class);
 
     @Autowired
+    private LitemallUserService userService;
+    @Autowired
     private LitemallMemberService memberService;
     @Autowired
     private LitemallCartService cartService;
@@ -40,6 +44,8 @@ public class WxCartController {
     private LitemallGoodsService goodsService;
     @Autowired
     private LitemallOrderService orderService;
+    @Autowired
+    private WxOrderService wxOrderService;
     @Autowired
     private LitemallGoodsProductService productService;
     @Autowired
@@ -124,6 +130,11 @@ public class WxCartController {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.unlogin();
+        }
+
         if (cart == null) {
             return ResponseUtil.badArgument();
         }
@@ -142,6 +153,11 @@ public class WxCartController {
         LitemallGoods goods = goodsService.findById(goodsId);
         if (goods == null || !goods.getIsOnSale()) {
             return ResponseUtil.fail(GOODS_UNSHELVE, "商品已下架");
+        }
+
+        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods);
+        if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
+            return checkHasNoCheckedMemberOrder;
         }
 
         LitemallGoodsProduct product = productService.findById(productId);
@@ -198,6 +214,11 @@ public class WxCartController {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.unlogin();
+        }
+
         if (cart == null) {
             return ResponseUtil.badArgument();
         }
@@ -218,6 +239,11 @@ public class WxCartController {
             return ResponseUtil.fail(GOODS_UNSHELVE, "商品已下架");
         }
 
+        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods);
+        if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
+            return checkHasNoCheckedMemberOrder;
+        }
+        
         LitemallGoodsProduct product = productService.findById(productId);
         //判断购物车中是否存在此规格商品
         LitemallCart existCart = cartService.queryExist(goodsId, productId, userId);

@@ -50,4 +50,6 @@ public class WxResponseCode {
     public static final Integer AUTH_USERS_PHONE_BIND = 757;
     public static final Integer AUTH_TOKEN_EXPIRED = 758;
 
+    public static final Integer MEMBER_ORDER_EXIST_UNCHECKED = 759;
+
 }

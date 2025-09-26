@@ -117,6 +117,11 @@ public class WxTraderController {
 
         if (orderService.countByTrader(id) > 0) return ResponseUtil.fail(ResponseCode.TRADER_HAS_ORDERS, "当前交易企业有订单，不能删除");
 
+        List<LitemallTrader> traderList = userInfoService.getTraders(userId);
+        if (traderList.size() <= 1) {
+            return ResponseUtil.fail(ResponseCode.TRADER_DEL_LAST, "必须至少保留一个公司");
+        }
+
 		traderService.deleteByUser(userId, id);
 		return ResponseUtil.ok();
 	}

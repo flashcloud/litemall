@@ -16,12 +16,16 @@ import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
+import org.linlinjava.litemall.db.domain.LitemallGoods;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.service.CouponAssignService;
+import org.linlinjava.litemall.db.service.LitemallGoodsService;
 import org.linlinjava.litemall.db.service.LitemallMemberService;
+import org.linlinjava.litemall.db.service.LitemallOrderGoodsService;
 import org.linlinjava.litemall.db.service.LitemallOrderService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
@@ -31,7 +35,6 @@ import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.dto.WxLoginInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
-import org.linlinjava.litemall.wx.service.WxOrderService;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -94,9 +97,9 @@ public class WxAuthController {
     @Autowired LitemallTraderService traderService;
 
     @Autowired LitemallOrderService orderService;
+    @Autowired private LitemallOrderGoodsService orderGoodsService;
+    @Autowired private LitemallGoodsService goodsService;
     @Autowired private LitemallMemberService memberService;
-
-    @Autowired private WxOrderService wxOrderService;
 
     @Value("${litemall.wx.app-id}")
     private String appId;
@@ -122,6 +125,25 @@ public class WxAuthController {
             }
         });
         return restTemplate;
+    }
+
+    @PostMapping("isLoginExpired")
+    public Object isLoginExpired(@RequestBody String body, HttpServletRequest request) {
+        String token = request.getHeader(LoginUserHandlerMethodArgumentResolver.LOGIN_TOKEN_KEY);
+        if (StringUtils.isEmpty(token)) {
+            return ResponseUtil.badArgument();
+        }
+        Integer userId = UserTokenManager.getUserId(token);
+        if (userId == null) {
+            return ResponseUtil.fail(AUTH_TOKEN_EXPIRED, "登录会话过期"); // 未登录
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号不存在");
+        }
+
+        return ResponseUtil.ok();
     }
 
     /**
@@ -190,11 +212,7 @@ public class WxAuthController {
         } // 检查会员订单状态
 
         // userInfo
-        UserInfo userInfo = UserInfo.cloneFromUser(user);
-        userInfo.setUserName(username);
-
-        // 登录用户下面的所有交易商户
-        userInfo.setManagedTraders(traderService.managedByUser(user));
+        UserInfo userInfo = initUserInfo(user, username);
 
         // token
         if (StringUtils.isEmpty(token)) {
@@ -216,6 +234,24 @@ public class WxAuthController {
         String url = wxMpService.getOAuth2Service().buildAuthorizationUrl(redirectUri + router, WxConsts.OAuth2Scope.SNSAPI_USERINFO, "STATE");
         //response.sendRedirect(url); //这里不能重定向，否则跨域了，由前端直接加载URL
         return ResponseUtil.ok(url);
+    }
+
+    /**
+     * 注成功或登录成功后，初始化用户信息
+     * @param user
+     * @param username
+     * @return
+     */
+    private UserInfo initUserInfo(LitemallUser user, String username) {
+        //获取用户的会员类型的key值
+        user.setMemberTypeKey(memberService.getUserMemberType(user));
+        // userInfo
+        UserInfo userInfo = UserInfo.cloneFromUser(user);
+        userInfo.setUserName(username);
+
+        // 登录用户下面的所有交易商户
+        userInfo.setManagedTraders(traderService.managedByUser(user));
+        return userInfo;
     }
 
     private Object getWechatAccessTokenAndOpenId(String code, String grantType) {
@@ -377,7 +413,7 @@ public class WxAuthController {
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
-        userInfo = UserInfo.cloneFromUser(user);
+        userInfo = initUserInfo(user, user.getUsername());
 
         Map<Object, Object> result = new HashMap<Object, Object>();
         result.put("weAccessToken", wxLoginInfo.getUserInfo().getAccessToken());
@@ -615,9 +651,8 @@ public class WxAuthController {
         couponAssignService.assignForRegister(user.getId());
 
         // userInfo
-        UserInfo userInfo = new UserInfo();
+        UserInfo userInfo = initUserInfo(user, username);
         userInfo.setNickName(username);
-        userInfo.setAvatarUrl(user.getAvatar());
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
@@ -716,10 +751,11 @@ public class WxAuthController {
             oldPassword = null;
         }
 
+        //暂时不检查验证码
         //判断验证码是否正确
-        String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
-        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        //String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
+        //if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code))
+        //    return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         if (isAppReset) {

@@ -2,11 +2,16 @@ package org.linlinjava.litemall.wx.web;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.linlinjava.litemall.core.storage.StorageService;
+import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.validator.Order;
 import org.linlinjava.litemall.core.validator.Sort;
+import org.linlinjava.litemall.db.domain.BankAccountInfo;
 import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.domain.MemberType;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
+import org.linlinjava.litemall.db.service.LitemallStorageService;
 import org.linlinjava.litemall.db.service.LitemallTraderService;
 import org.linlinjava.litemall.db.service.LitemallUserService;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
@@ -38,6 +43,9 @@ public class WxOrderController {
 
     @Autowired LitemallTraderService traderService;
     @Autowired LitemallUserService userService;
+    @Autowired LitemallStorageService litemallStorageService;
+    @Autowired private StorageService storageService;
+    
 
     /**
      * 订单列表
@@ -157,8 +165,19 @@ public class WxOrderController {
      * @return 提交订单操作结果
      */
     @PostMapping("submit")
-    public Object submit(@LoginUser Integer userId, @RequestBody String body) {
-        return wxOrderService.submit(userId, body);
+    public Object submit(@LoginUser Integer userId, @RequestBody String body, HttpServletRequest request) {
+        Object result = wxOrderService.submit(userId, body, request);
+        if (result != null) {
+            //如果提交失败，则删除可能上传的图片
+            if (!ResponseUtil.isOk(result) && JacksonUtil.hasField(body, "payVoucher") && JacksonUtil.hasField(body, "fileKey")) {
+                String fileKey = JacksonUtil.parseString(body, "fileKey");
+                if (fileKey != null && !fileKey.isEmpty()) {
+                    litemallStorageService.physicalDeleteByKey(fileKey);
+                    storageService.delete(fileKey);
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -271,6 +290,12 @@ public class WxOrderController {
     @PostMapping("comment")
     public Object comment(@LoginUser Integer userId, @RequestBody String body) {
         return wxOrderService.comment(userId, body);
+    }
+
+    @GetMapping("/shopBankAccounts")
+    public Object getShopBankAccount() {
+        List<BankAccountInfo> bankAccounts = wxOrderService.getShopBankAccounts();
+        return ResponseUtil.ok(bankAccounts);
     }
 
 }

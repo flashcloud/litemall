@@ -7,7 +7,10 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.db.dao.LitemallGoodsMapper;
+import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallGoodsExample;
 import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
@@ -15,22 +18,33 @@ import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.Specificatio
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
 import org.linlinjava.litemall.db.domain.LitemallUser;
+import org.linlinjava.litemall.db.domain.MemberType;
+import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.exception.MemberStatusException;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
+import org.linlinjava.litemall.db.util.DbUtil;
 import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.PageHelper;
 
 @Service
 public class LitemallMemberService {
+    private final Log logger = LogFactory.getLog(LitemallMemberService.class);
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Resource
     private LitemallGoodsMapper goodsMapper;
+    @Resource
+    private OrderMapper orderMapper;
     
     @Autowired
     private LitemallUserService userService;
@@ -51,6 +65,22 @@ public class LitemallMemberService {
     public boolean isMemberOrder(Integer orderId) {
         LitemallOrderGoods memberOrderGoods = queryMemberOrderGoods(orderId);
         return memberOrderGoods != null;
+    }    
+
+    public boolean isMemberGoods(LitemallGoods goods) {
+        if (goods == null) return false;
+        if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) return true;
+        return false;
+    }
+
+    /**
+     * 获取指定用户未确认收款但已支付的会员订单
+     * @param userId
+     * @return
+     */
+    public List<TraderOrderGoodsVo> getUserNoCheckedButPayedMemberOrders(Integer userId) {
+        List<TraderOrderGoodsVo> result = orderMapper.getUserNoCheckedButPayedMember(userId);
+        return result;
     }    
     
     /**
@@ -180,7 +210,7 @@ public class LitemallMemberService {
             //父订单必须是过期的才能购买新的会员
             return true;
         } else {
-            throw new MemberStatusException("不能连续订阅超过两次会员，请在本次会员到期后再续订!");
+            throw new MemberStatusException("请在本期会员订阅到期后再续订!");
         }
     }
 
@@ -190,7 +220,7 @@ public class LitemallMemberService {
             LitemallGoods goods = goodsService.findById(orderGoods.getGoodsId());
             goods.setNumber(orderGoods.getNumber());
             orderGoods.setGoodsType(goods.getGoodsType());
-            if (goods.getGoodsType() == LitemallGoods.GoodsType.MEMBER) {
+            if (isMemberGoods(goods)) {
                 return orderGoods; // 返回第一个会员商品
             }
         }
@@ -226,7 +256,7 @@ public class LitemallMemberService {
     }
 
 
-/**
+    /**
      * 如果订单是会员商品，则更新用户的会员状态
      * @param newOrder
      * @param memberOrderGoods
@@ -332,5 +362,39 @@ public class LitemallMemberService {
         userService.updateById(user);
     }
 
-    
+    public String getUserMemberType(LitemallUser user) {
+        //获取用户的会员类型的key值
+        if (user.getMemberOrderId() == null || user.getMemberOrderId() == 0) return "";
+        
+        int memberOrderId = user.getMemberOrderId();
+        if (memberOrderId > 0) {
+            List<LitemallOrderGoods>  memberOrderGoods = this.orderGoodsService.queryByOid( memberOrderId);
+            if (memberOrderGoods != null && memberOrderGoods.size() > 0) {
+                LitemallOrderGoods orderGoods = memberOrderGoods.get(0);
+                if (orderGoods!=null) {
+                    LitemallGoods memberGoods = this.goodsService.findById(orderGoods.getGoodsId());
+                    if (memberGoods != null) {
+                        return memberGoods.getKeywords();
+                    }
+                }
+            }
+        }
+        return "";
+    }    
+
+    /**
+     * 获取会员的功能列表
+     * @return
+     */
+    public List<MemberType> getMemberFeatures() {
+        String fileName = "member-features.json";
+        List<MemberType> memberTypes;
+        try {
+            memberTypes = DbUtil.readJsonFileAsObject(fileName, List.class, objectMapper);
+        } catch (Exception e) {
+            logger.error("读取会员功能列表失败。 " + e.getMessage());
+            memberTypes = new ArrayList<>();
+        }
+        return memberTypes;
+    }
 }

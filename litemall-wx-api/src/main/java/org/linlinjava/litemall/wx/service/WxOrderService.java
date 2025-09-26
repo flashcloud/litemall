@@ -1,5 +1,6 @@
 package org.linlinjava.litemall.wx.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
 import com.github.binarywang.wxpay.bean.notify.WxPayOrderNotifyResult;
 import com.github.binarywang.wxpay.bean.order.WxPayMpOrderResult;
@@ -35,12 +36,14 @@ import org.linlinjava.litemall.db.exception.MemberStatusException;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
+import org.linlinjava.litemall.db.util.DbUtil;
 import org.linlinjava.litemall.db.util.GrouponConstant;
 import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.util.OrderHandleOption;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.linlinjava.litemall.wx.task.OrderUnpaidTask;
+import org.linlinjava.litemall.wx.util.WxResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -138,6 +141,8 @@ public class WxOrderService {
     private LitemallAftersaleService aftersaleService;
     @Autowired
     private LitemallMemberService memberService;
+    @Autowired
+    private LitemallTraderService traderService;
 
     /**
      * 订单列表
@@ -310,7 +315,7 @@ public class WxOrderService {
      * @return 提交订单操作结果
      */
     @Transactional
-    public Object submit(Integer userId, String body) {
+    public Object submit(Integer userId, String body, HttpServletRequest request) {
         if (userId == null) {
             return ResponseUtil.unlogin();
         }
@@ -389,6 +394,9 @@ public class WxOrderService {
         } else {
             return checkedResult;
         }
+
+        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = transactionManager.getTransaction(def);        
 
         // 团购优惠
         BigDecimal grouponPrice = new BigDecimal(0);
@@ -609,6 +617,10 @@ public class WxOrderService {
             taskService.addTask(new OrderUnpaidTask(orderId));
         }
 
+        //将用户的默认公司信息更新为本次订单的公司信息
+        checkedTrader.setIsDefault(true);
+        traderService.updateDefaultTrader(userId, checkedTrader);
+
         //TODO 发送邮件和短信通知，这里采用异步发送
         // 订单支付成功以后，会发送短信给用户(使用阿里云短信必须是JSON格式， 腾讯云短信模板参数是数组)，以及发送邮件给管理员
         notifyService.notifyMail("新订单通知", order.toString());
@@ -632,16 +644,46 @@ public class WxOrderService {
             notifyService.notifySmsTemplateSync(adminMobile, NotifyType.SUBMIT_ORDER, params);
         });
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("orderId", orderId);
-        data.put("payed", payed);
+        Map<String, Object> submitOrderData = new HashMap<>();
+        submitOrderData.put("orderId", orderId);
+        submitOrderData.put("payed", payed);
         if (grouponRulesId != null && grouponRulesId > 0) {
-            data.put("grouponLinkId", grouponLinkId);
+            submitOrderData.put("grouponLinkId", grouponLinkId);
         }
         else {
-            data.put("grouponLinkId", 0);
+            submitOrderData.put("grouponLinkId", 0);
         }
-        return ResponseUtil.ok(data);
+
+        //如果传入了payType，则立即支付
+        if (JacksonUtil.hasField(body, "payType")) {
+            String payTypeString = JacksonUtil.parseString(body, "payType");
+            LitemallOrder.PayTypeEnum payType = LitemallOrder.PayTypeEnum.toType(payTypeString);
+            if (payType == null || payType == LitemallOrder.PayTypeEnum.UNKNOWN) {
+                transactionManager.rollback(status);
+                return ResponseUtil.fail(-1, "非法的参数payType值");
+            } else {
+                //发起预支付
+                Map<String, String> prepayParams = JacksonUtil.toMap(body);
+                prepayParams.put("orderId", orderId.toString());
+                String newBody = JacksonUtil.toJson(prepayParams);
+                Object prepayResult = this.prepay(userId, newBody, request);
+                Map<String, Object> prepayResultMap = new HashMap<>();
+                if (prepayResult != null) {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    prepayResultMap = objectMapper.convertValue(prepayResult, Map.class);
+                    int errorNo = (Integer)prepayResultMap.get("errno");
+                    if (errorNo != 0) {
+                        transactionManager.rollback(status);
+                        return ResponseUtil.fail(errorNo, "预支付失败. " + prepayResultMap.get("errmsg"));
+                    }
+                } else {
+                    transactionManager.rollback(status);
+                    return ResponseUtil.fail(-1, "预支付失败");
+                }
+            }
+        }
+
+        return ResponseUtil.ok(submitOrderData);
     }
 
     /**
@@ -786,29 +828,34 @@ public class WxOrderService {
         if (openid == null) {
             return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
         }
-        WxPayMpOrderResult result = null;
-        try {
-            WxPayUnifiedOrderRequest orderRequest = new WxPayUnifiedOrderRequest();
-            orderRequest.setOutTradeNo(order.getOrderSn());
-            orderRequest.setOpenid(openid);
-            orderRequest.setBody("订单：" + order.getOrderSn());
-            // 元转成分
-            int fee = 0;
-            BigDecimal actualPrice = order.getActualPrice();
-            fee = actualPrice.multiply(new BigDecimal(100)).intValue();
-            orderRequest.setTotalFee(fee);
-            orderRequest.setSpbillCreateIp(IpUtil.getIpAddr(request));
 
-            result = wxPayService.createOrder(orderRequest);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseUtil.fail(ORDER_PAY_FAIL, "订单不能支付");
-        }
+        if (payType == LitemallOrder.PayTypeEnum.WEIXIN) {
+            WxPayMpOrderResult result = null;
+            try {
+                WxPayUnifiedOrderRequest orderRequest = new WxPayUnifiedOrderRequest();
+                orderRequest.setOutTradeNo(order.getOrderSn());
+                orderRequest.setOpenid(openid);
+                orderRequest.setBody("订单：" + order.getOrderSn());
+                // 元转成分
+                int fee = 0;
+                BigDecimal actualPrice = order.getActualPrice();
+                fee = actualPrice.multiply(new BigDecimal(100)).intValue();
+                orderRequest.setTotalFee(fee);
+                orderRequest.setSpbillCreateIp(IpUtil.getIpAddr(request));
 
-        if (orderService.updateWithOptimisticLocker(order) == 0) {
-            return ResponseUtil.updatedDateExpired();
+                result = wxPayService.createOrder(orderRequest);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseUtil.fail(ORDER_PAY_FAIL, "订单使用微信支付失败");
+            }
+
+            if (orderService.updateWithOptimisticLocker(order) == 0) {
+                return ResponseUtil.updatedDateExpired();
+            }
+            return ResponseUtil.ok(result);
+        } else {
+            return ResponseUtil.ok();
         }
-        return ResponseUtil.ok(result);
     }
 
     /**
@@ -1267,6 +1314,33 @@ public class WxOrderService {
         }
     }
 
+    /**
+     * 指定用户是否存在未确认收款但已支付的会员订单
+     * @param userId
+     * @return
+     */
+    public Object checkHasNoCheckedMemberOrder(LitemallUser user, LitemallGoods cartGoods) {
+        if (cartGoods != null) {
+            if (!memberService.isMemberGoods(cartGoods)) {
+                return ResponseUtil.ok();
+            }
+        }
+        List<TraderOrderGoodsVo> memberOrderGoodsList = memberService.getUserNoCheckedButPayedMemberOrders(user.getId());
+        if(memberOrderGoodsList != null && !memberOrderGoodsList.isEmpty()){
+            return ResponseUtil.fail(WxResponseCode.MEMBER_ORDER_EXIST_UNCHECKED, "您有未确认收款的会员订单，等待后台审核中，请勿重复购买");
+        }
+
+        try {
+            memberService.checkMemberCanPurchase(user);
+            //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
+            memberService.checkMemberStatus(user);
+        } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
+            return ResponseUtil.fail(WxResponseCode.ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        }
+
+        return ResponseUtil.ok();
+    }    
+
     private Object checkTrader(Integer userId, Integer traderId) {
         // 验证trderId是否是当前用户的已绑定商户
         LitemallTrader checkedTrader = null;
@@ -1340,6 +1414,10 @@ public class WxOrderService {
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
         if (memberGoodsList.size() > 0) {
+             Object checkHasNoCheckedMemberOrder = checkHasNoCheckedMemberOrder(user, null);
+            if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
+                return checkHasNoCheckedMemberOrder;
+            }
             try {
                 memberService.checkMemberCanPurchase(user);
                 //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
@@ -1351,4 +1429,8 @@ public class WxOrderService {
 
         return ResponseUtil.ok();
     }
+
+    public List<BankAccountInfo> getShopBankAccounts() {
+        return orderService.getShopBankAccounts();
+    }    
 }

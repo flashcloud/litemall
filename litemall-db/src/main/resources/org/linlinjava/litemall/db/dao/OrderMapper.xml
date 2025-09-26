@@ -263,6 +263,18 @@
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
         WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
         ORDER BY o.add_time DESC
+    </select>
+    <select id="getUserNoCheckedButPayedMember" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
+        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
+        FROM litemall_order o
+        INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
+        INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
+        ORDER BY o.add_time DESC
     </select>    
     <select id="getTraderOrderedPCAppByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,

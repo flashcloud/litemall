@@ -1,35 +1,27 @@
 package org.linlinjava.litemall.db.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 
-import org.apache.ibatis.annotations.Param;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
 import org.linlinjava.litemall.db.dao.LitemallOrderMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
+import org.linlinjava.litemall.db.domain.BankAccountInfo;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
-import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
-import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
-import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
-import org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample;
-import org.linlinjava.litemall.db.domain.LitemallUser;
-import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.OrderVo;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
-import org.linlinjava.litemall.db.exception.DataStatusException;
-import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
-import org.linlinjava.litemall.db.exception.MemberOrderDataException;
-import org.linlinjava.litemall.db.util.CommonStatusConstant;
+import org.linlinjava.litemall.db.util.DbUtil;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -37,6 +29,8 @@ import java.util.*;
 
 @Service
 public class LitemallOrderService {
+    private final Log logger = LogFactory.getLog(LitemallOrderService.class);
+
     @Resource
     private LitemallOrderMapper litemallOrderMapper;
     @Resource
@@ -44,6 +38,8 @@ public class LitemallOrderService {
     @Resource
     private OrderMapper orderMapper;
 
+    @Autowired
+    private ObjectMapper objectMapper;
     @Autowired
     private LitemallUserService userService;    
     @Autowired
@@ -333,6 +329,34 @@ public class LitemallOrderService {
             buildTraderOrderGoodsVo(goodsVo);
         }
         return result;
+    }
+
+    /**
+     * 获取商城的银行账户信息，需要在生成的jar包同级目录下放置shop-banks.json文件
+     * 该文件内容格式
+     * [
+        {
+            "id": 1,
+            "bankType": "中国工商银行",
+            "bankName": "工行xxxx支行",
+            "accountName": "XX公司",
+            "accountNumber": "xxxx xxxx xxxx xxxx",
+            "bankCode": "xxxx xxxx xxxx xxxx",
+            "logo": "http://www.sungole.com.cn/images/mypic/icbc_logo.png"
+        }
+       ]
+     * @return
+     */
+    public List<BankAccountInfo> getShopBankAccounts() {
+        String fileName = "shop-banks.json";
+        List<BankAccountInfo> bankAccountInfos;
+        try {
+            bankAccountInfos = DbUtil.readJsonFileAsObject(fileName, List.class, objectMapper);
+        } catch (Exception e) {
+            bankAccountInfos = new ArrayList<>();
+            logger.error("读取商户银行账户数据失败。 " + e.getMessage());
+        }
+        return bankAccountInfos;
     }
 
     private void buildTraderOrderGoodsVo(TraderOrderGoodsVo orderGoodsVo) {

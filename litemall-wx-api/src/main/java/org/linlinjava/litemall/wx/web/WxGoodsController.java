@@ -361,8 +361,17 @@ public class WxGoodsController {
                 }
             });
 
+            List<MemberType> getMemberFeatures = new ArrayList<>();
+             //获取会员类型和对应的会员特性
+            try {
+                getMemberFeatures = memberService.getMemberFeatures();
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+
             entity.put("memberList", memberListTask.get());
             entity.put("productList", goodsProducts);
+            entity.put("memberFeatures", getMemberFeatures);
             //缓存数据
             HomeCacheManager.loadData(HomeCacheManager.SYS_DATA, entity);
         }
@@ -373,6 +382,12 @@ public class WxGoodsController {
 //            executorService.shutdown();
 //        }
         return ResponseUtil.ok(entity);
+    }
+
+    @GetMapping("/memberTypeFeatures")
+    public Object getMemberTypeFeatures() {
+        List<MemberType> memberTypes = memberService.getMemberFeatures();
+        return ResponseUtil.ok(memberTypes);
     }
 
 }

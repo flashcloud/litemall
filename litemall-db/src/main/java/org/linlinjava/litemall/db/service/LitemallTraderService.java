@@ -205,6 +205,7 @@ public class LitemallTraderService {
             //禁止修改商户的负责人和创建人
             LitemallTrader traderOld = queryById(trader.getId());
             trader.setUserId(traderOld.getUserId());
+            trader.setUserIds(new Integer[]{userId}); // 保持绑定的用户ID不变
             trader.setCreatorId(traderOld.getCreatorId());
             //禁止修改商户的创建时间
             trader.setAddTime(traderOld.getAddTime());
@@ -374,6 +375,16 @@ public class LitemallTraderService {
 
         LitemallUser user = userService.findById(userId);
         traders = queryByIds(user.getTraderIds());
+
+        // 把用户自己创建的商户也加进去
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andUserIdEqualTo(userId).andDeletedEqualTo(false);
+        List<LitemallTrader> responseTraders = traderMapper.selectByExample(example);
+        for (LitemallTrader trader : responseTraders) {
+            if (!traders.contains(trader)) {
+                traders.add(trader);
+            }
+        }
         
         // 设置默认商户
         for (LitemallTrader trader : traders) {
@@ -606,7 +617,8 @@ public class LitemallTraderService {
 		}
 		String nickname = trader.getNickname();
 		if (StringUtils.isEmpty(nickname)) {
-			return false;
+			nickname = companyName;
+            trader.setNickname(nickname);
 		}
         String taxid = trader.getTaxid();
 		if (StringUtils.isEmpty(taxid)) {

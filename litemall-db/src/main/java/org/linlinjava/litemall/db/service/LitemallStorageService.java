@@ -22,6 +22,17 @@ public class LitemallStorageService {
         storageMapper.logicalDeleteByExample(example);
     }
 
+    /**
+     * 物理删除（针对临时上传的文件）
+     * @param key
+     */
+    public void physicalDeleteByKey(String key) {
+        LitemallStorage storageInfo = findByKey(key);
+        if (storageInfo != null) {
+            storageMapper.deleteByPrimaryKey(storageInfo.getId());
+        }
+    }    
+
     public void add(LitemallStorage storageInfo) {
         storageInfo.setAddTime(LocalDateTime.now());
         storageInfo.setUpdateTime(LocalDateTime.now());
