@@ -772,7 +772,7 @@ public class WxAuthController {
             }
 
             if (!encoder.matches(oldPassword, user.getPassword())) {
-                return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号的原密码不对");
+                return ResponseUtil.fail(AUTH_INVALID_PASSWORD, "账号的原密码不对");
             }
         }
 
