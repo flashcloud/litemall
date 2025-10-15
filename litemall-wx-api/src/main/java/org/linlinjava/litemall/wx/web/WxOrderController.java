@@ -90,6 +90,23 @@ public class WxOrderController {
     }
 
     /**
+     * 交易商户的订单产品条数
+     *
+     * @param userId 用户ID
+     * @return 交易商户订单产品条数
+     */
+    @GetMapping("traderOrdersGoodsCount")
+    public Object traderOrdersGoodsCount(@LoginUser Integer userId) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        long result =  wxOrderService.countTraderOrderedGoodsByUser(user);
+        return ResponseUtil.ok(result);
+    }
+
+    /**
      * 交易商户订单列表
      *
      * @param userId 用户ID

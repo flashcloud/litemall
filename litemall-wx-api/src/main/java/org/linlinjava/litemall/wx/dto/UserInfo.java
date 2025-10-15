@@ -20,6 +20,7 @@ public class UserInfo {
     private String sessionKey;
     private String wxOpenId;
     private List<LitemallTrader> managedTraders;
+    private List<LitemallTrader> traders;
 
     private String mobile;
     private LocalDateTime addTime;
@@ -158,6 +159,14 @@ public class UserInfo {
 
     public void setManagedTraders(List<LitemallTrader> managedTraders) {
         this.managedTraders = managedTraders;
+    }
+
+    public List<LitemallTrader> getTraders() {
+        return traders;
+    }
+
+    public void setTraders(List<LitemallTrader> traders) {
+        this.traders = traders;
     }
 
     public void setMemberPlan(String memberPlan) {

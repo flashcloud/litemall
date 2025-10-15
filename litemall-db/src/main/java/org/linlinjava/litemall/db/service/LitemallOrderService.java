@@ -315,6 +315,10 @@ public class LitemallOrderService {
         return orderMapper.getTraderOrderedPCAppBy(serial, null, null);
     }    
 
+    public long getTraderOrderedGoodsCountByUserId(Integer userId) {
+        return orderMapper.getTraderOrderedGoodsCountByUserId(userId);
+    }
+
     public List<TraderOrderGoodsVo> getTraderOrderedGoodsByUser(Integer userId) {
         List<TraderOrderGoodsVo> result = orderMapper.getTraderOrderedGoodsByUserId(userId);
         for (TraderOrderGoodsVo goodsVo : result) {

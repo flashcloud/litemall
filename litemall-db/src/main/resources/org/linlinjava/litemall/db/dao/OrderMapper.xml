@@ -156,6 +156,7 @@
         <result column="pay_type" property="payType"/>
         <result column="pay_voucher_url" property="payVoucherUrl"/>
         <result column="invoice_url" property="invoiceUrl"/>
+        <result column="buyer" property="buyer"/>
     </resultMap>
     <resultMap type="org.linlinjava.litemall.db.domain.OrderVo" id="orderList">
         <id column="id" property="id"/>
@@ -246,21 +247,32 @@
     <select id="getTraderOrderedPCAppById" resultMap="traderOrderGoods">
         SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               CONCAT(u.nickname, '(', u.username, ')')as buyer
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
         WHERE oi.id = #{id,jdbcType=INTEGER} AND t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
     </select>      
-    <select id="getTraderOrderedGoodsByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
+    <select id="getTraderOrderedGoodsCountByUserId" parameterType="java.lang.Integer" resultType="java.lang.Long">
+        SELECT COUNT(*)
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
+    </select>
+    <select id="getTraderOrderedGoodsByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
+        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+        FROM litemall_order o
+        INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
+        INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
         WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
         ORDER BY o.add_time DESC
     </select>
@@ -268,11 +280,12 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
         WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
         ORDER BY o.add_time DESC
     </select>    
@@ -280,10 +293,11 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
         WHERE t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
         ORDER BY o.add_time DESC
         <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->

@@ -34,6 +34,7 @@ import org.linlinjava.litemall.wx.annotation.support.LoginUserHandlerMethodArgum
 import org.linlinjava.litemall.wx.dto.UserInfo;
 import org.linlinjava.litemall.wx.dto.WxLoginInfo;
 import org.linlinjava.litemall.wx.service.CaptchaCodeManager;
+import org.linlinjava.litemall.wx.service.UserInfoService;
 import org.linlinjava.litemall.wx.service.UserTokenManager;
 import org.linlinjava.litemall.core.util.IpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,6 +82,9 @@ public class WxAuthController {
 
     @Autowired
     private LitemallUserService userService;
+
+    @Autowired
+    private UserInfoService userInfoService;
 
     @Autowired
     private WxMaService wxService;
@@ -251,6 +255,9 @@ public class WxAuthController {
 
         // 登录用户下面的所有交易商户
         userInfo.setManagedTraders(traderService.managedByUser(user));
+
+        // 登录用户相关的所有商户
+        userInfo.setTraders(userInfoService.getTraders(user.getId()));
         return userInfo;
     }
 
@@ -772,7 +779,7 @@ public class WxAuthController {
             }
 
             if (!encoder.matches(oldPassword, user.getPassword())) {
-                return ResponseUtil.fail(AUTH_INVALID_PASSWORD, "账号的原密码不对");
+                return ResponseUtil.fail(AUTH_INVALID_PASSWORD, "原登录密码不正确");
             }
         }
 
@@ -848,7 +855,7 @@ public class WxAuthController {
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         if (!encoder.matches(password, user.getPassword())) {
-            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号密码不对");
+            return ResponseUtil.fail(AUTH_INVALID_PASSWORD, "账号密码不正确");
         }
 
         //更新头像

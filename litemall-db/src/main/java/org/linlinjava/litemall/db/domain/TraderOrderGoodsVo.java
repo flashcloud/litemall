@@ -31,6 +31,7 @@ public class TraderOrderGoodsVo {
     private String payTypeName;
     private String payVoucherUrl;
     private String invoiceUrl;
+    private String buyer;
 
     @Override
     public String toString() {

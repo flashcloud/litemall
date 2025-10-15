@@ -1363,6 +1363,10 @@ public class WxOrderService {
         return orderService.getTraderOrderedPCAppBySerial(serial);
     }
 
+    public long countTraderOrderedGoodsByUser(LitemallUser user) {
+        return orderService.getTraderOrderedGoodsCountByUserId(user.getId());
+    }
+
     public List<TraderOrderGoodsVo> getTraderOrderedGoodsByUser(LitemallUser user) {
         return orderService.getTraderOrderedGoodsByUser(user.getId());
     }

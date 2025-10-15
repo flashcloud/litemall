@@ -1,6 +1,7 @@
 package org.linlinjava.litemall.db.dao;
 
 import org.apache.ibatis.annotations.Param;
+import org.linlinjava.litemall.db.domain.LitemallAddressExample;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.OrderVo;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
@@ -16,6 +17,7 @@ public interface OrderMapper {
     TraderOrderGoodsVo getTraderOrderedPCAppBy(@Param("serial") String serial, @Param("userId") Integer userId, @Param("id") Integer id);
     TraderOrderGoodsVo getTraderOrderedPCAppById(@Param("userId") Integer userId, @Param("id") Integer id);
     TraderOrderGoodsVo getTraderOrderedPCAppBySerial(@Param("serial") String serial);
+    long getTraderOrderedGoodsCountByUserId(@Param("userId") Integer userId);
     List<TraderOrderGoodsVo> getTraderOrderedGoodsByUserId(@Param("userId") Integer userId);
     List<TraderOrderGoodsVo> getTraderOrderedPCAppByUserId(@Param("userId") Integer userId);
 
