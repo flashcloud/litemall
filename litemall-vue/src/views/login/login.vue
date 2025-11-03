@@ -10,8 +10,10 @@
     <md-field-group>
       <md-field
         v-model="account"
+        type="number"
+        :rules="[{ required: true, message: '请输入手机号' }, { pattern: mobileReg, message: '手机号格式不正确' }]"
         icon="username"
-        placeholder="用户名"
+        placeholder="手机号"
         right-icon="clear-full"
         name="user"
         data-vv-as="帐号"
@@ -74,9 +76,10 @@ function after_login(self, loginFunc, loginData) {
           memberPlan: self.userInfo.memberPlan,
           memberExpire: self.userInfo.memberExpire
         });
-
         if (!self.userInfo.mobile || self.userInfo.mobile == '') {
           self.$router.push({ name: 'bindPhone' });
+        } else if (self.userInfo.traders.length == 0) {
+          self.$router.push({ name: 'bindTrader' });
         } else {
           self.routerRedirect();
         }

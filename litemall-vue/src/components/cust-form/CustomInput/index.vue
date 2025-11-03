@@ -56,6 +56,8 @@
       <input
         :value="value"
         @input="handleInput"
+        @focus="handleFocus"
+        @blur="handleBlur"
         :type="type"
         :placeholder="placeholder"
         :maxlength="maxlength"
@@ -71,6 +73,7 @@
         {{ buttonText }}
       </button>
     </div>
+    <span v-if="hint" class="hint">{{ hint }}</span>
   </div>
 </template>
 
@@ -91,6 +94,11 @@ export default {
     },
     // 占位文本
     placeholder: {
+      type: String,
+      default: ''
+    },
+    // 提示文本
+    hint: {
       type: String,
       default: ''
     },
@@ -135,6 +143,14 @@ export default {
     // 处理输入事件
     handleInput(event) {
       this.$emit('input', event.target.value);
+    },
+    // 处理获取焦事件
+    handleFocus(event) {
+      this.$emit('focus', event);
+    },
+    // 处理失焦事件
+    handleBlur(event) {
+      this.$emit('blur', event);
     },
     
     // 处理按钮点击事件
@@ -200,5 +216,13 @@ export default {
   background: #f5f5f5;
   color: #ccc;
   cursor: not-allowed;
+}
+
+.hint {
+  display: block;
+  margin-top: 4px;
+  margin-left: 20px;
+  font-size: 12px;
+  color: #999;
 }
 </style>

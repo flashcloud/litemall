@@ -3,6 +3,7 @@
 		<div>我们将发送验证码到您的手机</div>
 		<md-field
 			v-model="mobile"
+            type="number"
 			icon="mobile"
 			placeholder="请输入手机号"/>
 

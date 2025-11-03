@@ -4,7 +4,7 @@
       <van-cell class="member-card" @click="openMember">
         <div class="member-content">
           <div class="member-title">开通金软助手WI-FI会员</div>
-          <div class="member-price">最低 0.3 元/天</div>
+          <div class="member-price">最低 2 元/天</div>
         </div>
       </van-cell>
     </van-cell-group>

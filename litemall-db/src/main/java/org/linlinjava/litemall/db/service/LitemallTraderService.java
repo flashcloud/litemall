@@ -93,10 +93,11 @@ public class LitemallTraderService {
     }
 
     @Transactional
-    public void add(Integer userId, LitemallTrader trader) {
+    public int add(Integer userId, LitemallTrader trader) {
         trader.setAddTime(LocalDateTime.now());
         trader.setUpdateTime(LocalDateTime.now());
         traderMapper.insertSelective(trader);
+        int traderId = trader.getId();
         
         // 如果是新增商户，在商户负责人的商户列表中添加该商户
         if (trader.getUserId() != null) {
@@ -125,6 +126,8 @@ public class LitemallTraderService {
 
         //更新用户绑定的商户
         updateUsersTraders(trader);
+
+        return traderId;
     }
 
     /**
@@ -142,18 +145,8 @@ public class LitemallTraderService {
 
         userService.add(user);
 
-        //如果当前注册用户的手机号和交易商户的手机号相同，则将交易商户的负责人绑定到此用户
-        if ((trader.getUserId() == null || trader.getUserId() == 0) && trader.getPhoneNum().equals(user.getMobile())) {
-            trader.setUserId(user.getId());
-            trader.setIsDefault(true);
-            traderMapper.updateByPrimaryKey(trader);
-        }
-        
-        //绑定用户和交易商户
-        user.setDefaultTraderId(trader.getId());
-        user.setTraderIds(new Integer[]{trader.getId()});
-        userService.updateById(user);
-        
+        registerUserHelp(user, trader);
+
         // 更新订单的hasRegisterUserIds
         LitemallOrderGoods orderedGoodsOld = orderGoodsService.findById(orderedGoods.getId());
         Integer[] hasRegisterUserIds = orderedGoodsOld.getHasRegisterUserIds();
@@ -166,7 +159,42 @@ public class LitemallTraderService {
         orderGoodsService.updateById(orderedGoodsOld);
 
         return true;
+    }
+
+    @Transactional
+    public LitemallTrader registerUser(LitemallUser user, LitemallTrader trader) {
+        LitemallTrader  dbTrader = null;
+        if (trader.getId() == null || trader.getId() == 0) {
+            dbTrader = queryByTaxCode(trader.getTaxid());
+            if (dbTrader == null) {
+                dbTrader = queryByName(trader.getCompanyName());
+            }
+            if (dbTrader == null) {
+                int traderId = add(user.getId(), trader);
+                dbTrader = queryById(traderId);
+            }
+        } else {
+            dbTrader = queryById(trader.getId());
+        }
+
+        registerUserHelp(user, dbTrader);
+
+        return  dbTrader;
+    }
+
+    @Transactional
+    public void registerUserHelp(LitemallUser user, LitemallTrader trader) {
+        //如果当前注册用户的手机号和交易商户的手机号相同，则将交易商户的负责人绑定到此用户
+        if (trader.getUserId() == null || trader.getUserId() == 0) {
+            trader.setUserId(user.getId());
+            trader.setIsDefault(true);
+            traderMapper.updateByPrimaryKey(trader);
+        }
         
+        //绑定用户和交易商户
+        user.setDefaultTraderId(trader.getId());
+        user.setTraderIds(new Integer[]{trader.getId()});
+        userService.updateById(user);
     }
 
     /**
@@ -575,6 +603,20 @@ public class LitemallTraderService {
         example.or().andCompanyNameEqualTo(name).andDeletedEqualTo(false);
         return traderMapper.countByExample(example) != 0;
     }
+
+    public LitemallTrader queryByName(String name) {
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andCompanyNameEqualTo(name).andDeletedEqualTo(false);
+        List<LitemallTrader> list = traderMapper.selectByExample(example);
+        return list != null && list.size() > 0 ? list.get(0) : null;
+    }
+
+    public LitemallTrader queryByTaxCode(String taxCode) {
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andTaxidEqualTo(taxCode).andDeletedEqualTo(false);
+        List<LitemallTrader> list = traderMapper.selectByExample(example);
+        return list != null && list.size() > 0 ? list.get(0) : null;
+    }    
 
     public boolean checkCompanyExist(String name, Integer id) {
         LitemallTraderExample example = new LitemallTraderExample();

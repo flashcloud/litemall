@@ -18,6 +18,7 @@ import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.exception.DataStatusException;
@@ -450,6 +451,37 @@ public class WxAuthController {
         return loginThenCheckAndUpdatePhone(token, phone);
     }
     
+
+    @PostMapping("bind_trader")
+    public Object bindTrader(@RequestBody String body, HttpServletRequest request) throws IOException {
+        String token = JacksonUtil.parseString(body, "token");
+        String traderName = JacksonUtil.parseString(body, "name");
+        String taxid = JacksonUtil.parseString(body, "taxid");
+        if (StringUtils.isEmpty(token) || StringUtils.isEmpty(traderName) || StringUtils.isEmpty(taxid )) {
+            return ResponseUtil.badArgument();
+        }
+        if (taxid.length() != 18) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        Integer userId = UserTokenManager.getUserId(token);
+        if (userId == null) {
+            return ResponseEntity.status(501).build(); // 未登录
+        }
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.status(404).build(); // 用户不存在
+        }
+
+        LitemallTrader trader = new LitemallTrader();
+        trader.setCompanyName(traderName);
+        trader.setTaxid(taxid);
+        LitemallTrader bindedTrader = traderService.registerUser(user, trader);
+
+        return ResponseUtil.ok(bindedTrader);
+    }
+
     private Object loginThenCheckAndUpdatePhone(String token, String phone) {
         Integer userId = UserTokenManager.getUserId(token);
         if (userId == null) {

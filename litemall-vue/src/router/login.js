@@ -18,6 +18,15 @@ export default [
     component: () => import('@/views/login/bind-phone')
   },
   {
+    path: '/login/bindTrader',
+    name: 'bindTrader',
+    meta: {
+      showHeader:false,
+      title:"绑定企业用户"
+    },
+    component: () => import('@/views/login/bind-trader')
+  },
+  {
     path: '/login/registerGetCode',
     name: 'registerGetCode',
     component: () => import('@/views/login/register-getCode')

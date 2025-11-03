@@ -60,6 +60,15 @@ export function manualBindPhone(data) {
   })
 }
 
+const BindTrader='/auth/bind_trader'; //绑定企业用户
+export function bindTrader(data) {
+  return request({
+    url: BindTrader,
+    method: 'post',
+    data
+  })
+}
+
 const AuthLoginByAccount='/auth/login'; //账号登录
 export function authLoginByAccount(data) {
   return request({
