@@ -580,6 +580,28 @@ public class WxAuthController {
         return ResponseUtil.ok();
     }
 
+    @PostMapping("isUserExists")
+    public Object isUserExists(@RequestBody String body, HttpServletRequest request) {
+        String username = JacksonUtil.parseString(body, "username");
+        String code = JacksonUtil.parseString(body, "code");
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(code)) {
+            return ResponseUtil.badArgument();
+        }
+
+        //判断验证码是否正确
+        String cacheCode = CaptchaCodeManager.getCachedCaptcha(username);
+        if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code)) {
+            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+        }
+
+        List<LitemallUser> userList = userService.queryByUsername(username);
+        if (userList.size() > 0) {
+            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "用户名已注册");
+        }
+
+        return ResponseUtil.ok();
+    }
+
     /**
      * 账号注册
      * TODO: 限制用户注册频率：https://blog.csdn.net/baiyan3212/article/details/90453765
@@ -614,7 +636,7 @@ public class WxAuthController {
         String password = JacksonUtil.parseString(body, "password");
         String mobile = JacksonUtil.parseString(body, "mobile");
         String code = JacksonUtil.parseString(body, "code");
-        String dogKey = JacksonUtil.parseString(body, "pcapp-key");
+    
         // 如果是小程序注册，则必须非空
         // 其他情况，可以为空
         String wxCode = JacksonUtil.parseString(body, "wxCode");
@@ -626,7 +648,7 @@ public class WxAuthController {
 
         List<LitemallUser> userList = userService.queryByUsername(username);
         if (userList.size() > 0) {
-            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "用户名已注册");
+            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "手机号已注册");
         }
 
         Object validate = validatePhone(null, mobile);
@@ -683,21 +705,8 @@ public class WxAuthController {
         user.setStatus((byte) 0);
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(IpUtil.getIpAddr(request));
-        if (dogKey != null && !dogKey.isEmpty()) {
-            //绑定加密锁注册
-            TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderedPCAppBySerial(dogKey);
-            if (orderGoodsVo == null) {
-                return ResponseUtil.fail(AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + dogKey + "）不存在");
-            }
-            if (!traderService.checkRegisterUser(dogKey)) {
-                //TODO: 向交易企业负责人发送消息，提示注册用户数已达上限，让其购买更多注册用户
-                return ResponseUtil.fail(AUTH_REGISTER_USERS_COUNT_MAX, "注册用户数已达上限值：" + orderGoodsVo.getMaxRegisterUsersCount());
-            }
-            traderService.registerUser(user, dogKey);
-        } else {
-            userService.add(user);
-        }
-
+        userService.add(user);
+    
         // 给新用户发送注册优惠券
         couponAssignService.assignForRegister(user.getId());
 
@@ -712,6 +721,43 @@ public class WxAuthController {
         result.put("token", token);
         result.put("userInfo", userInfo);
         return ResponseUtil.ok(result);
+    }
+    
+    /**
+     * 处理基于加密狗密钥的用户注册逻辑
+     * 
+     * @param user 用户对象
+     * @param serial 加密狗密钥
+     * @return 注册结果，成功返回null，失败返回错误响应
+     */
+    @GetMapping("boundAppKey")
+    public Object boundDogKey(@LoginUser Integer userId, @RequestParam String serial) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }        
+        if (serial == null || serial.isEmpty()) {
+            return ResponseUtil.badArgument();
+        }
+        
+        //绑定加密锁注册
+        TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderedPCAppBySerial(null, serial);//TODO:serial
+        if (orderGoodsVo == null) {
+            return ResponseUtil.fail(AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + serial + "）不存在");
+        }
+        
+        if (!traderService.checkRegisterUser(serial)) {
+            //TODO: 向交易企业负责人发送消息，提示注册用户数已达上限，让其购买更多注册用户
+            Map<Object, Object> datMap = new HashMap<Object, Object>();
+            datMap.put("max", orderGoodsVo.getMaxRegisterUsersCount());
+            datMap.put("regedCount", orderGoodsVo.getHasRegisterUserIds().length);
+            
+            return ResponseUtil.fail(AUTH_REGISTER_USERS_COUNT_MAX, "绑定的用户数已达上限", datMap);
+        }
+        
+        traderService.boundTrader(user, serial);
+        
+        return ResponseUtil.ok(orderGoodsVo);
     }
 
     /**

@@ -7,20 +7,27 @@
   >
     <div class="offline_pay_body">
       <van-cell-group>
-        <van-cell title="一、支付通道："/>
-        <van-cell>
+        <van-cell title="一、支付通道：" class="pay-step"/>
+        <van-cell v-for="(channel, index) in paymentChannels"
+          :key="index"
+          clickable
+          @click="selectedChannelIndex = index">
           <template #title>
-            <ul>
-              <li><span>开户行：</span>XXXXX银行</li>
-              <li><span>户名：</span>XXX有限公司</li>
-              <li><span>账号：</span>0000 0000 0000 0000 0</li>
-            </ul>
+            <div class="channel-container">
+                <div class="bank-type">{{ index + 1 }}. {{ channel.bankType }}</div>
+                <ul>
+                <li><span>开户行：</span>{{ channel.bankName }}</li>
+                <li><span>户名：</span>{{ channel.accountName }}</li>
+                <li><span>账号：</span>{{ channel.accountNumber }}</li>
+                </ul>
+            </div>
           </template>
+          <!-- <van-radio :name="index" :checked="selectedChannelIndex === index"/> -->
         </van-cell>
-        <van-cell title="二、实付金额">
+        <van-cell title="二、实付金额" class="pay-step">
           <span class="red">{{ actualPrice | yuan }}</span>
         </van-cell>
-        <van-cell title="三、上传支付凭证">
+        <van-cell title="三、上传支付凭证" class="pay-step">
           <van-uploader :afterRead="uploadPayVoucher">
             <div class="upload_container">
               <img
@@ -48,7 +55,7 @@
 </template>
 
 <script>
-import { ActionSheet, Cell, CellGroup, Button, Uploader, Icon } from 'vant';
+import { ActionSheet, Cell, CellGroup, Button, Uploader, Icon, Radio } from 'vant';
 
 export default {
   name: 'OfflinePaymentModal',
@@ -59,7 +66,8 @@ export default {
     [CellGroup.name]: CellGroup,
     [Button.name]: Button,
     [Uploader.name]: Uploader,
-    [Icon.name]: Icon
+    [Icon.name]: Icon,
+    [Radio.name]: Radio
   },
 
   props: {
@@ -72,6 +80,18 @@ export default {
     actualPrice: {
       type: Number,
       required: true
+    },
+    /**
+     * 支付通道列表
+     * 每个元素应包含:
+     * - bankName: 银行名称
+     * - accountName: 开户名
+     * - accountNumber: 账号
+     * - branch: 具体开户行
+     */
+    paymentChannels: {
+        type: Array,
+        default: () => []
     },
     // 按钮文字
     buttonText: {
@@ -92,7 +112,8 @@ export default {
 
   data() {
     return {
-      payVoucherUrl: ''
+      payVoucherUrl: '',
+      selectedChannelIndex: 0 // 默认选择第一个支付通道
     };
   },
 
@@ -113,8 +134,12 @@ export default {
     },
 
     handleButtonClick() {
+      const selectedChannel = this.paymentChannels[this.selectedChannelIndex];
       // 调用传入的点击事件处理函数，并传递支付凭证URL
-      this.onButtonClick(this.payVoucherUrl);
+      this.onButtonClick({
+        payVoucherUrl: this.payVoucherUrl,
+        paymentChannel: selectedChannel
+    });
     },
 
     uploadPayVoucher(file) {
@@ -139,11 +164,11 @@ export default {
 }
 
 .offline_pay_body ul {
-  padding-left: 60px;
+  padding-left: 20px;
 }
 
 .offline_pay_body li span {
-  font-weight: bold;
+//   font-weight: bold;
 }
 
 .upload_container {
@@ -160,5 +185,23 @@ export default {
   position: fixed;
   bottom: 0;
   width: 100%;
+}
+
+.channel-container {
+    margin-left: 20px;
+}
+
+.channel-container .bank-type {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.offline_pay_body .van-cell {
+    padding-top: 5px;
+}
+
+.offline_pay_body .pay-step .van-cell__title {
+    font-weight: bold;
+    font-size: 110%;
 }
 </style>

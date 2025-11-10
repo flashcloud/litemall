@@ -329,13 +329,33 @@ public class LitemallMemberService {
         if (newMemberExpDate != null) {
             Integer memberOrderId = newOrder.getId();
 
-            //设置新会员订单的会员商品效期
             LitemallOrderGoods newMemberGoods = queryMemberOrderGoods(memberOrderId);
-            newMemberGoods.setExpDate(newMemberExpDate);
-            orderGoodsService.updateById(newMemberGoods);
-
+            
             //更新用户的会员信息
             updateMemberAttData(user, newMemberGoods.getGoodsName(), memberOrderId, newMemberPlan, newMemberExpDate);
+
+            //如果商户只有一个软件授权订单，则将此订单绑定到用户
+            List<TraderOrderGoodsVo> traderOrderGoodsList = orderService.getTraderOrderedPCAppByTrader(newOrder.getTraderId());
+            //TODO: 以后支持用户选择绑定的软件授权订单
+            if (traderOrderGoodsList.size() == 1) {
+                TraderOrderGoodsVo traderOrderGoodsVo = traderOrderGoodsList.get(0);
+                LitemallOrderGoods pcOrderGoods = orderGoodsService.findById(traderOrderGoodsVo.getId());
+                if (orderService.boundUserToPCAppOrderGoods(user.getId(), pcOrderGoods)) {
+                    logger.info("为用户ID=" + user.getId() + "绑定商户ID=" + newOrder.getTraderId() + "的唯一PC应用软件订单ID=" + traderOrderGoodsVo.getId());
+                    //如果是新绑定，则增加对应的授权软件订单的最大注册用户数
+                    pcOrderGoods.setMaxRegisterUsersCount((short) (pcOrderGoods.getMaxRegisterUsersCount() + 1));
+                    orderGoodsService.updateById(pcOrderGoods);
+
+                    //设置新会员订单的绑定软件授权订单的序列号
+                    newMemberGoods.setBoundSerial(pcOrderGoods.getSerial());
+                    //将此会员订单的上级订单设置为PC应用软件订单，以便会员订单到期后，可以自动解绑软件授权
+                    newOrder.setParentOrderId(pcOrderGoods.getOrderId());
+                }
+            }
+
+            //设置新会员订单的会员商品效期
+            newMemberGoods.setExpDate(newMemberExpDate);
+            orderGoodsService.updateById(newMemberGoods);
         }
 
         //更新订单状态为自动确认，跳过发货和用户手动确认状态

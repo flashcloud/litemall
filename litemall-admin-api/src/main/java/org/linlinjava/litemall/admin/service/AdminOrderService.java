@@ -314,8 +314,8 @@ public class AdminOrderService {
             // 更新发货商品的序列号等参数
             for (Map<String, Object> item : goodsAttValues) {
                 Integer detId = Integer.parseInt(item.get("detId").toString());
-                String serial =  item.get("serial").toString();
-                String boundserial =  item.get("boundSerial").toString();
+                String serial =  item.get("serial").toString().trim();
+                String boundserial =  item.get("boundSerial").toString().trim();
                 Short maxClientsCount =  Short.parseShort(item.get("maxClientsCount").toString());
                 Short maxRegisterUsersCount =  Short.parseShort(item.get("maxRegisterUsersCount").toString());
                 LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
@@ -325,21 +325,12 @@ public class AdminOrderService {
                 orderGoods.setMaxRegisterUsersCount(maxRegisterUsersCount);
                 if (serial != null && !serial.isEmpty()) {
                     //如果有序列号，表示订购的软件，然后将订单用户绑定到orderGoods的hasRegisterUserIds字段
-                    if (orderGoods.getHasRegisterUserIds() == null || orderGoods.getHasRegisterUserIds().length == 0) {
-                        Integer[] hasRegisterUserIds = new Integer[]{order.getUserId()};
-                        orderGoods.setHasRegisterUserIds(hasRegisterUserIds);
-                    } else {
-                        List<Integer> hasRegisterUserIdsList = new ArrayList<>(Arrays.asList(orderGoods.getHasRegisterUserIds()));
-                        if (!hasRegisterUserIdsList.contains(order.getUserId())) {
-                            hasRegisterUserIdsList.add(order.getUserId());
-                            orderGoods.setHasRegisterUserIds(hasRegisterUserIdsList.toArray(new Integer[0]));
-                        }
-                    }
+                    orderService.boundUserToPCAppOrderGoods(order.getUserId(), orderGoods);
                 } else {
                     //如果没有序列号，则清除hasRegisterUserIds字段
                     orderGoods.setHasRegisterUserIds(new Integer[0]);
+                    orderGoodsService.updateById(orderGoods);
                 }
-                orderGoodsService.updateById(orderGoods);
             }
         }
 

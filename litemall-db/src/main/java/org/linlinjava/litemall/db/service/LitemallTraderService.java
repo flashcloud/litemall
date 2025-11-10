@@ -136,27 +136,20 @@ public class LitemallTraderService {
      * @param dogKey 用户绑定的加密锁key
      */
     @Transactional
-    public boolean registerUser(LitemallUser user, String dogKey) {
+    public boolean boundTrader(LitemallUser user, String dogKey) {
         if (!checkRegisterUser(dogKey)) return false;
 
         //根据加密锁KEY找到对应的订单明细，再根据订单明细找到对应的订单，从该订单中找到交易商户，将该用户和交易商户绑定
-        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(dogKey);
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(null, dogKey); //TODO:serial
         LitemallTrader trader = queryById(orderedGoods.getTraderId());
 
-        userService.add(user);
+        //userService.add(user);
 
         registerUserHelp(user, trader);
 
         // 更新订单的hasRegisterUserIds
         LitemallOrderGoods orderedGoodsOld = orderGoodsService.findById(orderedGoods.getId());
-        Integer[] hasRegisterUserIds = orderedGoodsOld.getHasRegisterUserIds();
-        if (hasRegisterUserIds == null) {
-            hasRegisterUserIds = new Integer[0];
-        }
-        hasRegisterUserIds = Arrays.copyOf(hasRegisterUserIds, hasRegisterUserIds.length + 1);
-        hasRegisterUserIds[hasRegisterUserIds.length - 1] = user.getId();
-        orderedGoodsOld.setHasRegisterUserIds(hasRegisterUserIds);
-        orderGoodsService.updateById(orderedGoodsOld);
+        this.orderService.boundUserToPCAppOrderGoods(user.getId(), orderedGoodsOld);
 
         return true;
     }
@@ -165,10 +158,8 @@ public class LitemallTraderService {
     public LitemallTrader registerUser(LitemallUser user, LitemallTrader trader) {
         LitemallTrader  dbTrader = null;
         if (trader.getId() == null || trader.getId() == 0) {
-            dbTrader = queryByTaxCode(trader.getTaxid());
-            if (dbTrader == null) {
-                dbTrader = queryByName(trader.getCompanyName());
-            }
+            dbTrader = existsInDBTrader(trader);
+            
             if (dbTrader == null) {
                 int traderId = add(user.getId(), trader);
                 dbTrader = queryById(traderId);
@@ -182,10 +173,20 @@ public class LitemallTraderService {
         return  dbTrader;
     }
 
+    /**
+     * 查找数据库中是否存在相同的商户，根据税号或名称查找，税号优先
+     * @param trader
+     * @return
+     */
+    public LitemallTrader existsInDBTrader(LitemallTrader trader) {
+        LitemallTrader  dbTrader =  queryByTaxCode(trader.getTaxid());
+        return dbTrader != null ? dbTrader : queryByName(trader.getCompanyName());
+    }
+
     @Transactional
     public void registerUserHelp(LitemallUser user, LitemallTrader trader) {
-        //如果当前注册用户的手机号和交易商户的手机号相同，则将交易商户的负责人绑定到此用户
-        if (trader.getUserId() == null || trader.getUserId() == 0) {
+        //如果该商户没有负责人，设置当前用户为负责人和默认商户
+        if (trader.getUserId() == null || trader.getUserId() == 0 || userService.findById(trader.getUserId()) == null) {
             trader.setUserId(user.getId());
             trader.setIsDefault(true);
             traderMapper.updateByPrimaryKey(trader);
@@ -197,6 +198,30 @@ public class LitemallTraderService {
         userService.updateById(user);
     }
 
+    public boolean unregisterUser(LitemallUser user, LitemallTrader trader) {
+        if ((trader.getUserId() != null && trader.getUserId().equals(user.getId())) || (trader.getCreatorId() != null && trader.getCreatorId().equals(user.getId()))) {
+            // 负责人或创建人不能解除绑定
+            return false;
+        }
+
+        //解除用户和交易商户的绑定
+        Integer[] traderIds = user.getTraderIds();
+        if (traderIds != null) {
+            List<Integer> traderIdList = new ArrayList<>(Arrays.asList(traderIds));
+            traderIdList.remove(trader.getId());
+            traderIds = traderIdList.toArray(new Integer[0]);
+            user.setTraderIds(traderIds);
+            if (user.getDefaultTraderId() != null && user.getDefaultTraderId().equals(trader.getId())) {
+                user.setDefaultTraderId(0);
+            }
+            userService.updateById(user);
+
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      *  检查用户是否可以注册
      * @param user
@@ -204,7 +229,7 @@ public class LitemallTraderService {
      * @return
      */
     public boolean checkRegisterUser(String dogKey) {
-        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(dogKey);
+        TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(null,dogKey);//这时用户还未注册，所以不能传入用户ID
         if (orderedGoods == null) return false;
 
         LitemallTrader trader = queryById(orderedGoods.getTraderId());

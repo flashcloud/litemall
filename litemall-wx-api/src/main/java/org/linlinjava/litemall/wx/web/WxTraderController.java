@@ -13,6 +13,7 @@ import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.UserInfoService;
 import org.linlinjava.litemall.core.util.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -53,6 +54,12 @@ public class WxTraderController {
 			return ResponseUtil.unlogin();
 		}
 		List<LitemallTrader> traderList = userInfoService.getTraders(userId);
+        traderList.forEach(trader -> {
+            if (!traderService.checkCanEditTrader(userId, trader.getId())) {
+                trader.setDirectorName(userService.encryptUserNameAndPhone(trader.getDirectorName()));
+                trader.setPhoneNum(userService.encryptTel(trader.getPhoneNum()));
+            }
+        });
 		return ResponseUtil.okList(traderList);
 	}
 
@@ -100,7 +107,17 @@ public class WxTraderController {
 		}
 
         if (!traderService.checkCanEditTrader(userId, trader.getId())) {
-            return ResponseUtil.fail(ResponseCode.TRADER_UPDATE_REJECT, "无权删除该项目");
+            LitemallUser user = userService.findById(userId);
+            if ( user == null) {
+                return ResponseUtil.badArgumentValue();
+            }
+
+            boolean unregResult = traderService.unregisterUser(user, litemallTrader);
+            if (unregResult)  {
+                return ResponseUtil.ok();
+            }else {
+                return ResponseUtil.fail();
+            }
         }        
 
         if (litemallTrader.getUserId() != userId) {
@@ -117,10 +134,10 @@ public class WxTraderController {
 
         if (orderService.countByTrader(id) > 0) return ResponseUtil.fail(ResponseCode.TRADER_HAS_ORDERS, "当前交易企业有订单，不能删除");
 
-        List<LitemallTrader> traderList = userInfoService.getTraders(userId);
-        if (traderList.size() <= 1) {
-            return ResponseUtil.fail(ResponseCode.TRADER_DEL_LAST, "必须至少保留一个公司");
-        }
+        // List<LitemallTrader> traderList = userInfoService.getTraders(userId);
+        // if (traderList.size() <= 1) {
+        //     return ResponseUtil.fail(ResponseCode.TRADER_DEL_LAST, "必须至少保留一个公司");
+        // }
 
 		traderService.deleteByUser(userId, id);
 		return ResponseUtil.ok();
@@ -139,28 +156,32 @@ public class WxTraderController {
 			return ResponseUtil.unlogin();
 		}
 
-        if (StringUtils.isNotBlank(trader.getPhoneNum()) && !RegexUtil.isPhoneOrMobile(trader.getPhoneNum())) {
-            return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgumentValue();
         }
 
 		if (trader.getId() == null || trader.getId().equals(0)) {
-            if (traderService.checkCompanyExist(trader.getCompanyName())) {
-                return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "企业名称已经存在");
-            }
-            
-            if (traderService.checkTaxidExist(trader.getTaxid())) {
-                return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
+            if (StringUtils.isNotBlank(trader.getPhoneNum()) && !RegexUtil.isPhoneOrMobile(trader.getPhoneNum())) {
+                return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
             }
 
             Object error = validate(trader);
             if (error != null) {
                 return error;
-            }            
+            }
 
 			trader.setId(null);
-			trader.setUserId(userId);
-            trader.setCreatorId(userId);
-			traderService.add(userId, trader);
+
+            LitemallTrader dbTrader = traderService.existsInDBTrader(trader);
+
+            if (dbTrader != null) {
+                trader = traderService.registerUser(user, dbTrader);
+            } else { 
+                trader.setUserId(userId);
+                trader.setCreatorId(userId);
+			    traderService.add(userId, trader);
+            }
 		} else {
 			LitemallTrader litemallTrader = userInfoService.getTrader(userId, trader.getId() );
 			if (litemallTrader == null) {
@@ -171,7 +192,9 @@ public class WxTraderController {
                 if (trader.getIsDefault() &&  !litemallTrader.getIsDefault()) {
                     traderService.updateDefaultTrader(userId, trader);
                 }
-                return ResponseUtil.fail(ResponseCode.TRADER_UPDATE_REJECT, "仅能修改默认项");
+                LitemallUser traderUser = userService.findById(litemallTrader.getUserId());
+                String traderUserFullName = traderUser == null ? "系统管理员" : userService.encryptUserNameAndPhone(traderUser);
+                return ResponseUtil.fail(ResponseCode.TRADER_UPDATE_REJECT, "仅允许 " + traderUserFullName + " 修改");
             }
 
             if (traderService.checkCompanyExist(litemallTrader.getCompanyName(), trader.getId())) {
@@ -182,10 +205,14 @@ public class WxTraderController {
                 return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "该税号已经存在");
             }
 
+            if (StringUtils.isNotBlank(trader.getPhoneNum()) && !RegexUtil.isPhoneOrMobile(trader.getPhoneNum())) {
+                return ResponseUtil.fail(ResponseCode.PHONE_ERR, "电话格式有误");
+            }
+
             Object error = validate(trader);
             if (error != null) {
                 return error;
-            }            
+            }
 
 			traderService.updateById(userId, trader);
 		}

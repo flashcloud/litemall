@@ -13,6 +13,8 @@ import org.linlinjava.litemall.db.domain.BankAccountInfo;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderExample;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.OrderVo;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.util.DbUtil;
@@ -22,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -311,8 +315,16 @@ public class LitemallOrderService {
      * @param serial
      * @return
      */    
-    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(String serial) {
-        return orderMapper.getTraderOrderedPCAppBy(serial, null, null);
+    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(LitemallUser user, String serial) {
+        TraderOrderGoodsVo goodsVo =  orderMapper.getTraderOrderedPCAppBy(serial, user != null ? user.getId() : null, null);
+        buildTraderOrderGoodsVo(goodsVo);
+        if (user == null) {
+            //如果不传入user，则价格设置为0，防止敏感信息泄露
+            goodsVo.setPrice(BigDecimal.ZERO);
+            goodsVo.setInvoiceUrl("");
+            goodsVo.setPayVoucherUrl("");
+        }
+        return goodsVo;
     }    
 
     public long getTraderOrderedGoodsCountByUserId(Integer userId) {
@@ -327,11 +339,63 @@ public class LitemallOrderService {
         return result;
     }
 
-    public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(Integer userId) {
-        List<TraderOrderGoodsVo> result = orderMapper.getTraderOrderedPCAppByUserId(userId);
+    /**
+     * 获取指定用户所属商户订购的PC应用软件订单信息
+     * @param user
+     * @return
+     */
+    public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(LitemallUser user) {
+        List<TraderOrderGoodsVo> result = new ArrayList<>();
+        Integer[] traderIds = user.getTraderIds();
+        if (traderIds == null) {
+            return new ArrayList<>();
+        }
+        for (Integer traderId : traderIds) {
+            if (traderId != null ) {
+                List<TraderOrderGoodsVo> ret = getTraderOrderedPCAppByTrader(traderId);
+                result.addAll(ret);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取指定商户订购的PC应用软件订单信息
+     * @param traderId
+     * @return
+     */
+    public List<TraderOrderGoodsVo> getTraderOrderedPCAppByTrader(int traderId) {
+        List<TraderOrderGoodsVo> result = orderMapper.getTraderOrderedPCAppByOther(null, traderId);
         for (TraderOrderGoodsVo goodsVo : result) {
             buildTraderOrderGoodsVo(goodsVo);
         }
+
+        return result;
+    }
+
+    /**
+     * 绑定用户到PC应用订单商品上
+     * @param userId
+     * @param orderGoods
+     * @return 如果是新绑定返回true，否则返回false
+     */
+    public boolean boundUserToPCAppOrderGoods(Integer userId, LitemallOrderGoods orderGoods) {
+        boolean result = false;
+        if (orderGoods.getHasRegisterUserIds() == null || orderGoods.getHasRegisterUserIds().length == 0) {
+            Integer[] hasRegisterUserIds = new Integer[]{userId};
+            orderGoods.setHasRegisterUserIds(hasRegisterUserIds);
+            result = true;
+        } else {
+            List<Integer> hasRegisterUserIdsList = new ArrayList<>(Arrays.asList(orderGoods.getHasRegisterUserIds()));
+            if (!hasRegisterUserIdsList.contains(userId)) {
+                hasRegisterUserIdsList.add(userId);
+                orderGoods.setHasRegisterUserIds(hasRegisterUserIdsList.toArray(new Integer[0]));
+                result = true;
+            }
+        }
+        orderGoodsService.updateById(orderGoods);
+        
         return result;
     }
 

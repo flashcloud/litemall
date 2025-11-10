@@ -80,14 +80,22 @@ public class WxOrderController {
         return wxOrderService.detail(userId, orderId);
     }
     @GetMapping("traderOrderDetail")
-    public Object traderOrderDetail(@RequestParam String serial) {
-        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderedPCAppBySerial(serial);
-        if (result == null){
-            return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + serial + "）不存在");
+    public Object traderOrderDetail(@LoginUser Integer userId, @RequestParam String serial) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
-        result.setPrice(BigDecimal.valueOf(0.0));//价格不显示
+
+        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderedPCAppBySerial(null, serial);//刚注册的用户，没有绑定到任何商户，所以不能传入user，不然查不到订单。//TODO:serial
+        if (result == null){
+            return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号" + serial + "对应的记录不存在");
+        } else if (result.getId() == null || result.getId() == 0) {
+            return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
+        }
+        //result.setPrice(BigDecimal.valueOf(0.0));//价格不显示
         return ResponseUtil.ok(result);
     }
+
 
     /**
      * 交易商户的订单产品条数

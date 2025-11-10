@@ -49,6 +49,7 @@
     <offline-payment-modal
       v-model="offlinePayVisible"
       :actual-price="order.orderInfo.actualPrice * 100"
+      :payment-channels="order.paymentChannels"
       :button-text="'确认支付'"
       :on-button-click="pay"
       :on-upload="handleUploadVoucher"

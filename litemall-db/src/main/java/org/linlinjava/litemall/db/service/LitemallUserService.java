@@ -8,6 +8,7 @@ import org.linlinjava.litemall.db.domain.LitemallUserExample;
 import org.linlinjava.litemall.db.domain.UserVo;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
@@ -157,5 +158,78 @@ public class LitemallUserService {
 
     public void deleteById(Integer id) {
         userMapper.logicalDeleteByPrimaryKey(id);
+    }
+
+    public String encryptUserNameAndPhone(String directorName) {
+        LitemallUser user = new LitemallUser();
+        directorName = directorName == null ? "" : directorName;
+        String  str = directorName.replace("（", "(").replace("）", ")");
+        String[] list = str.split("[()]");
+        if (list.length == 2) {
+            user.setNickname(list[0]);
+            String phone = list[1];
+            user.setMobile(phone);
+            return encryptUserNameAndPhone(user);
+        } else {
+            user.setNickname("");
+            user.setMobile(directorName);
+        }
+        return encryptUserNameAndPhone(user);
+    }
+
+    public String encryptUserNameAndPhone(LitemallUser user) {
+        String userNickname = user.getNickname();
+        String phone = user.getMobile();
+
+        StringBuilder sb = new StringBuilder();
+        //如果用户名是两个字，则第二字母改为*，如果是三个字，则第二个字母改为*，如果是四个字以上，则第二和第三个字母改为**
+        String userNameEncrypt = userNickname;
+        if (userNickname.length() == 2) {
+            userNameEncrypt = userNickname.substring(0, 1) + "*" + userNickname.substring(2);
+        } else if (userNickname.length() == 3) {
+            userNameEncrypt = userNickname.substring(0, 1) + "*" + userNickname.substring(2);
+        } else if (userNickname.length() >= 4) {
+            userNameEncrypt = userNickname.substring(0, 1) + "**" + userNickname.substring(3);
+        }
+        //手机号前三位，后四位，中间四位改为****
+        sb.append(userNameEncrypt).append(" (").append(encryptTel(phone)).append(")");
+
+        return sb.toString();
+    }
+
+    public String encryptTel(String tel) {
+        //手机号前三位，后四位，中间四位改为****
+        if (tel == null) {
+            return tel;
+        }
+        int len = tel.length();
+
+        // 11位手机号：保留前三位和后四位，中间改为 ****
+        if (len == 11) {
+            return tel.substring(0, 3) + "****" + tel.substring(7);
+        }
+
+        // 小于7位的座机号：全部返回
+        if (len < 7) {
+            return tel;
+        }
+
+        // 长度为7或8：保留前1位和后3位，中间用*号代替
+        if (len <= 8) {
+            int middleStars = len - 4; // 中间星号数
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < middleStars; i++) {
+            sb.append('*');
+            }
+            return tel.substring(0, 1) + sb.toString() + tel.substring(len - 3);
+        }
+
+        // 大于8位：保留前3位和后4位，中间全部用*号
+        int middleStars = len - 7; // 中间星号数
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < middleStars; i++) {
+            sb.append('*');
+        }
+        return tel.substring(0, 3) + sb.toString() + tel.substring(len - 4);
     }
 }

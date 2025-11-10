@@ -13,8 +13,6 @@ import com.github.binarywang.wxpay.service.WxPayService;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ibatis.annotations.Param;
-import org.joda.time.DateTime;
 import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.express.dao.ExpressInfo;
 import org.linlinjava.litemall.core.notify.CommonNotifyService;
@@ -23,22 +21,17 @@ import org.linlinjava.litemall.core.notify.NotifyType;
 import org.linlinjava.litemall.core.qcode.QCodeService;
 import org.linlinjava.litemall.core.system.SystemConfig;
 import org.linlinjava.litemall.core.task.TaskService;
-import org.linlinjava.litemall.core.util.DateTimeUtil;
 import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
-import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification.SpecificationType;
 import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
 import org.linlinjava.litemall.db.exception.MemberStatusException;
 import org.linlinjava.litemall.db.service.*;
-import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.linlinjava.litemall.db.util.CouponUserConstant;
-import org.linlinjava.litemall.db.util.DbUtil;
 import org.linlinjava.litemall.db.util.GrouponConstant;
-import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.util.OrderHandleOption;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.linlinjava.litemall.core.util.IpUtil;
@@ -58,7 +51,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -109,8 +101,6 @@ public class WxOrderService {
     private LitemallAddressService addressService;
     @Autowired
     private LitemallCartService cartService;
-    @Autowired
-    private LitemallRegionService regionService;
     @Autowired
     private LitemallGoodsProductService productService;
     @Autowired
@@ -296,6 +286,10 @@ public class WxOrderService {
         else{
             result.put("expressInfo", new ArrayList<>());
         }
+
+        //线下付款通道
+        List<BankAccountInfo> bankAccountInfoList = orderService.getShopBankAccounts();
+        result.put("paymentChannels", bankAccountInfoList);
 
         return ResponseUtil.ok(result);
 
@@ -1359,8 +1353,27 @@ public class WxOrderService {
             return checkedTrader;
     }
 
-    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(String serial) {
-        return orderService.getTraderOrderedPCAppBySerial(serial);
+    /**
+     * 获取PC端商户订单
+     * @param user
+     * @param serial
+     * @return 如果无权查看这单，则返回一个空对象
+     */
+    public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(LitemallUser user, String serial) {
+        TraderOrderGoodsVo traderOrderGoodsVo = orderService.getTraderOrderedPCAppBySerial(user, serial);
+        if (traderOrderGoodsVo == null || traderOrderGoodsVo.getHasRegisterUserIds() == null || traderOrderGoodsVo.getHasRegisterUserIds().length == 0) {
+            //有可能是传入的userId不是订单的订购用户，也不是订单所属商户的负责人, 则直接查询该订单
+            traderOrderGoodsVo = orderService.getTraderOrderedPCAppBySerial(null, serial);
+            //安全检查，对应订单的商户必须是当前用户所绑定的商户
+            
+            if (traderOrderGoodsVo != null) {
+                if (!traderService.isTraderOfUser(user.getId(), traderOrderGoodsVo.getTraderId())) {
+                    return new TraderOrderGoodsVo();
+                }
+            } 
+        }
+        return traderOrderGoodsVo;
+
     }
 
     public long countTraderOrderedGoodsByUser(LitemallUser user) {
@@ -1372,9 +1385,9 @@ public class WxOrderService {
     }
 
     public List<TraderOrderGoodsVo> getTraderOrderedPCAppByUser(LitemallUser user) {
-        List<TraderOrderGoodsVo> result = orderService.getTraderOrderedPCAppByUser(user.getId());
+        List<TraderOrderGoodsVo> result = orderService.getTraderOrderedPCAppByUser(user);
         for (TraderOrderGoodsVo goodsVo : result) {
-            goodsVo.setPrice(BigDecimal.valueOf(0.0));//价格不显示
+            //goodsVo.setPrice(BigDecimal.valueOf(0.0));//价格不显示
         }
         return result;
     }
@@ -1387,9 +1400,22 @@ public class WxOrderService {
      */
     public List<LitemallUser> getTraderOrderedPCAppRegisteredUsers(Integer userId, Integer orderGoodsId) {
         List<LitemallUser> users = new  LinkedList<LitemallUser>();
+
+        // 如果订单没有输入PC金软的序列号，则直接返回空
+        LitemallOrderGoods orderGoods = orderGoodsService.findById(orderGoodsId);
+        if (orderGoods.getSerial() == null || orderGoods.getSerial().trim().isEmpty())
+        return users;
+        
         TraderOrderGoodsVo traderOrderGoodsVo = orderService.getTraderOrderedPCAppById(userId, orderGoodsId);
         if (traderOrderGoodsVo == null || traderOrderGoodsVo.getHasRegisterUserIds() == null || traderOrderGoodsVo.getHasRegisterUserIds().length == 0) {
-            return users;
+            //有可能是传入的userId不是订单的订购用户，也不是订单所属商户的负责人, 则直接查询该订单
+            traderOrderGoodsVo = orderService.getTraderOrderedPCAppById(null, orderGoodsId);
+            //安全检查，对应订单的商户必须是当前用户所绑定的商户
+            if (traderOrderGoodsVo != null) {
+                if (!traderService.isTraderOfUser(userId, traderOrderGoodsVo.getTraderId())) {
+                    return users;
+                }
+            }
         }
 
         return userService.queryByIds(traderOrderGoodsVo.getHasRegisterUserIds());

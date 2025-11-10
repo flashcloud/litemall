@@ -208,7 +208,7 @@
         og.specifications goods_specifications, og.number goods_number, og.price goods_price,
         o.root_order_id, o.parent_order_id,
         o.trader_id, o.trader_name, og.serial, og.bound_serial, og.max_clients_count,og.max_register_users_count, og.has_register_user_ids,
-        o.pay_type, o.invoice_url
+        og.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
         from litemall_order o
         left join litemall_user u
         on o.user_id = u.id
@@ -226,12 +226,15 @@
         </if>
     </select>
     <select id="getTraderOrderedPCAppBy"  resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, 
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids
+        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
         WHERE 1 = 1
         <if test="serial != null and serial != ''">
             AND oi.serial = #{serial,jdbcType=VARCHAR}
@@ -240,7 +243,7 @@
             AND oi.id = #{id,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
         </if>
         <if test="userId != null and userId != 0">
-            AND t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
+            AND (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
         </if>
         <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
       </select>
@@ -248,12 +251,13 @@
         SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-        WHERE oi.id = #{id,jdbcType=INTEGER} AND t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
+        WHERE oi.id = #{id,jdbcType=INTEGER} AND (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
     </select>      
     <select id="getTraderOrderedGoodsCountByUserId" parameterType="java.lang.Integer" resultType="java.lang.Long">
         SELECT COUNT(*)
@@ -261,7 +265,7 @@
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
-        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
+        WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status > 200
     </select>
     <select id="getTraderOrderedGoodsByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
@@ -273,7 +277,7 @@
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status > 200
+        WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status > 200
         ORDER BY o.add_time DESC
     </select>
     <select id="getUserNoCheckedButPayedMember" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
@@ -286,10 +290,10 @@
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
+        WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
         ORDER BY o.add_time DESC
     </select>    
-    <select id="getTraderOrderedPCAppByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
+    <select id="getTraderOrderedPCAppByOther" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
@@ -297,8 +301,16 @@
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-        WHERE t.user_id = #{userId,jdbcType=INTEGER} AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
+        WHERE LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0 AND o.order_status > 200
+        <if test="userId != null and userId != 0">
+            AND (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER})
+        </if>
+        <if test="traderId != null and traderId != 0">
+            AND o.trader_id = #{traderId,jdbcType=INTEGER}
+        </if>
+
         ORDER BY o.add_time DESC
         <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
     </select>
