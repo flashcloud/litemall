@@ -110,6 +110,17 @@
                   </when>
                 </choose>
               </foreach>
+              <foreach collection="criteria.memberOrderIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
                   <when test="criterion.listValue">
                     and ${criterion.condition}
                     <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
