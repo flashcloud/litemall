@@ -7,6 +7,7 @@ import lombok.Data;
 @Data
 public class TraderOrderGoodsVo {
     private Integer id;
+    private Integer parentOrderId;
     private Integer orderId;
     private String orderSn;
     private Short orderStatus;
@@ -36,7 +37,8 @@ public class TraderOrderGoodsVo {
     @Override
     public String toString() {
         return "TraderOrderGoodsVo{" +
-                "orderId=" + orderId +
+                "parentOrderId=" + parentOrderId +
+                ", orderId=" + orderId +
                 ", traderId='" + traderId + '\'' +
                 ", companyName=" + companyName +
                 ", goodsName=" + goodsName +

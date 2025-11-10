@@ -29,6 +29,7 @@
     <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime" />
     <result column="member_type" jdbcType="VARCHAR" property="memberType" />
     <result column="member_plan" jdbcType="VARCHAR" property="memberPlan" />
+    <result column="member_order_ids" jdbcType="VARCHAR" property="memberOrderIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
   </resultMap>
   <resultMap id="ExtResultMap" type="org.linlinjava.litemall.db.domain.LitemallUser">
     <!--
@@ -60,6 +61,7 @@
     <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime" />     
     <result column="member_type" jdbcType="VARCHAR" property="memberType" />
     <result column="member_plan" jdbcType="VARCHAR" property="memberPlan" />
+    <result column="member_order_ids" jdbcType="VARCHAR" property="memberOrderIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
   </resultMap>  
   <sql id="Example_Where_Clause">
     <!--
@@ -100,6 +102,14 @@
                   <when test="criterion.betweenValue">
                     and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
                   </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
+              </foreach>
                   <when test="criterion.listValue">
                     and ${criterion.condition}
                     <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
@@ -160,6 +170,25 @@
                   </when>
                 </choose>
               </foreach>
+              <foreach collection="criteria.memberOrderIdsCriteria" item="criterion">
+                <choose>
+                  <when test="criterion.noValue">
+                    and ${criterion.condition}
+                  </when>
+                  <when test="criterion.singleValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.betweenValue">
+                    and ${criterion.condition} #{criterion.value,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler} and #{criterion.secondValue,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                  </when>
+                  <when test="criterion.listValue">
+                    and ${criterion.condition}
+                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                      #{listItem,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+                    </foreach>
+                  </when>
+                </choose>
+              </foreach>
           </trim>
         </if>
       </foreach>
@@ -173,7 +202,7 @@
     id, username, `password`, gender, birthday, last_login_time, last_login_ip, user_level, 
     nickname, mobile, avatar, weixin_openid, session_key, `status`, add_time, update_time, 
     deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type, 
-    member_plan
+    member_plan, member_order_ids
   </sql>
   <sql id="Ext_Column_List">
     <!--
@@ -183,7 +212,7 @@
     id, username, `password`, gender, birthday, last_login_time, last_login_ip, user_level, 
     nickname, mobile, avatar, weixin_openid, session_key, `status`, add_time, update_time, 
     deleted, trader_ids, default_trader_id, member_order_id, expire_time, member_type, 
-    member_plan
+    member_plan, member_order_ids
   </sql>
   <select id="selectByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallUserExample" resultMap="ExtResultMap">
     <!--
@@ -311,7 +340,7 @@
       `status`, add_time, update_time, 
       deleted, trader_ids, default_trader_id, 
       member_order_id, expire_time, member_type, 
-      member_plan)
+      member_plan, member_order_ids)
     values (#{username,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{gender,jdbcType=TINYINT}, 
       #{birthday,jdbcType=DATE}, #{lastLoginTime,jdbcType=TIMESTAMP}, #{lastLoginIp,jdbcType=VARCHAR}, 
       #{userLevel,jdbcType=TINYINT}, #{nickname,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, 
@@ -319,7 +348,7 @@
       #{status,jdbcType=TINYINT}, #{addTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, 
       #{deleted,jdbcType=BIT}, #{traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}, #{defaultTraderId,jdbcType=INTEGER},
       #{memberOrderId,jdbcType=INTEGER}, #{expireTime,jdbcType=TIMESTAMP}, #{memberType,jdbcType=VARCHAR}, 
-      #{memberPlan,jdbcType=VARCHAR})
+      #{memberPlan,jdbcType=VARCHAR}, #{memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}),
   </insert>
   <insert id="insertSelective" parameterType="org.linlinjava.litemall.db.domain.LitemallUser">
     <!--
@@ -397,6 +426,9 @@
       <if test="memberPlan != null">
         member_plan,
       </if>
+      <if test="memberOrderIds != null">
+        member_order_ids,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="username != null">
@@ -464,6 +496,9 @@
       </if>
       <if test="memberPlan != null">
         #{memberPlan,jdbcType=VARCHAR},
+      </if>
+      <if test="memberOrderIds != null">
+        #{memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
       </if>
     </trim>
   </insert>
@@ -536,7 +571,7 @@
         deleted = #{record.deleted,jdbcType=BIT},
       </if>
       <if test="record.traderIds != null">
-        trader_ids = #{record.traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
+        trader_ids = #{record.traderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
       </if>
       <if test="record.defaultTraderId != null">
         default_trader_id = #{record.defaultTraderId,jdbcType=INTEGER},
@@ -552,6 +587,9 @@
       </if>
       <if test="record.memberPlan != null">
         member_plan = #{record.memberPlan,jdbcType=VARCHAR},
+      </if>
+      <if test="record.memberOrderIds != null">
+         member_order_ids = #{record.memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
       </if>
     </set>
     <if test="_parameter != null">
@@ -586,7 +624,8 @@
       member_order_id = #{record.memberOrderId,jdbcType=INTEGER},
       expire_time = #{record.expireTime,jdbcType=TIMESTAMP},
       member_type = #{record.memberType,jdbcType=VARCHAR},
-      member_plan = #{record.memberPlan,jdbcType=VARCHAR}
+      member_plan = #{record.memberPlan,jdbcType=VARCHAR},
+      member_order_ids = #{record.memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -664,6 +703,9 @@
       <if test="memberPlan != null">
         member_plan = #{memberPlan,jdbcType=VARCHAR},
       </if>
+      <if test="memberOrderIds != null">
+        member_order_ids = #{memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler},
+      </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -694,7 +736,8 @@
       member_order_id = #{memberOrderId,jdbcType=INTEGER},
       expire_time = #{expireTime,jdbcType=TIMESTAMP},
       member_type = #{memberType,jdbcType=VARCHAR},
-      member_plan = #{memberPlan,jdbcType=VARCHAR}
+      member_plan = #{memberPlan,jdbcType=VARCHAR},
+      member_order_ids = #{memberOrderIds,jdbcType=VARCHAR,typeHandler=org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="org.linlinjava.litemall.db.domain.LitemallUserExample" resultMap="BaseResultMap">

@@ -3,6 +3,7 @@ package org.linlinjava.litemall.db.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -379,6 +380,19 @@ public class LitemallMemberService {
         user.setMemberOrderId(memberOrderId);
         user.setMemberPlan(memberPlan);
         user.setExpireTime(expireTime);
+
+        Integer[] memberOrderIds = user.getMemberOrderIds();
+        if (memberOrderIds == null) {
+            memberOrderIds = new Integer[0];
+        }
+        List<Integer> memberOrderIdList = new ArrayList<>(Arrays.asList(memberOrderIds));
+        if (!memberOrderIdList.contains(memberOrderId)) {
+            memberOrderIdList.add(memberOrderId);
+            memberOrderIds = memberOrderIdList.toArray(new Integer[0]);
+            user.setMemberOrderIds(memberOrderIds);
+            userService.updateById(user);
+        }        
+
         userService.updateById(user);
     }
 

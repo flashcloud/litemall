@@ -135,6 +135,7 @@
     </select>
     <resultMap id="traderOrderGoods" type="org.linlinjava.litemall.db.domain.TraderOrderGoodsVo">
         <id column="id" property="id"/>
+        <result column="parent_order_id" property="parentOrderId"/>
         <result column="order_id" property="orderId"/>
         <result column="order_sn" property="orderSn"/>
         <result column="order_status" property="orderStatus"/>
@@ -229,7 +230,8 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -251,7 +253,8 @@
         SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -271,7 +274,8 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -284,7 +288,8 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -297,7 +302,8 @@
         SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id

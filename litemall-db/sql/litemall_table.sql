@@ -873,6 +873,7 @@ CREATE TABLE `litemall_user` (
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
   `trader_ids` varchar(255) DEFAULT '[]' COMMENT '所属交易商户列表',
   `default_trader_id` int(11) DEFAULT '0' COMMENT '默认的所属交易商户',
+  `member_order_ids` varchar(255) DEFAULT '[]' COMMENT '会员订单ID列表',
   `member_order_id` int(11)  NULL DEFAULT NULL COMMENT '开通会员订单ID',
   `expire_time` datetime DEFAULT NULL COMMENT '会员到期时间',
   `member_type` varchar(255) DEFAULT '' COMMENT '会员类型, 与litemall_goods_specification的keywords字段对应',
