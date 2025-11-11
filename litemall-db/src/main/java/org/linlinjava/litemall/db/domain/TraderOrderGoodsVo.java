@@ -8,6 +8,8 @@ import lombok.Data;
 public class TraderOrderGoodsVo {
     private Integer id;
     private Integer parentOrderId;
+    private String parentOrderGoodsName;
+    private String[] parentOrderGoodsSpecifications;
     private Integer orderId;
     private String orderSn;
     private Short orderStatus;

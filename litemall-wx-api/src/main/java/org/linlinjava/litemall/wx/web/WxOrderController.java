@@ -85,8 +85,7 @@ public class WxOrderController {
         if (user == null) {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
-
-        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderedPCAppBySerial(null, serial);//刚注册的用户，没有绑定到任何商户，所以不能传入user，不然查不到订单。//TODO:serial
+        TraderOrderGoodsVo result =  wxOrderService.getTraderOrderedPCAppBySerial( user.getTraderIds().length == 0 ? null : user, serial);//刚注册的用户，没有绑定到任何商户，所以不能传入user，不然查不到订单。//TODO:serial
         if (result == null){
             return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号" + serial + "对应的记录不存在");
         } else if (result.getId() == null || result.getId() == 0) {

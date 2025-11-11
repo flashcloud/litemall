@@ -320,6 +320,8 @@ public class WxOrderService {
         if (user == null) {
             return ResponseUtil.badArgument();
         }
+
+        Integer parentOrderId = JacksonUtil.parseInteger(body, "parentOrderId");
         Integer cartId = JacksonUtil.parseInteger(body, "cartId");
         Integer addressId = JacksonUtil.parseInteger(body, "addressId");
         Integer traderId = JacksonUtil.parseInteger(body, "traderId");
@@ -328,6 +330,24 @@ public class WxOrderService {
         String message = JacksonUtil.parseString(body, "message");
         Integer grouponRulesId = JacksonUtil.parseInteger(body, "grouponRulesId");
         Integer grouponLinkId = JacksonUtil.parseInteger(body, "grouponLinkId");
+
+        //验证parentOrderId的合法性
+        LitemallOrder parentOrder = null;
+        if (parentOrderId != null && parentOrderId > 0) {
+            parentOrder = orderService.findById(parentOrderId);
+            if (parentOrder != null) {
+                LitemallTrader parentOrderTrader = traderService.queryById(parentOrder.getTraderId());
+                if (parentOrderTrader != null) {
+                    if (!traderService.isTraderOfUser(userId, parentOrderTrader.getId())) {
+                        return ResponseUtil.fail(ORDER_TRADER_REJECT, "无权使用的上级订单");
+                    }
+                } else {
+                    return ResponseUtil.fail(ORDER_TRADER_REJECT, "上级订单的所属企业无效，请联系管理员确认");
+                }
+            } else {
+                return ResponseUtil.fail(ORDER_INVALID, "上级订单不存在，请联系管理员确认");
+            }
+        }
 
         //如果是团购项目,验证活动是否有效
         if (grouponRulesId != null && grouponRulesId > 0) {
@@ -476,6 +496,7 @@ public class WxOrderService {
         order.setIntegralPrice(integralPrice);
         order.setOrderPrice(orderTotalPrice);
         order.setActualPrice(actualPrice);
+        if (parentOrder != null) order.setParentOrderId(parentOrder.getId());
 
         // 有团购
         if (grouponRules != null) {
@@ -493,6 +514,10 @@ public class WxOrderService {
             LitemallGoods goods = goodsService.findById(cartGoods.getGoodsId());
             goods.setNumber(cartGoods.getNumber());
             cartGoods.setGoodsType(goods.getGoodsType());
+
+            if (goods.getGoodsType() == LitemallGoods.GoodsType.GRSOFT_SOFTWARE && checkedGoodsList.size() > 1) {
+                return ResponseUtil.fail(ORDER_INVALID, "一次只能购买一种软件");
+            }
 
             // 订单商品
             LitemallOrderGoods orderGoods = new LitemallOrderGoods();

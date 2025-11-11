@@ -11,7 +11,7 @@ import org.linlinjava.litemall.db.util.KeywordsConstant;
 public class LitemallGoods {
     public enum GoodsType {
         NORMAL("普通商品"),
-        MEMBER("会员"),
+        MEMBER("通行卡"),
         GRSOFT_SOFTWARE("软件");
 
         private final String des;
