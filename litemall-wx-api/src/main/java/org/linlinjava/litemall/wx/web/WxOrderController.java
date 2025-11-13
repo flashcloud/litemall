@@ -180,6 +180,18 @@ public class WxOrderController {
 
         return ResponseUtil.okList(userInfoList);
     }
+
+    @GetMapping("checkMemberStatus")
+    public Object checkMemberStatus(@LoginUser Integer userId, @RequestParam String serial) { 
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+        return wxOrderService.checkMemberStatus(user, serial);
+    }
     
     /**
      * 提交订单

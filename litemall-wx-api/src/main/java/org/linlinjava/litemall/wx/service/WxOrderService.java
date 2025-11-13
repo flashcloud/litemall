@@ -321,7 +321,7 @@ public class WxOrderService {
             return ResponseUtil.badArgument();
         }
 
-        Integer parentOrderId = JacksonUtil.parseInteger(body, "parentOrderId");
+        Integer rootOrderId = JacksonUtil.parseInteger(body, "rootOrderId");
         Integer cartId = JacksonUtil.parseInteger(body, "cartId");
         Integer addressId = JacksonUtil.parseInteger(body, "addressId");
         Integer traderId = JacksonUtil.parseInteger(body, "traderId");
@@ -331,21 +331,21 @@ public class WxOrderService {
         Integer grouponRulesId = JacksonUtil.parseInteger(body, "grouponRulesId");
         Integer grouponLinkId = JacksonUtil.parseInteger(body, "grouponLinkId");
 
-        //验证parentOrderId的合法性
-        LitemallOrder parentOrder = null;
-        if (parentOrderId != null && parentOrderId > 0) {
-            parentOrder = orderService.findById(parentOrderId);
-            if (parentOrder != null) {
-                LitemallTrader parentOrderTrader = traderService.queryById(parentOrder.getTraderId());
+        //验证rootOrderId的合法性
+        LitemallOrder rootOrder = null;
+        if (rootOrderId != null && rootOrderId > 0) {
+            rootOrder = orderService.findById(rootOrderId);
+            if (rootOrder != null) {
+                LitemallTrader parentOrderTrader = traderService.queryById(rootOrder.getTraderId());
                 if (parentOrderTrader != null) {
                     if (!traderService.isTraderOfUser(userId, parentOrderTrader.getId())) {
-                        return ResponseUtil.fail(ORDER_TRADER_REJECT, "无权使用的上级订单");
+                        return ResponseUtil.fail(ORDER_TRADER_REJECT, "无权使用的根级订单");
                     }
                 } else {
-                    return ResponseUtil.fail(ORDER_TRADER_REJECT, "上级订单的所属企业无效，请联系管理员确认");
+                    return ResponseUtil.fail(ORDER_TRADER_REJECT, "根级订单的所属企业无效，请联系管理员确认");
                 }
             } else {
-                return ResponseUtil.fail(ORDER_INVALID, "上级订单不存在，请联系管理员确认");
+                return ResponseUtil.fail(ORDER_INVALID, "根级订单不存在，请联系管理员确认");
             }
         }
 
@@ -440,7 +440,7 @@ public class WxOrderService {
                 checkedGoodsPrice = checkedGoodsPrice.add(checkGoods.getPrice().multiply(new BigDecimal(checkGoods.getNumber())));
             }
         }
-        Object checkMemberGoodsResult = checkCartMemberGoods(user, checkedGoodsList);
+        Object checkMemberGoodsResult = checkCartMemberGoods(user, checkedGoodsList, rootOrderId);
         if (!ResponseUtil.isOk(checkMemberGoodsResult)) {
             // 会员商品检查未通过
             return checkMemberGoodsResult;
@@ -496,7 +496,7 @@ public class WxOrderService {
         order.setIntegralPrice(integralPrice);
         order.setOrderPrice(orderTotalPrice);
         order.setActualPrice(actualPrice);
-        if (parentOrder != null) order.setParentOrderId(parentOrder.getId());
+        if (rootOrder != null) order.setRootOrderId(rootOrder.getId());
 
         // 有团购
         if (grouponRules != null) {
@@ -1338,19 +1338,19 @@ public class WxOrderService {
      * @param userId
      * @return
      */
-    public Object checkHasNoCheckedMemberOrder(LitemallUser user, LitemallGoods cartGoods) {
+    public Object checkHasNoCheckedMemberOrder(LitemallUser user, LitemallGoods cartGoods, Integer pcAppOrderId) {
         if (cartGoods != null) {
             if (!memberService.isMemberGoods(cartGoods)) {
                 return ResponseUtil.ok();
             }
         }
-        List<TraderOrderGoodsVo> memberOrderGoodsList = memberService.getUserNoCheckedButPayedMemberOrders(user.getId());
+        List<TraderOrderGoodsVo> memberOrderGoodsList = memberService.getUserNoCheckedButPayedMemberOrders(user.getId(), pcAppOrderId);
         if(memberOrderGoodsList != null && !memberOrderGoodsList.isEmpty()){
             return ResponseUtil.fail(WxResponseCode.MEMBER_ORDER_EXIST_UNCHECKED, "您有未确认收款的会员订单，等待后台审核中，请勿重复购买");
         }
 
         try {
-            memberService.checkMemberCanPurchase(user);
+            memberService.checkMemberCanPurchase(user, pcAppOrderId);
             //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
             memberService.checkMemberStatus(user);
         } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
@@ -1452,7 +1452,7 @@ public class WxOrderService {
      * @param checkedGoodsList
      * @return
      */
-    public Object checkCartMemberGoods(LitemallUser user, List<LitemallCart> checkedGoodsList) {
+    public Object checkCartMemberGoods(LitemallUser user, List<LitemallCart> checkedGoodsList, Integer rootOrderId) {
         List<LitemallGoods> memberGoodsList = new ArrayList<>();
         for (LitemallCart checkGoods : checkedGoodsList) {
             //检查会员商品
@@ -1469,12 +1469,12 @@ public class WxOrderService {
             return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
         }
         if (memberGoodsList.size() > 0) {
-             Object checkHasNoCheckedMemberOrder = checkHasNoCheckedMemberOrder(user, null);
+             Object checkHasNoCheckedMemberOrder = checkHasNoCheckedMemberOrder(user, null, rootOrderId);
             if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
                 return checkHasNoCheckedMemberOrder;
             }
             try {
-                memberService.checkMemberCanPurchase(user);
+                memberService.checkMemberCanPurchase(user ,rootOrderId);
                 //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
                 memberService.checkMemberStatus(user);
             } catch (IllegalArgumentException | MemberOrderDataException | MemberStatusException | DataStatusException e) {
@@ -1488,4 +1488,15 @@ public class WxOrderService {
     public List<BankAccountInfo> getShopBankAccounts() {
         return orderService.getShopBankAccounts();
     }    
+
+    public Object checkMemberStatus(LitemallUser user, String dogKey) {
+        try {
+            //如果之前的会员订单过期，则需要检查是否存在父会员订单的情况
+            memberService.checkMemberStatus(user, dogKey);
+        } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
+            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+        }
+
+        return ResponseUtil.ok();
+    }
 }

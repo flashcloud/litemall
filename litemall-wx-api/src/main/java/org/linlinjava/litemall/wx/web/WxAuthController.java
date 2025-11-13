@@ -210,12 +210,6 @@ public class WxAuthController {
             return ResponseUtil.updatedDataFailed();
         }
 
-        try {
-            memberService.checkMemberStatus(user);
-        } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
-            return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
-        } // 检查会员订单状态
-
         // userInfo
         UserInfo userInfo = initUserInfo(user, username);
 
@@ -248,8 +242,6 @@ public class WxAuthController {
      * @return
      */
     private UserInfo initUserInfo(LitemallUser user, String username) {
-        //获取用户的会员类型的key值
-        user.setMemberTypeKey(memberService.getUserMemberType(user));
         // userInfo
         UserInfo userInfo = UserInfo.cloneFromUser(user);
         userInfo.setUserName(username);
@@ -405,12 +397,6 @@ public class WxAuthController {
             // 新用户发送注册优惠券
             couponAssignService.assignForRegister(user.getId());
         } else {
-            try {
-                memberService.checkMemberStatus(user);
-            } catch (IllegalArgumentException | MemberOrderDataException | DataStatusException e) {
-                return ResponseUtil.fail(AUTH_USERS_MEMBER_STATUS, e.getMessage());
-            } // 检查会员订单状态
-
             user.setLastLoginTime(LocalDateTime.now());
             user.setLastLoginIp(IpUtil.getIpAddr(request));
             user.setSessionKey(sessionKey);
@@ -421,8 +407,8 @@ public class WxAuthController {
 
         // token
         String token = UserTokenManager.generateToken(user.getId());
+        
         userInfo = initUserInfo(user, user.getUsername());
-
         Map<Object, Object> result = new HashMap<Object, Object>();
         result.put("weAccessToken", wxLoginInfo.getUserInfo().getAccessToken());
         result.put("token", token);

@@ -65,7 +65,6 @@ public class LitemallUserService {
     public Integer add(LitemallUser user) {
         user.setAddTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
-        user.setMemberType("普通会员");
         userMapper.insertSelective(user);
         return user.getId();
     }

@@ -25,10 +25,6 @@ public class UserInfo {
     private String mobile;
     private LocalDateTime addTime;
     private int addDays;
-    private String memberPlan;
-    private String memberType;
-    private String memberTypeKey;   //会员类型的key值
-    private String memberExpire;
 
     public static UserInfo cloneFromUser(LitemallUser user) {
         UserInfo userInfo = new UserInfo();
@@ -38,10 +34,6 @@ public class UserInfo {
         userInfo.setGender(user.getGender());
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
-        userInfo.setMemberType(user.getMemberType());
-        userInfo.setMemberTypeKey(user.getMemberTypeKey());
-        userInfo.setMemberPlan(user.getMemberActualPlan().getDescription());
-        userInfo.setMemberExpire(user.getExpireTime() == null ? null : user.getExpireTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));        
         return userInfo;
     }
 
@@ -167,36 +159,5 @@ public class UserInfo {
 
     public void setTraders(List<LitemallTrader> traders) {
         this.traders = traders;
-    }
-
-    public void setMemberPlan(String memberPlan) {
-        this.memberPlan = memberPlan;
-    }
-
-    public String getMemberPlan() {
-        return this.memberPlan;
-    }
-
-    public String getMemberType() {
-        return memberType;
-    }
-
-    public void setMemberType(String memberDes) {
-        this.memberType = memberDes;
-    }
-
-    public String getMemberTypeKey() {
-        return memberTypeKey;
-    }
-    public void setMemberTypeKey(String memberTypeKey) {
-        this.memberTypeKey = memberTypeKey;
-    }
-
-    public String getMemberExpire() {
-        return memberExpire;
-    }
-
-    public void setMemberExpire(String memberExpire) {
-        this.memberExpire = memberExpire;
     }
 }

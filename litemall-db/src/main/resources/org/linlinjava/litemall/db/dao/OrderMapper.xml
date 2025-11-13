@@ -136,8 +136,8 @@
     <resultMap id="traderOrderGoods" type="org.linlinjava.litemall.db.domain.TraderOrderGoodsVo">
         <id column="id" property="id"/>
         <result column="parent_order_id" property="parentOrderId"/>
-        <result column="pGoodsName" property="parentOrderGoodsName"/>
-        <result column="pSpecifications" property="parentOrderGoodsSpecifications" typeHandler="org.linlinjava.litemall.db.mybatis.JsonStringArrayTypeHandler"/>
+        <result column="rGoodsName" property="rootOrderGoodsName"/>
+        <result column="rSpecifications" property="rootOrderGoodsSpecifications" typeHandler="org.linlinjava.litemall.db.mybatis.JsonStringArrayTypeHandler"/>
         <result column="order_id" property="orderId"/>
         <result column="order_sn" property="orderSn"/>
         <result column="order_status" property="orderStatus"/>
@@ -279,14 +279,14 @@
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
                oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id, poi.goods_name AS pGoodsName, poi.specifications AS pSpecifications
+               o.parent_order_id, o.root_order_id, roi.goods_name AS rGoodsName, roi.specifications AS rSpecifications
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-	    LEFT JOIN litemall_order po on o.parent_order_id = po.id
-	    LEFT JOIN litemall_order_goods poi on po.id = poi.order_id
+	    LEFT JOIN litemall_order ro on o.root_order_id = ro.id
+	    LEFT JOIN litemall_order_goods roi on ro.id = roi.order_id
         WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status > 200
         ORDER BY o.add_time DESC
     </select>
@@ -301,7 +301,7 @@
         INNER JOIN litemall_trader t ON o.trader_id = t.id
         INNER JOIN litemall_goods g ON oi.goods_id = g.id
         INNER JOIN litemall_user u ON u.id = o.user_id
-        WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
+        WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.root_order_id = #{pcAppOrderId,jdbcType=INTEGER} AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
         ORDER BY o.add_time DESC
     </select>    
     <select id="getTraderOrderedPCAppByOther" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
