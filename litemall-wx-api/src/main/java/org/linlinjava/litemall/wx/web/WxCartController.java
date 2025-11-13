@@ -139,6 +139,7 @@ public class WxCartController {
             return ResponseUtil.badArgument();
         }
 
+        Integer rootOrderId = cart.getRootOrderId();
         Integer productId = cart.getProductId();
         Integer number = cart.getNumber().intValue();
         Integer goodsId = cart.getGoodsId();
@@ -155,7 +156,7 @@ public class WxCartController {
             return ResponseUtil.fail(GOODS_UNSHELVE, "商品已下架");
         }
 
-        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods);
+        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods, rootOrderId);
         if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
             return checkHasNoCheckedMemberOrder;
         }
@@ -223,6 +224,7 @@ public class WxCartController {
             return ResponseUtil.badArgument();
         }
 
+        Integer rootOrderId = cart.getRootOrderId();
         Integer productId = cart.getProductId();
         Integer number = cart.getNumber().intValue();
         Integer goodsId = cart.getGoodsId();
@@ -239,7 +241,7 @@ public class WxCartController {
             return ResponseUtil.fail(GOODS_UNSHELVE, "商品已下架");
         }
 
-        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods);
+        Object checkHasNoCheckedMemberOrder = wxOrderService.checkHasNoCheckedMemberOrder(user, goods, rootOrderId);
         if (!ResponseUtil.isOk(checkHasNoCheckedMemberOrder)) {
             return checkHasNoCheckedMemberOrder;
         }
