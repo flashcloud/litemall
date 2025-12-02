@@ -80,9 +80,9 @@ public class AdminOrderService {
     @Autowired
     private LitemallMemberService memberService;
 
-    public Object list(String nickname, String consignee, String orderSn, LocalDateTime start, LocalDateTime end, List<Short> orderStatusArray,
+    public Object list(Integer rootOrderId, String nickname, String consignee, String orderSn, LocalDateTime start, LocalDateTime end, List<Short> orderStatusArray,
                        Integer page, Integer limit, String sort, String order) {
-        Map<String, Object> data = (Map)orderService.queryVoSelective(nickname, consignee, orderSn, start, end, orderStatusArray, page, limit, sort, order);
+        Map<String, Object> data = (Map)orderService.queryVoSelective(rootOrderId, nickname, consignee, orderSn, start, end, orderStatusArray, page, limit, sort, order);
         return ResponseUtil.ok(data);
     }
 

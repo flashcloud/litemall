@@ -4,6 +4,14 @@
     <!-- 查询和其他操作 -->
     <div class="filter-container">
       <el-input
+        v-model="listQuery.rootOrderId"
+        clearable
+        class="filter-item"
+        style="width: 150px;"
+        :placeholder="$t('mall_order.table.root_order_id')"
+        type="number"
+      />
+      <el-input
         v-model="listQuery.orderId"
         clearable
         class="filter-item"
@@ -831,6 +839,8 @@ export default {
         detailOrder(this.listQuery.orderId).then(response => {
           this.list = []
           if (response.data.data.order) {
+            // 无论是通过列表查询还是订单ID单独查询，返回的数据结构都是一致的，展开行都能正常显示商品信息
+            response.data.data.order.goodsVoList = response.data.data.orderGoods || []
             this.list.push(response.data.data.order)
             this.total = 1
             this.listLoading = false

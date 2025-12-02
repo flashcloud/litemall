@@ -249,8 +249,12 @@ public class LitemallOrderService {
     }
 
 
-    public Map<String, Object> queryVoSelective(String nickname, String consignee, String orderSn, LocalDateTime start, LocalDateTime end, List<Short> orderStatusArray, Integer page, Integer limit, String sort, String order) {
+    public Map<String, Object> queryVoSelective(Integer rootOrderId, String nickname, String consignee, String orderSn, LocalDateTime start, LocalDateTime end, List<Short> orderStatusArray, Integer page, Integer limit, String sort, String order) {
         List<String> querys = new ArrayList<>(4);
+
+        if (rootOrderId != null && rootOrderId > 0) {
+            querys.add(" o.root_order_id = " + rootOrderId + " ");
+        }
         if (!StringUtils.isEmpty(nickname)) {
             querys.add(" u.nickname like '%" + nickname + "%' ");
         }
