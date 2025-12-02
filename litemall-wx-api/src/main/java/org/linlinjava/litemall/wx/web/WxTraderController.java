@@ -13,7 +13,6 @@ import org.linlinjava.litemall.wx.annotation.LoginUser;
 import org.linlinjava.litemall.wx.service.UserInfoService;
 import org.linlinjava.litemall.core.util.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -59,6 +58,7 @@ public class WxTraderController {
                 trader.setDirectorName(userService.encryptUserNameAndPhone(trader.getDirectorName()));
                 trader.setPhoneNum(userService.encryptTel(trader.getPhoneNum()));
             }
+            trader.setShareCode("");
         });
 		return ResponseUtil.okList(traderList);
 	}
@@ -82,6 +82,7 @@ public class WxTraderController {
         }
 
         trader.setDisableUpdate(!traderService.checkCanEditTrader(userId, id));
+        trader.setShareCode("");
         return ResponseUtil.ok(trader);
 	}
 
@@ -92,6 +93,21 @@ public class WxTraderController {
 	 * @param id     我的公司ID
 	 * @return 
 	 */
+	@PostMapping("share")
+	public Object share(@LoginUser Integer userId, @RequestBody LitemallTrader trader) {
+		if (userId == null) {
+			return ResponseUtil.unlogin();
+		}
+		Integer traderId = trader.getId();
+		if (traderId == null) {
+			return ResponseUtil.badArgument();
+		}
+
+
+		String shareCode = traderService.share(userId, traderId);
+		return ResponseUtil.ok(shareCode);
+	}
+
 	@PostMapping("delete")
 	public Object delete(@LoginUser Integer userId, @RequestBody LitemallTrader trader) {
 		if (userId == null) {
@@ -141,7 +157,7 @@ public class WxTraderController {
 
 		traderService.deleteByUser(userId, id);
 		return ResponseUtil.ok();
-	}
+	}    
 
     /**
 	 * 添加或更新我的公司
@@ -176,7 +192,17 @@ public class WxTraderController {
             LitemallTrader dbTrader = traderService.existsInDBTrader(trader);
 
             if (dbTrader != null) {
-                trader = traderService.registerUser(user, dbTrader);
+                String creatorName = "";
+                LitemallUser creator = userService.findById(dbTrader.getUserId());
+                if (creator != null) {
+                    if (creator.getId() == userId) {
+                        return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "公司已存在，请不要重复添加");
+                    }
+                    creatorName = userService.encryptUserNameAndPhone(creator);
+                }
+                //trader = traderService.registerUser(user, dbTrader);
+            
+                return ResponseUtil.fail(ResponseCode.TRADER_NAME_EXIST, "公司已存在，请通过" + creatorName + "分享二维码扫码加入");
             } else { 
                 trader.setUserId(userId);
                 trader.setCreatorId(userId);
@@ -218,6 +244,29 @@ public class WxTraderController {
 		}
 		return ResponseUtil.ok(trader.getId());
 	}
+
+    @GetMapping("boundByShare")
+	public Object boundByShare(@LoginUser Integer userId, @NotNull String shareCode) {
+		if (userId == null) {
+			return ResponseUtil.unlogin();
+		}
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        Object result = traderService.boundTraderByShare(user, shareCode);
+        if (result instanceof LitemallTrader) {
+            return ResponseUtil.ok(result);
+        } else if (result instanceof Integer && ((Integer) result) == 1) {
+            return ResponseUtil.fail(ResponseCode.TRADER_SHARE_CODE_NOT_EXIST, "二维码失效，请重新分享后再扫码");
+        } else if (result instanceof Integer && ((Integer) result) == 2) {
+            return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "公司已存在，无需绑定");
+        } else {
+            return ResponseUtil.fail();
+        }
+    }
 
     private Object validate(LitemallTrader trader) {
         if (!traderService.validate(trader)) return ResponseUtil.badArgument();

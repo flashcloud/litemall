@@ -9,4 +9,5 @@ public class ResponseCode {
     public static final Integer TRADER_DEL_BY_OTHERS = 10005;
     public static final Integer TRADER_UPDATE_REJECT = 10006;
     public static final Integer TRADER_DEL_LAST = 10007;
+    public static final Integer TRADER_SHARE_CODE_NOT_EXIST = 10008;
 }

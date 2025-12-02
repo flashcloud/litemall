@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.annotation.Resource;
 
@@ -71,6 +72,12 @@ public class LitemallTraderService {
 
         return traders;
     }
+
+    public LitemallTrader queryByShareCode(String shareCode) {
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andShareCodeEqualTo(shareCode).andDeletedEqualTo(false);
+        return traderMapper.selectOneByExample(example);
+    }    
 
     // 根据用户获取该用户管理的交易商户列表
     public List<LitemallTrader> managedByUser(LitemallUser user) {
@@ -154,6 +161,20 @@ public class LitemallTraderService {
         return true;
     }
 
+    public String share(Integer userId, Integer traderId) {
+		LitemallTrader trader = queryById(traderId);
+		if (trader == null) {
+			return "";
+		}
+        
+        String shareCode = UUID.randomUUID().toString();
+        trader.setShareCode(shareCode);
+        updateById(userId, trader);
+
+
+        return trader.getShareCode();
+    }
+
     @Transactional
     public LitemallTrader registerUser(LitemallUser user, LitemallTrader trader) {
         LitemallTrader  dbTrader = null;
@@ -173,6 +194,26 @@ public class LitemallTraderService {
         return  dbTrader;
     }
 
+    public Object boundTraderByShare(LitemallUser user, String shareCode) {
+        LitemallTrader trader = existsInDBTrader(shareCode);
+        if (trader == null) {
+            return 1;
+        }
+
+        if (trader.getUserId() == user.getId() || isTraderOfUser(user.getId(), trader.getId())) {
+            return 2;
+        }
+
+        trader = registerUser(user, trader);
+
+        //绑定成功后，清除分享码
+        trader.setShareCode("");
+        traderMapper.updateByPrimaryKeySelective(trader);
+
+        return trader;
+        
+    }
+
     /**
      * 查找数据库中是否存在相同的商户，根据税号或名称查找，税号优先
      * @param trader
@@ -182,6 +223,11 @@ public class LitemallTraderService {
         LitemallTrader  dbTrader =  queryByTaxCode(trader.getTaxid());
         return dbTrader != null ? dbTrader : queryByName(trader.getCompanyName());
     }
+
+    public LitemallTrader existsInDBTrader(String shareCode) {
+        LitemallTrader  dbTrader =  queryByShareCode(shareCode);
+        return dbTrader;
+    }    
 
     @Transactional
     public void registerUserHelp(LitemallUser user, LitemallTrader trader) {

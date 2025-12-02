@@ -841,6 +841,7 @@ CREATE TABLE `litemall_trader` (
   `add_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除',
+  `share_code` varchar(255) NOT NULL DEFAULT '' COMMENT '分享码',
   PRIMARY KEY (`id`),
   UNIQUE KEY `taxid` (`taxid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='交易商户'
