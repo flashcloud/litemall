@@ -264,6 +264,31 @@ public class LitemallMemberService {
         }
     }
 
+    /**
+     * 查找指定软件序列号的会员订单
+     * @param user
+     * @param serial
+     * @return
+     */
+    public TraderOrderGoodsVo findMemberOrder(LitemallUser user, String serial) {
+        Integer[] memberOrderIds = user.getMemberOrderIds();
+
+        for (Integer memberOrderId : memberOrderIds) { 
+            if (memberOrderId == null || memberOrderId == 0) {
+                continue;
+            }
+            TraderOrderGoodsVo  membOrderGoodsVo =  orderMapper.getMemberOrderByOrderId(user.getId(), memberOrderId, serial);
+            if (membOrderGoodsVo == null) {
+                continue;
+            } else {
+                orderService.buildTraderOrderGoodsVo(membOrderGoodsVo);
+                return membOrderGoodsVo;
+            }
+        }
+
+        return null;
+    }
+
     public LitemallOrderGoods queryMemberOrderGoods(Integer orderId) {
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(orderId);
         for (LitemallOrderGoods orderGoods : orderGoodsList) {
@@ -409,13 +434,13 @@ public class LitemallMemberService {
                     //如果是新绑定，则增加对应的授权软件订单的最大注册用户数
                     pcOrderGoods.setMaxRegisterUsersCount((short) (pcOrderGoods.getMaxRegisterUsersCount() + 1));
                     orderGoodsService.updateById(pcOrderGoods);
+                }
 
-                    //设置新会员订单的绑定软件授权订单的序列号
-                    newMemberGoods.setBoundSerial(pcOrderGoods.getSerial());
-                    //将此会员订单的根级订单设置为PC应用软件订单，以便会员订单到期后，可以自动解绑软件授权
-                    if (newOrder.getRootOrderId() == 0) {
-                        newOrder.setRootOrderId(pcOrderGoods.getOrderId());
-                    }
+                //设置新会员订单的绑定软件授权订单的序列号
+                newMemberGoods.setBoundSerial(pcOrderGoods.getSerial());
+                //将此会员订单的根级订单设置为PC应用软件订单，以便会员订单到期后，可以自动解绑软件授权
+                if (newOrder.getRootOrderId() == 0) {
+                    newOrder.setRootOrderId(pcOrderGoods.getOrderId());
                 }
             }
 

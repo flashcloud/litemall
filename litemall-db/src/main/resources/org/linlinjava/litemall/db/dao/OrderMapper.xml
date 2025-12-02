@@ -133,6 +133,27 @@
             order by ${orderByClause}
         </if>
     </select>
+    <sql id="Base_Column_List">
+               oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
+               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
+               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
+               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               o.parent_order_id, o.root_order_id
+    </sql>
+    <sql id="Member_Column_List">
+        roi.goods_name AS rGoodsName, roi.specifications AS rSpecifications
+    </sql>
+    <sql id="From_Base_Clause">
+        litemall_order o
+        INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
+        INNER JOIN litemall_trader t ON o.trader_id = t.id
+        INNER JOIN litemall_goods g ON oi.goods_id = g.id
+        INNER JOIN litemall_user u ON u.id = o.user_id
+    </sql>    
+    <sql id="From_Member_Clause">
+        LEFT JOIN litemall_order ro on o.root_order_id = ro.id
+	    LEFT JOIN litemall_order_goods roi on ro.id = roi.order_id
+    </sql>
     <resultMap id="traderOrderGoods" type="org.linlinjava.litemall.db.domain.TraderOrderGoodsVo">
         <id column="id" property="id"/>
         <result column="parent_order_id" property="parentOrderId"/>
@@ -231,11 +252,8 @@
         </if>
     </select>
     <select id="getTraderOrderedPCAppBy"  resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id
+        SELECT 
+            <include refid="Base_Column_List" />
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -254,11 +272,8 @@
         <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
       </select>
     <select id="getTraderOrderedPCAppById" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id
+        SELECT 
+            <include refid="Base_Column_List" />
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -275,11 +290,10 @@
         WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.order_status > 200
     </select>
     <select id="getTraderOrderedGoodsByUserId" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id, o.root_order_id, roi.goods_name AS rGoodsName, roi.specifications AS rSpecifications
+        SELECT
+            <include refid="Base_Column_List" />
+            ,
+            <include refid="Member_Column_List"/>
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -291,11 +305,8 @@
         ORDER BY o.add_time DESC
     </select>
     <select id="getUserNoCheckedButPayedMember" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id
+        SELECT
+            <include refid="Base_Column_List" />
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id
@@ -304,12 +315,19 @@
         WHERE (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND o.root_order_id = #{pcAppOrderId,jdbcType=INTEGER} AND o.order_status = 201 AND o.deleted = 0 AND o.pay_time IS NULL AND g.keywords LIKE '%SYS-MEMBER%'
         ORDER BY o.add_time DESC
     </select>    
+    <select id="getMemberOrderByOrderId" parameterType="map" resultMap="traderOrderGoods">
+        SELECT
+            <include refid="Base_Column_List" />
+            ,
+            <include refid="Member_Column_List"/>
+        FROM
+        <include refid="From_Base_Clause"/>
+        <include refid="From_Member_Clause"></include>
+        WHERE (o.user_id = #{userId,jdbcType=INTEGER}) AND o.id = #{memberOrderId,jdbcType=INTEGER} AND o.deleted = 0 AND oi.bound_serial = #{serial,jdbcType=CHAR} AND g.keywords LIKE '%SYS-MEMBER%'
+    </select>    
     <select id="getTraderOrderedPCAppByOther" parameterType="java.lang.Integer" resultMap="traderOrderGoods">
-        SELECT oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
-               t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
-               oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
-               o.parent_order_id
+        SELECT 
+            <include refid="Base_Column_List" />
         FROM litemall_order o
         INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
         INNER JOIN litemall_trader t ON o.trader_id = t.id

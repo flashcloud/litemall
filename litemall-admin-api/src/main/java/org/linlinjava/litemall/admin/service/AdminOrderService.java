@@ -314,23 +314,37 @@ public class AdminOrderService {
             // 更新发货商品的序列号等参数
             for (Map<String, Object> item : goodsAttValues) {
                 Integer detId = Integer.parseInt(item.get("detId").toString());
+                LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
+
                 String serial =  item.get("serial").toString().trim();
                 String boundserial =  item.get("boundSerial").toString().trim();
-                Short maxClientsCount =  Short.parseShort(item.get("maxClientsCount").toString());
-                Short maxRegisterUsersCount =  Short.parseShort(item.get("maxRegisterUsersCount").toString());
-                LitemallOrderGoods orderGoods = orderGoodsService.findById(detId);
-                orderGoods.setSerial(serial);
-                orderGoods.setBoundSerial(boundserial); // 绑定的序列号不为空，表示此条订单是对应序列号的软件产品的服务或它的升级
-                orderGoods.setMaxClientsCount(maxClientsCount);
-                orderGoods.setMaxRegisterUsersCount(maxRegisterUsersCount);
-                if (serial != null && !serial.isEmpty()) {
-                    //如果有序列号，表示订购的软件，然后将订单用户绑定到orderGoods的hasRegisterUserIds字段
-                    orderService.boundUserToPCAppOrderGoods(order.getUserId(), orderGoods);
+                if (memberService.isMemberOrder(orderId)) {
+                    List<LitemallOrderGoods> pcOrderGoodsList = orderGoodsService.queryByOid(order.getRootOrderId());
+                    for(LitemallOrderGoods pcOrderGoods : pcOrderGoodsList) {
+                        if (pcOrderGoods.getSerial().trim().length() == 0) {
+                            continue;
+                        } else {
+                            boundserial = pcOrderGoods.getSerial();
+                            break;
+                        }
+                    }
                 } else {
-                    //如果没有序列号，则清除hasRegisterUserIds字段
-                    orderGoods.setHasRegisterUserIds(new Integer[0]);
-                    orderGoodsService.updateById(orderGoods);
+                    Short maxClientsCount =  Short.parseShort(item.get("maxClientsCount").toString());
+                    Short maxRegisterUsersCount =  Short.parseShort(item.get("maxRegisterUsersCount").toString());
+                    orderGoods.setSerial(serial);
+                    orderGoods.setBoundSerial(boundserial); // 绑定的序列号不为空，表示此条订单是对应序列号的软件产品的服务或它的升级
+                    orderGoods.setMaxClientsCount(maxClientsCount);
+                    orderGoods.setMaxRegisterUsersCount(maxRegisterUsersCount);
+                    if (serial != null && !serial.isEmpty()) {
+                        //如果有序列号，表示订购的软件，然后将订单用户绑定到orderGoods的hasRegisterUserIds字段
+                        orderService.boundUserToPCAppOrderGoods(order.getUserId(), orderGoods);
+                    } else {
+                        //如果没有序列号，则清除hasRegisterUserIds字段
+                        orderGoods.setHasRegisterUserIds(new Integer[0]);
+                    }
                 }
+                orderGoods.setBoundSerial(boundserial); // 绑定所购软件的序列号
+                orderGoodsService.updateById(orderGoods);
             }
         }
 

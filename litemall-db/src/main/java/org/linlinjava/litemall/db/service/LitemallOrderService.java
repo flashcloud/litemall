@@ -427,7 +427,7 @@ public class LitemallOrderService {
         return bankAccountInfos;
     }
 
-    private void buildTraderOrderGoodsVo(TraderOrderGoodsVo orderGoodsVo) {
+    public void buildTraderOrderGoodsVo(TraderOrderGoodsVo orderGoodsVo) {
         if (orderGoodsVo == null) {
             return;
         }

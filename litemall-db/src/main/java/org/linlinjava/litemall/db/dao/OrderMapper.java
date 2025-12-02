@@ -22,4 +22,5 @@ public interface OrderMapper {
     List<TraderOrderGoodsVo> getTraderOrderedPCAppByOther(@Param("userId") Integer userId, @Param("traderId") Integer traderId);
 
     List<TraderOrderGoodsVo> getUserNoCheckedButPayedMember(@Param("userId") Integer userId, @Param("pcAppOrderId") Integer pcAppOrderId);
+    TraderOrderGoodsVo getMemberOrderByOrderId(@Param("userId") Integer userId, @Param("memberOrderId") Integer memberOrderId, @Param("serial") String serial);
 }
