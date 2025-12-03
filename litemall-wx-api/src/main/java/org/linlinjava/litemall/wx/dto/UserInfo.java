@@ -138,7 +138,7 @@ public class UserInfo {
         this.addTime = addTime;
 
         //计算addTime到现在的天数
-        this.addDays = (int) java.time.Duration.between(addTime, LocalDateTime.now()).toDays();
+        this.addDays = (int) java.time.Duration.between(addTime, LocalDateTime.now()).toDays() + 1;
     }
 
     public int getAddedDays() {
