@@ -742,8 +742,13 @@ public class WxAuthController {
         }
         
         traderService.boundTrader(user, serial);
+
+        UserInfo userInfo = initUserInfo(user, user.getUsername());
+        Map<Object, Object> result = new HashMap<Object, Object>();
+        result.put("software", orderGoodsVo);
+        result.put("userInfo", userInfo);
         
-        return ResponseUtil.ok(orderGoodsVo);
+        return ResponseUtil.ok(result);
     }
 
     /**

@@ -103,8 +103,12 @@ public class WxTraderController {
 			return ResponseUtil.badArgument();
 		}
 
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgumentValue();
+        }
 
-		String shareCode = traderService.share(userId, traderId);
+		String shareCode = traderService.share(user, traderId);
 		return ResponseUtil.ok(shareCode);
 	}
 

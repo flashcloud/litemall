@@ -161,7 +161,10 @@ public class LitemallTraderService {
         return true;
     }
 
-    public String share(Integer userId, Integer traderId) {
+    public String share(LitemallUser user, Integer traderId) {
+        Integer userId = user.getId();
+        if (!isManagedByUser(user, traderId)) return "";
+        
 		LitemallTrader trader = queryById(traderId);
 		if (trader == null) {
 			return "";
@@ -493,6 +496,28 @@ public class LitemallTraderService {
         }
 
         return traders;
+    }
+
+    /**
+     * 判断商户是否被指定的用户管理
+     * @param user
+     * @param traderId
+     * @return
+     */
+    public boolean isManagedByUser(LitemallUser user, Integer traderId) {
+        if (user == null || traderId == null) {
+            return false;
+        }
+        List<LitemallTrader> traders = managedByUser(user);
+        if (traders == null || traders.size() == 0) {
+            return false;
+        }
+        for (LitemallTrader trader : traders) {
+            if (traderId.equals(trader.getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // 指定的商户ID是否是指定的用户的商户
