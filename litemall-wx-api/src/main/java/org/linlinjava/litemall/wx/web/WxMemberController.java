@@ -44,16 +44,17 @@ public class WxMemberController {
         }
 
         TraderOrderGoodsVo result = null;
+        TraderOrderGoodsVo normalMember = new TraderOrderGoodsVo();
+        normalMember.setId(0);
+        normalMember.setGoodsName("普通卡");
 
         Integer[] memberOrderIds = user.getMemberOrderIds();
         if (memberOrderIds == null || memberOrderIds.length == 0) {
-            result = new TraderOrderGoodsVo();
-            result.setId(0);
-            result.setGoodsName("普通卡");
+            result = normalMember;
         } else {
             result =  memberService.findMemberOrder(user, serial);
             if (result == null){
-                return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_NOT_EXISTS, "KEY号" + serial + "对应的记录不存在");
+                result = normalMember;
             } else if (result.getId() == null || result.getId() == 0) {
                 return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
             }
