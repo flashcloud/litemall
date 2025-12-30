@@ -320,6 +320,10 @@ public class LitemallOrderService {
      * @return
      */    
     public TraderOrderGoodsVo getTraderOrderedPCAppBySerial(LitemallUser user, String serial) {
+        if (serial == null || serial.trim().isEmpty()) {
+            //防止用户传入空串
+            return null;
+        }
         TraderOrderGoodsVo goodsVo =  orderMapper.getTraderOrderedPCAppBy(serial, user != null ? user.getId() : null, null);
         buildTraderOrderGoodsVo(goodsVo);
         if (user == null) {

@@ -138,15 +138,15 @@ public class LitemallTraderService {
     }
 
     /**
-     *  添加用户.并将该用户与加密锁KEY对应的交易商户绑定
+     *  添加用户.并将该用户与KEY对应的交易商户绑定
      * @param user
-     * @param dogKey 用户绑定的加密锁key
+     * @param dogKey 用户绑定的key
      */
     @Transactional
     public boolean boundTrader(LitemallUser user, String dogKey) {
         if (!checkRegisterUser(dogKey)) return false;
 
-        //根据加密锁KEY找到对应的订单明细，再根据订单明细找到对应的订单，从该订单中找到交易商户，将该用户和交易商户绑定
+        //根据KEY找到对应的订单明细，再根据订单明细找到对应的订单，从该订单中找到交易商户，将该用户和交易商户绑定
         TraderOrderGoodsVo orderedGoods = orderService.getTraderOrderedPCAppBySerial(null, dogKey); //TODO:serial
         LitemallTrader trader = queryById(orderedGoods.getTraderId());
 

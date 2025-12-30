@@ -20,7 +20,8 @@ public interface OrderMapper {
     long getTraderOrderedGoodsCountByUserId(@Param("userId") Integer userId);
     List<TraderOrderGoodsVo> getTraderOrderedGoodsByUserId(@Param("userId") Integer userId);
     List<TraderOrderGoodsVo> getTraderOrderedPCAppByOther(@Param("userId") Integer userId, @Param("traderId") Integer traderId);
-
+    // 用于指定的用户是否有权限访问指定的KEY
+    long isValidUsePCApp(@Param("traderId") Integer traderId, @Param("serial") String serial);
     List<TraderOrderGoodsVo> getUserNoCheckedButPayedMember(@Param("userId") Integer userId, @Param("pcAppOrderId") Integer pcAppOrderId);
     TraderOrderGoodsVo getMemberOrderByOrderId(@Param("userId") Integer userId, @Param("memberOrderId") Integer memberOrderId, @Param("serial") String serial);
 }

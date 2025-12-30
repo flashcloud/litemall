@@ -194,6 +194,28 @@ public class LitemallMemberService {
     }    
 
     /**
+     * 验证指定的用户是否有权限访问指定的KEY
+     * @param user
+     * @param serial
+     * @return
+     */
+    public boolean isValidUsePCApp(LitemallUser user, String serial) {
+        if (user == null || serial == null || serial.trim().length() == 0) {
+            return false;
+        }
+        Integer[] traderIds = user.getTraderIds();
+        if (traderIds == null || traderIds.length == 0) return false;
+
+        for (Integer traderId : user.getTraderIds()) {
+            if (orderMapper.isValidUsePCApp(traderId, serial) >= 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 检查会员商品数据
      * @param memberGoodsList
      * @return

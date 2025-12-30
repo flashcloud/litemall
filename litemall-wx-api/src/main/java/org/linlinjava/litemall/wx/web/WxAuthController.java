@@ -134,22 +134,69 @@ public class WxAuthController {
 
     @PostMapping("isLoginExpired")
     public Object isLoginExpired(@RequestBody String body, HttpServletRequest request) {
+        return isLoginExpiredHlp(request)[0];
+    }
+
+    /**
+     * 根据requrest的请求头的token，验证是否登录用户，并且该用户是否有权访问KEY
+     * @param request 请求对象
+     * @param clientId KEY
+     * @return 
+     */
+    @PostMapping("checkTokenAndClientId")
+    public Object checkTokenAndClientId(@RequestBody String body, HttpServletRequest request) {
+        String clientId = JacksonUtil.parseString(body, "clientId");
+        if (clientId == null || clientId.trim().isEmpty()) {
+            return ResponseUtil.badArgument();
+        }
+
+        Object[] loginExpired = isLoginExpiredHlp(request);
+        Object loginResult = loginExpired[0];
+        if (!ResponseUtil.isOk(loginResult)) {
+            return loginResult;
+        }
+
+        LitemallUser user = (LitemallUser)loginExpired[1];
+        if (user == null) {
+            return ResponseUtil.unlogin();
+        }
+
+        boolean checked = memberService.isValidUsePCApp(user, clientId);
+        if (checked) {
+            UserInfo userInfo = initUserInfo(user, user.getUsername());
+            Map<Object, Object> result = new HashMap<Object, Object>();
+            result.put("userInfo", userInfo);
+            return ResponseUtil.ok(result);
+        } else
+            return ResponseUtil.fail();
+    }    
+
+    /**
+     * 检测登录状态
+     *
+     * @param request 请求对象
+     * @return 登录状态 数组：[0:true | false, 1:登录用户信息]
+     */
+    private Object[] isLoginExpiredHlp(HttpServletRequest request) {
         String token = request.getHeader(LoginUserHandlerMethodArgumentResolver.LOGIN_TOKEN_KEY);
         if (StringUtils.isEmpty(token)) {
-            return ResponseUtil.badArgument();
+            token = request.getHeader(LoginUserHandlerMethodArgumentResolver.LOGIN_TOKEN_KEY.toLowerCase());
+        }
+        if (StringUtils.isEmpty(token)) {
+            return new Object[]{ResponseUtil.badArgument(), null};
         }
         Integer userId = UserTokenManager.getUserId(token);
         if (userId == null) {
-            return ResponseUtil.fail(AUTH_TOKEN_EXPIRED, "登录会话过期"); // 未登录
+            return new Object[]{ResponseUtil.fail(AUTH_TOKEN_EXPIRED, "登录会话过期"), null}; // 未登录
         }
 
         LitemallUser user = userService.findById(userId);
         if (user == null) {
-            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号不存在");
+            return new Object[]{ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "账号不存在"), null};
         }
 
-        return ResponseUtil.ok();
-    }
+        return new Object[]{ResponseUtil.ok(), user};
+    }    
 
     /**
      * 账号或token登录
@@ -726,7 +773,7 @@ public class WxAuthController {
             return ResponseUtil.badArgument();
         }
         
-        //绑定加密锁注册
+        //绑定KEY注册
         TraderOrderGoodsVo orderGoodsVo = orderService.getTraderOrderedPCAppBySerial(null, serial);//TODO:serial
         if (orderGoodsVo == null) {
             return ResponseUtil.fail(AUTH_DOG_KEY_NOT_EXISTS, "KEY号（" + serial + "）不存在");

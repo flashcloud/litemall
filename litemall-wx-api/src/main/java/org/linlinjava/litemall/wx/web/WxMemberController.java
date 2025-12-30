@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import static org.linlinjava.litemall.wx.util.WxResponseCode.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/wx/member")
 @Validated
@@ -43,6 +46,32 @@ public class WxMemberController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
 
+        TraderOrderGoodsVo result = getMemberInfo(user, serial);
+        if (result.getId() == null || result.getId() == 0) {
+            return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
+        }
+        return ResponseUtil.ok(result);
+    }
+    @GetMapping("miniMember")
+    public Object getMiniMemberData(@LoginUser Integer userId, @RequestParam String serial) {
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
+        }
+
+        TraderOrderGoodsVo orderGoods = getMemberInfo(user, serial);
+        if (orderGoods.getId() == null || orderGoods.getId() == 0) {
+            return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
+        }
+        Map<String, String> result = new HashMap<>();
+        result.put("keywords", orderGoods.getKeywords());
+        result.put("goodsName", orderGoods.getGoodsName());
+        result.put("softwareName", orderGoods.getRootOrderGoodsName() + "(" + String.join(",", orderGoods.getRootOrderGoodsSpecifications()) + ")");
+        result.put("expDateTime", orderGoods.getExpDateTime().toString());
+        return ResponseUtil.ok(result);
+    }
+
+    private TraderOrderGoodsVo getMemberInfo(LitemallUser user, String serial) {
         TraderOrderGoodsVo result = null;
         TraderOrderGoodsVo normalMember = new TraderOrderGoodsVo();
         normalMember.setId(0);
@@ -55,11 +84,9 @@ public class WxMemberController {
             result =  memberService.findMemberOrder(user, serial);
             if (result == null){
                 result = normalMember;
-            } else if (result.getId() == null || result.getId() == 0) {
-                return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
             }
         }
 
-        return ResponseUtil.ok(result);
+        return result;
     }
 }

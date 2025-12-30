@@ -269,7 +269,7 @@
         <if test="userId != null and userId != 0">
             AND (t.user_id = #{userId,jdbcType=INTEGER} OR o.user_id = #{userId,jdbcType=INTEGER}) AND LENGTH(TRIM(oi.serial))>0 AND LENGTH(TRIM(oi.bound_serial))=0
         </if>
-        <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
+        <!-- serial记录了KEY，bound_serial记录了绑定KEY的服务订单 -->
       </select>
     <select id="getTraderOrderedPCAppById" resultMap="traderOrderGoods">
         SELECT 
@@ -342,6 +342,15 @@
         </if>
 
         ORDER BY o.add_time DESC
-        <!-- serial记录了金软的硬件加密锁ID，bound_serial记录了绑定的硬件加密锁ID的服务订单 -->
+        <!-- serial记录了KEY，bound_serial记录了绑定KEY的服务订单 -->
+    </select>
+    <!-- 用于指定的用户是否有权限访问指定的KEY -->
+    <select id="isValidUsePCApp" parameterType="map" resultType="java.lang.Long">
+        SELECT COUNT(o.id)
+        FROM litemall_order o
+        INNER JOIN litemall_order_goods oi ON o.id = oi.order_id
+        WHERE o.trader_id = #{traderId,jdbcType=INTEGER} AND o.order_status > 200
+        AND oi.serial = #{serial,jdbcType=VARCHAR}
+        <!-- serial记录了KEY -->
     </select>
 </mapper>
