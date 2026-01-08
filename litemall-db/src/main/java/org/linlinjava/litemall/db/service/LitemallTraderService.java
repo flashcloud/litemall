@@ -10,22 +10,35 @@ import java.util.UUID;
 
 import javax.annotation.Resource;
 
+import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
 import org.linlinjava.litemall.db.dao.LitemallTraderMapper;
+import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallTraderExample;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
 import org.linlinjava.litemall.db.util.CommonStatusConstant;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.linlinjava.litemall.db.domain.LitemallOrderExample;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample;
 import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.github.pagehelper.PageHelper;
 
 @Service
 public class LitemallTraderService {
+    private final Log logger = LogFactory.getLog(LitemallTraderService.class);
+
+    @Autowired
+    private Environment environment;
+
     @Autowired
     private LitemallUserService userService;
 
@@ -37,6 +50,10 @@ public class LitemallTraderService {
 
     @Resource
     private LitemallTraderMapper traderMapper;
+   @Resource
+    private OrderMapper orderMapper;
+    @Resource
+    private LitemallOrderGoodsMapper orderGoodsMapper;
     public List<LitemallTrader> querySelective(String name, Integer page, Integer limit, String sort, String order) {
         LitemallTraderExample example = new LitemallTraderExample();
         LitemallTraderExample.Criteria criteria = example.createCriteria();
@@ -199,6 +216,15 @@ public class LitemallTraderService {
 
     public Object boundTraderByShare(LitemallUser user, String shareCode) {
         LitemallTrader trader = existsInDBTrader(shareCode);
+        return boundTraderByHelp(user, trader);
+    }
+
+    public Object boundTraderBySoftDevTrader(LitemallUser user) {
+        LitemallTrader trader = getSoftwareDevTrader();
+        return boundTraderByHelp(user, trader);
+    }
+
+    private Object boundTraderByHelp(LitemallUser user, LitemallTrader trader) {
         if (trader == null) {
             return 1;
         }
@@ -215,7 +241,7 @@ public class LitemallTraderService {
 
         return trader;
         
-    }
+    }    
 
     /**
      * 查找数据库中是否存在相同的商户，根据税号或名称查找，税号优先
@@ -557,7 +583,22 @@ public class LitemallTraderService {
         return null;
     }
 
+    /**
+     * 获取软件开发交易商户
+     * @return
+     */
+    public LitemallTrader getSoftwareDevTrader() {
+        String taxid = environment.getProperty("litemall.core.soft-dev-info.tax-id");
+        LitemallTraderExample example = new LitemallTraderExample();
+        example.or().andTaxidEqualTo(taxid).andDeletedEqualTo(false);
+        return traderMapper.selectOneByExample(example);
+    }    
+
     private void deleteHlp(Integer userId, Integer traderId) {
+        LitemallTrader developer = getSoftwareDevTrader();
+        if (developer != null && developer.getId().equals(traderId)) {
+            return;
+        }
         //如果当前商户有订单，不能删除
         if (orderService.countByTrader(traderId) > 0)  return;
 
@@ -770,6 +811,51 @@ public class LitemallTraderService {
 		// }
 		return true;
 	}
+
+    /**
+     * 注册用户，并为试用用户绑定软件开发商户和添加试用会员订单
+     * @param user
+     * @param isTrial
+     * @return
+     */
+    @Transactional
+    public Object registerUserForController(LitemallUser user, boolean isTrial) {
+        Integer userId = userService.add(user);
+        if (!isTrial) return userId;
+
+        // 绑定软件开发商户
+        Object boundRet = boundTraderBySoftDevTrader(user);
+        if (boundRet instanceof LitemallTrader) {
+            // 添加试用会员订单
+            LitemallOrderGoodsExample example = new LitemallOrderGoodsExample();
+            example.or().andIdEqualTo(4).andDeletedEqualTo(false); //会员要试用的商品软件固定为4, 在系统初始化时添加：./litemall-db/sql/litemall_init.sql
+            List<LitemallOrderGoods> orderGoodsList = orderGoodsMapper.selectByExample(example);
+            if (orderGoodsList.size() == 0) {
+                logger.error("试用用户注册时，添加免费会员失败，找不到订单商品数据，订单商品ID=4");
+                return userId;
+            }
+            LitemallOrderGoods udiNetSoftwareOrderGoods = orderGoodsList.get(0);
+            String key = udiNetSoftwareOrderGoods.getSerial(); // 软件授权KEY
+            String newOrderSn = orderService.generateOrderSn(userId); // 生成新的订单号
+            LocalDateTime expirDateTime =   LocalDateTime.now().plusDays(7); //试用7天
+            orderMapper.insertTrialMember(userId, user.getMobile(), newOrderSn); // 插入试用会员订单
+            int newMemberOrderId = orderService.findBySn(newOrderSn).getId();
+            orderMapper.insertTrialMemberGoods(newMemberOrderId, key, expirDateTime); // 插入试用会员订单商品
+
+            // 将会员订单ID保存到用户表的memberOrderId字段
+            user.setMemberOrderIds(new Integer[]{newMemberOrderId});
+            userService.updateById(user);
+
+            // 将新注册的用户ID保存到软件订单的已注册用户ID列表
+            Integer[] hasRegUserIds = Arrays.copyOf(udiNetSoftwareOrderGoods.getHasRegisterUserIds(), udiNetSoftwareOrderGoods.getHasRegisterUserIds().length + 1);
+            hasRegUserIds[udiNetSoftwareOrderGoods.getHasRegisterUserIds().length] = userId;
+            udiNetSoftwareOrderGoods.setHasRegisterUserIds(hasRegUserIds);
+            orderGoodsService.updateById(udiNetSoftwareOrderGoods);
+        }
+        
+        //返回新注册的用户ID
+        return userId;
+    }    
 
     private void resetDefaultTrader(LitemallTrader trader) {
         if (trader == null) {

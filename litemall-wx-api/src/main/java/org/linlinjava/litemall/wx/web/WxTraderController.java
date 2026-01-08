@@ -272,6 +272,29 @@ public class WxTraderController {
         }
     }
 
+    @GetMapping("boundSoftDevTrader")
+	public Object boundBySoftDevTrader(@LoginUser Integer userId) {
+		if (userId == null) {
+			return ResponseUtil.unlogin();
+		}
+
+        LitemallUser user = userService.findById(userId);
+        if (user == null) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        Object result = traderService.boundTraderBySoftDevTrader(user);
+        if (result instanceof LitemallTrader) {
+            return ResponseUtil.ok(result);
+        } else if (result instanceof Integer && ((Integer) result) == 1) {
+            return ResponseUtil.fail(ResponseCode.TRADER_DEV_NOT_EXIST, "暂停试用申请");
+        } else if (result instanceof Integer && ((Integer) result) == 2) {
+            return ResponseUtil.fail(ResponseCode.TRADER_TAXID_EXIST, "公司已存在，无需绑定");
+        } else {
+            return ResponseUtil.fail();
+        }
+    }    
+
     private Object validate(LitemallTrader trader) {
         if (!traderService.validate(trader)) return ResponseUtil.badArgument();
         return null;

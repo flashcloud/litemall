@@ -10,4 +10,5 @@ public class ResponseCode {
     public static final Integer TRADER_UPDATE_REJECT = 10006;
     public static final Integer TRADER_DEL_LAST = 10007;
     public static final Integer TRADER_SHARE_CODE_NOT_EXIST = 10008;
+    public static final Integer TRADER_DEV_NOT_EXIST = TRADER_SHARE_CODE_NOT_EXIST; //软件开发商户不存在
 }

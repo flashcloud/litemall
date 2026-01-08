@@ -161,14 +161,17 @@ public class WxAuthController {
             return ResponseUtil.unlogin();
         }
 
-        boolean checked = memberService.isValidUsePCApp(user, clientId);
-        if (checked) {
+        if (user.getTraderIds() == null || user.getTraderIds().length == 0) {
+            return ResponseUtil.fail(TRADER_NOT_BOUND, "未绑定任何企业");
+        }
+        LitemallOrderGoods pcAppOrderGoods = memberService.orderedPCApp(user, clientId);
+        if (pcAppOrderGoods != null) {
             UserInfo userInfo = initUserInfo(user, user.getUsername());
             Map<Object, Object> result = new HashMap<Object, Object>();
             result.put("userInfo", userInfo);
             return ResponseUtil.ok(result);
         } else
-            return ResponseUtil.fail();
+            return ResponseUtil.fail(AUTH_DOG_KEY_EMPTY, "无权访问该软件Key");
     }    
 
     /**
@@ -669,6 +672,8 @@ public class WxAuthController {
         String password = JacksonUtil.parseString(body, "password");
         String mobile = JacksonUtil.parseString(body, "mobile");
         String code = JacksonUtil.parseString(body, "code");
+        String isTrialStr = JacksonUtil.parseString(body, "trial");
+        boolean isTrial = "1".equals(isTrialStr) || "true".equalsIgnoreCase(isTrialStr);
     
         // 如果是小程序注册，则必须非空
         // 其他情况，可以为空
@@ -695,7 +700,7 @@ public class WxAuthController {
         //判断验证码是否正确
         String cacheCode = CaptchaCodeManager.getCachedCaptcha(mobile);
         if (cacheCode == null || cacheCode.isEmpty() || !cacheCode.equals(code)) {
-            return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
+            //return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
         }
 
         String openId = "";
@@ -738,7 +743,7 @@ public class WxAuthController {
         user.setStatus((byte) 0);
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(IpUtil.getIpAddr(request));
-        userService.add(user);
+        traderService.registerUserForController(user, isTrial);
     
         // 给新用户发送注册优惠券
         couponAssignService.assignForRegister(user.getId());

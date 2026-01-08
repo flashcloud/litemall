@@ -11,12 +11,15 @@ import javax.annotation.Resource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.db.dao.LitemallGoodsMapper;
+import org.linlinjava.litemall.db.dao.LitemallOrderGoodsMapper;
 import org.linlinjava.litemall.db.dao.OrderMapper;
 import org.linlinjava.litemall.db.domain.LitemallGoods;
 import org.linlinjava.litemall.db.domain.LitemallGoodsExample;
 import org.linlinjava.litemall.db.domain.LitemallGoodsSpecification;
 import org.linlinjava.litemall.db.domain.LitemallOrder;
 import org.linlinjava.litemall.db.domain.LitemallOrderGoods;
+import org.linlinjava.litemall.db.domain.LitemallOrderGoodsExample;
+import org.linlinjava.litemall.db.domain.LitemallTrader;
 import org.linlinjava.litemall.db.domain.LitemallUser;
 import org.linlinjava.litemall.db.domain.MemberType;
 import org.linlinjava.litemall.db.domain.TraderOrderGoodsVo;
@@ -30,6 +33,7 @@ import org.linlinjava.litemall.db.util.KeywordsConstant;
 import org.linlinjava.litemall.db.util.OrderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.PageHelper;
@@ -54,6 +58,8 @@ public class LitemallMemberService {
     private LitemallGoodsMapper goodsMapper;
     @Resource
     private OrderMapper orderMapper;
+    @Resource
+    private LitemallOrderGoodsMapper orderGoodsMapper;
     
     @Autowired
     private LitemallUserService userService;
@@ -191,28 +197,73 @@ public class LitemallMemberService {
             orderService.updateSelective(memberOrder);
             return MemberStatus.MEMBER_EXPIRED; //上级会员已过期，则用户的会员状态为过期
         }
-    }    
+    }
+
+    /**
+     * 获取指定商户所订购的PC软件订单
+     * @param traderId
+     * @param serial
+     * @return
+     */
+    public LitemallOrderGoods orderedPCApp(int traderId, String serial) {
+        return convertFromTraderOrderGoodsVo(orderMapper.ordredPCApp(traderId, serial));
+    }
+
+    /**
+     * 获取用户绑定的商户所订购的PC软件订单
+     * @param user
+     * @param serial
+     * @return
+     */
+    public LitemallOrderGoods orderedPCApp(LitemallUser user, String serial) {
+        return convertFromTraderOrderGoodsVo(orderedPCAppHlp(user, serial));
+    }
 
     /**
      * 验证指定的用户是否有权限访问指定的KEY
      * @param user
      * @param serial
-     * @return
+     * @return 如果有权限返回该Key对应的购买商户ID，否则返回-1
      */
-    public boolean isValidUsePCApp(LitemallUser user, String serial) {
+    private TraderOrderGoodsVo orderedPCAppHlp(LitemallUser user, String serial) {
+        TraderOrderGoodsVo ret = null;
         if (user == null || serial == null || serial.trim().length() == 0) {
-            return false;
+            return ret;
         }
         Integer[] traderIds = user.getTraderIds();
-        if (traderIds == null || traderIds.length == 0) return false;
+        if (traderIds == null || traderIds.length == 0) return ret;
 
         for (Integer traderId : user.getTraderIds()) {
-            if (orderMapper.isValidUsePCApp(traderId, serial) >= 1) {
-                return true;
+            ret = orderMapper.ordredPCApp(traderId, serial);
+            if (ret != null) {
+                return ret;
             }
         }
 
-        return false;
+        return ret;
+    }
+
+    /**
+     * 获取指定用户对应软件Key的会员数据
+     * @param user
+     * @param serial
+     * @param containNormalMember 是否包含普通会员，因为普通会员不需要购买会员订单，只要用户绑定的商户有购买对应KEY的软件订单即可访问
+     * @return
+     */
+    public TraderOrderGoodsVo getMemberInfo(LitemallUser user, String serial, boolean containNormalMember) {
+        TraderOrderGoodsVo result = null;
+        
+        Integer[] memberOrderIds = user.getMemberOrderIds();
+        if (memberOrderIds != null && memberOrderIds.length > 0) {
+            //查找会员订单
+            result =  findMemberOrder(user, serial);
+        }
+        if (result == null && containNormalMember) {
+            //没有会员订单，则创建可能的普通会员
+            result  = createNormalMemberOrderGoods(user, serial);
+        }
+
+        return result;
     }
 
     /**
@@ -515,32 +566,7 @@ public class LitemallMemberService {
         }
     }
 
-    /**
-     * 在现有的用户会员订单嘎哥中，找到与指定otherMemberOrder相同软件订单的会员订单
-     * @param user
-     * @param otherMemberOrder
-     * @return
-     */
-    private LitemallOrder existsMemberOrderInUsOrder(LitemallUser user, LitemallOrder otherMemberOrder) { 
-        if (user.getMemberOrderIds() == null) return null;
-
-        for(Integer memberOrderId : user.getMemberOrderIds()) {
-            if (memberOrderId.equals(otherMemberOrder.getId())) {
-                return otherMemberOrder;
-            } else {
-                LitemallOrder memberOrder = orderService.findById(user.getId(), memberOrderId);
-                if (memberOrder != null) {
-                    if (memberOrder.getRootOrderId() == otherMemberOrder.getRootOrderId()) {
-                        return memberOrder;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public String getUserMemberType(LitemallUser user) {
+public String getUserMemberType(LitemallUser user) {
         //获取用户的会员类型的key值
         Integer[] memberOrderIds = user.getMemberOrderIds();
         if (memberOrderIds == null || memberOrderIds.length == 0) return "";
@@ -576,5 +602,72 @@ public class LitemallMemberService {
             memberTypes = new ArrayList<>();
         }
         return memberTypes;
+    }
+
+    /**
+     * 在现有的用户会员订单嘎哥中，找到与指定otherMemberOrder相同软件订单的会员订单
+     * @param user
+     * @param otherMemberOrder
+     * @return
+     */
+    private LitemallOrder existsMemberOrderInUsOrder(LitemallUser user, LitemallOrder otherMemberOrder) { 
+        if (user.getMemberOrderIds() == null) return null;
+
+        for(Integer memberOrderId : user.getMemberOrderIds()) {
+            if (memberOrderId.equals(otherMemberOrder.getId())) {
+                return otherMemberOrder;
+            } else {
+                LitemallOrder memberOrder = orderService.findById(user.getId(), memberOrderId);
+                if (memberOrder != null) {
+                    if (memberOrder.getRootOrderId() == otherMemberOrder.getRootOrderId()) {
+                        return memberOrder;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 将TraderOrderGoodsVo转换为LitemallOrderGoods。实际是为了应对OrderMapper.java中ordredPCApp()方法返回值的转换
+     * @param vo
+     * @return
+     */
+    private LitemallOrderGoods convertFromTraderOrderGoodsVo(TraderOrderGoodsVo vo) {
+        LitemallOrderGoods ret = null;
+        if (vo != null) {
+            ret = new LitemallOrderGoods();
+            ret.setId(vo.getId());
+            ret.setOrderId(vo.getOrderId());
+            ret.setGoodsName(vo.getRootOrderGoodsName());
+            ret.setSpecifications(vo.getRootOrderGoodsSpecifications());
+        }
+        return ret;
+    }
+
+/**
+     * 创建普通会员
+     * @param user
+     * @param serial
+     * @return 检查当前用户的商户ID对应的软件订单中是否包含此KEY，来确定是否有权限使用PC端软件
+     */
+    private TraderOrderGoodsVo createNormalMemberOrderGoods(LitemallUser user, String serial) {
+        TraderOrderGoodsVo pcAppOrder = orderedPCAppHlp(user, serial);
+
+        if (pcAppOrder == null) {
+            return null;
+        }
+
+        TraderOrderGoodsVo normalMember = new TraderOrderGoodsVo();
+        normalMember.setId(0);
+        normalMember.setTraderId(pcAppOrder.getTraderId());
+
+        normalMember.setKeywords(KeywordsConstant.KEYWORDS_MEMBER_NORMAL);
+        normalMember.setGoodsName("普通卡");
+        normalMember.setRootOrderGoodsName(pcAppOrder.getRootOrderGoodsName());
+        normalMember.setRootOrderGoodsSpecifications(pcAppOrder.getRootOrderGoodsSpecifications());
+        normalMember.setExpDateTime(LocalDateTime.now().plusYears(1000)); //普通会员有效期100年
+        return normalMember;
     }
 }

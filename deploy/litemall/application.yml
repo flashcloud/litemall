@@ -35,6 +35,15 @@ pagehelper:
   params: count=countSql
 
 litemall:
+  core:
+    soft-dev-info:
+        name: XXX有限公司
+        tax-id: 91330106591234567X
+        address: 深圳市南山区深南大道10000号XXX大厦1001室
+        phone: 0755-88888888
+        website: www.example.com
+        version: 3.8.0
+        copyright: © 2020-2021 litemall. All Rights Reserved.
   # 开发者应该设置成自己的wx相关信息
   wx:
     app-id: wxa5b486c6b918ecfb

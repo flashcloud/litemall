@@ -53,5 +53,6 @@ public class WxResponseCode {
     public static final Integer MEMBER_ORDER_EXIST_UNCHECKED = 759;
     public static final Integer AUTH_INVALID_PASSWORD = 760;
     public static final Integer TRADER_NOT_BOUND = 761;
+    public static final Integer AUTH_DOG_KEY_EMPTY = 762;
 
 }

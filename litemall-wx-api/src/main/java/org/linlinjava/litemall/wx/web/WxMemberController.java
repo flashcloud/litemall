@@ -37,7 +37,8 @@ public class WxMemberController {
     @Autowired LitemallTraderService traderService;
     @Autowired LitemallUserService userService;
     @Autowired LitemallOrderService orderService;
-    @Autowired private LitemallMemberService memberService;    
+    @Autowired private LitemallMemberService memberService;
+    @Autowired private WxOrderService wxOrderService;
     
     @GetMapping("memberInfo")
     public Object memberInfo(@LoginUser Integer userId, @RequestParam String serial) {
@@ -46,8 +47,8 @@ public class WxMemberController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
 
-        TraderOrderGoodsVo result = getMemberInfo(user, serial);
-        if (result.getId() == null || result.getId() == 0) {
+        TraderOrderGoodsVo result = memberService.getMemberInfo(user, serial, true);
+        if (result == null) {
             return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
         }
         return ResponseUtil.ok(result);
@@ -59,34 +60,23 @@ public class WxMemberController {
             return ResponseUtil.fail(AUTH_INVALID_ACCOUNT, "用户不存在");
         }
 
-        TraderOrderGoodsVo orderGoods = getMemberInfo(user, serial);
-        if (orderGoods.getId() == null || orderGoods.getId() == 0) {
+        if(serial == null || serial.trim().length() ==0){
+            return ResponseUtil.fail(WxResponseCode.AUTH_DOG_KEY_EMPTY, "软件Key不能为空");
+        }
+
+        TraderOrderGoodsVo memberOrderGoods =  memberService.getMemberInfo(user, serial, true);
+        if (memberOrderGoods == null) {
             return ResponseUtil.fail(WxResponseCode.TRADER_NOT_BOUND, "无权查看该信息");
         }
         Map<String, String> result = new HashMap<>();
-        result.put("keywords", orderGoods.getKeywords());
-        result.put("goodsName", orderGoods.getGoodsName());
-        result.put("softwareName", orderGoods.getRootOrderGoodsName() + "(" + String.join(",", orderGoods.getRootOrderGoodsSpecifications()) + ")");
-        result.put("expDateTime", orderGoods.getExpDateTime().toString());
+        //如果是普通会员，则下面的取值必须与@link LitemallMemberService#createNormalMemberOrderGoods(LitemallUser, String)方法一致
+        result.put("traderId", memberOrderGoods.getTraderId().toString());
+        result.put("keywords", memberOrderGoods.getKeywords());
+        result.put("goodsName", memberOrderGoods.getGoodsName());
+        result.put("softwareName", memberOrderGoods.getRootOrderGoodsName() + "(" + String.join(",", memberOrderGoods.getRootOrderGoodsSpecifications()) + ")");
+        result.put("expDateTime", memberOrderGoods.getExpDateTime().toString());
         return ResponseUtil.ok(result);
     }
 
-    private TraderOrderGoodsVo getMemberInfo(LitemallUser user, String serial) {
-        TraderOrderGoodsVo result = null;
-        TraderOrderGoodsVo normalMember = new TraderOrderGoodsVo();
-        normalMember.setId(0);
-        normalMember.setGoodsName("普通卡");
-
-        Integer[] memberOrderIds = user.getMemberOrderIds();
-        if (memberOrderIds == null || memberOrderIds.length == 0) {
-            result = normalMember;
-        } else {
-            result =  memberService.findMemberOrder(user, serial);
-            if (result == null){
-                result = normalMember;
-            }
-        }
-
-        return result;
-    }
+    
 }

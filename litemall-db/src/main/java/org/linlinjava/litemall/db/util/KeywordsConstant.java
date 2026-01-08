@@ -2,6 +2,9 @@ package org.linlinjava.litemall.db.util;
 
 public class KeywordsConstant {
     public static final String KEYWORDS_MEMBER = "SYS-MEMBER";
+    public static final String KEYWORDS_MEMBER_NORMAL = "SYS-MEMBER_NORMAL";
+    public static final String KEYWORDS_MEMBER_WIFI = "SYS-MEMBER_WIFI";
+    public static final String KEYWORDS_MEMBER_CLOUD = "SYS-MEMBER_CLOUD";
     public static final String KEYWORDS_GRSOFT_SOFTWARE = "SYS-GRSOFT_SOFTWARE";
     public static final String KEYWORDS_SPECI_YEARLY = "SYS-MEMBER_YEARLY";
     public static final String KEYWORDS_SPECI_YEARLY_AUTO = "SYS-MEMBER_YEARLY_AUTO";
