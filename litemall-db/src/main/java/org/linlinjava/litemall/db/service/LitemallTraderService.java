@@ -189,8 +189,7 @@ public class LitemallTraderService {
         
         String shareCode = UUID.randomUUID().toString();
         trader.setShareCode(shareCode);
-        updateById(userId, trader);
-
+        traderMapper.updateByPrimaryKeySelective(trader);
 
         return trader.getShareCode();
     }
