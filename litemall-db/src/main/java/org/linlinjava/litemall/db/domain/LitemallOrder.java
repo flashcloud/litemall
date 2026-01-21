@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.linlinjava.litemall.db.util.OrderUtil;
-import org.omg.CORBA.UNKNOWN;
 
 public class LitemallOrder {
 
