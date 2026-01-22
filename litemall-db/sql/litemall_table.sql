@@ -844,7 +844,7 @@ CREATE TABLE `litemall_trader` (
   `share_code` varchar(255) NOT NULL DEFAULT '' COMMENT '分享码',
   PRIMARY KEY (`id`),
   UNIQUE KEY `taxid` (`taxid`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='交易商户'
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='交易商户';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

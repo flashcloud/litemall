@@ -20,7 +20,7 @@
 
 LOCK TABLES `litemall_admin` WRITE;
 /*!40000 ALTER TABLE `litemall_admin` DISABLE KEYS */;
-INSERT INTO `litemall_admin` VALUES (1,'admin123','$2a$10$.rEfyBb/GURD9P2p0fRg/OAJGloGNDkJS4lY0cQHeqDgsbdTylBpu',NULL,NULL,'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif','2018-02-01 00:00:00','2018-02-01 00:00:00',0,'[1]','',0)
+-- INSERT INTO `litemall_admin` VALUES (1,'admin123','$2a$10$.rEfyBb/GURD9P2p0fRg/OAJGloGNDkJS4lY0cQHeqDgsbdTylBpu',NULL,NULL,'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif','2018-02-01 00:00:00','2018-02-01 00:00:00',0,'[1]','',0)
 /*!40000 ALTER TABLE `litemall_admin` ENABLE KEYS */;
 UNLOCK TABLES;
 
