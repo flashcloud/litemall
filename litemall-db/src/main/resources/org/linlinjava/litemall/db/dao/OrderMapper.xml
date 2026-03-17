@@ -137,7 +137,7 @@
                oi.id, o.id order_id, o.order_sn, t.id trader_id, o.pay_time, t.company_name, t.nickname,
                t.taxid, oi.goods_name, oi.specifications, oi.price, o.order_status, g.keywords,
                oi.serial, oi.bound_serial, oi.max_clients_count, oi.max_register_users_count, oi.has_register_user_ids,
-               oi.exp_date, o.pay_type, o.pay_voucher_url, o.invoice_url, CONCAT(u.nickname, '(', u.username, ')')as buyer,
+               oi.exp_date, oi.add_time, o.pay_type, o.pay_voucher_url, o.invoice_url, u.username, CONCAT(u.nickname, '(', u.username, ')')as buyer,
                o.parent_order_id, o.root_order_id
     </sql>
     <sql id="Member_Column_List">
@@ -176,12 +176,12 @@
         <result column="max_clients_count" property="maxClientsCount"/>
         <result column="max_register_users_count" property="maxRegisterUsersCount"/>
         <result column="has_register_user_ids" jdbcType="VARCHAR" property="hasRegisterUserIds" typeHandler="org.linlinjava.litemall.db.mybatis.JsonIntegerArrayTypeHandler" />
+        <result column="add_time" property="addTime"/>
         <result column="exp_date" property="expDateTime"/>
         <result column="pay_type" property="payType"/>
         <result column="pay_voucher_url" property="payVoucherUrl"/>
         <result column="invoice_url" property="invoiceUrl"/>
-        <result column="buyer" property="buyer"/>
-        <result column="buyer" property="buyer"/>
+        <result column="username" property="userName"/>
         <result column="buyer" property="buyer"/>
     </resultMap>
     <resultMap type="org.linlinjava.litemall.db.domain.OrderVo" id="orderList">

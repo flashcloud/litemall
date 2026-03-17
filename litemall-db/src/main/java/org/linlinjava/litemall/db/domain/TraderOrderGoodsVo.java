@@ -32,11 +32,13 @@ public class TraderOrderGoodsVo {
     private Short maxClientsCount;
     private Short maxRegisterUsersCount;
     private Integer[] hasRegisterUserIds;
+    private LocalDateTime addTime;
     private LocalDateTime expDateTime;
     private Byte payType;
     private String payTypeName;
     private String payVoucherUrl;
     private String invoiceUrl;
+    private String userName;
     private String buyer;
 
     @Override

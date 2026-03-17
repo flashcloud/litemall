@@ -660,6 +660,8 @@ public String getUserMemberType(LitemallUser user) {
         }
 
         TraderOrderGoodsVo normalMember = new TraderOrderGoodsVo();
+        normalMember.setUserName(user.getUsername());
+        normalMember.setAddTime(user.getAddTime());
         normalMember.setId(0);
         normalMember.setTraderId(pcAppOrder.getTraderId());
 

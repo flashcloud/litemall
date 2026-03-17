@@ -70,10 +70,12 @@ public class WxMemberController {
         }
         Map<String, String> result = new HashMap<>();
         //如果是普通会员，则下面的取值必须与@link LitemallMemberService#createNormalMemberOrderGoods(LitemallUser, String)方法一致
+        result.put("userName", memberOrderGoods.getUserName());
         result.put("traderId", memberOrderGoods.getTraderId().toString());
         result.put("keywords", memberOrderGoods.getKeywords());
         result.put("goodsName", memberOrderGoods.getGoodsName());
         result.put("softwareName", memberOrderGoods.getRootOrderGoodsName() + "(" + String.join(",", memberOrderGoods.getRootOrderGoodsSpecifications()) + ")");
+        result.put("addTime", memberOrderGoods.getAddTime().toString());
         result.put("expDateTime", memberOrderGoods.getExpDateTime().toString());
         return ResponseUtil.ok(result);
     }
