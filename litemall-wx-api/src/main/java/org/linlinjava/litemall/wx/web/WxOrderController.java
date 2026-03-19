@@ -180,6 +180,11 @@ public class WxOrderController {
             userInfo.setGender(user.getGender());
             userInfo.setMobile(user.getMobile());
             userInfo.setAddTime(user.getAddTime());
+            if (user.getLastLoginTime() != null) {
+                userInfo.setLastLoginTime(user.getLastLoginTime());
+            } else {
+                userInfo.setLastLoginTime(user.getUpdateTime());
+            }
             userInfoList.add(userInfo);
         }
 

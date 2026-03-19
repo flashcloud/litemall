@@ -25,6 +25,7 @@ public class UserInfo {
     private String mobile;
     private LocalDateTime addTime;
     private int addDays;
+    private LocalDateTime lastLoginTime;
 
     public static UserInfo cloneFromUser(LitemallUser user) {
         UserInfo userInfo = new UserInfo();
@@ -34,6 +35,7 @@ public class UserInfo {
         userInfo.setGender(user.getGender());
         userInfo.setMobile(user.getMobile());
         userInfo.setAddTime(user.getAddTime());
+        userInfo.setLastLoginTime(user.getLastLoginTime());
         return userInfo;
     }
 
@@ -143,6 +145,13 @@ public class UserInfo {
 
     public int getAddedDays() {
         return addDays;
+    }
+
+    public LocalDateTime getLastLoginTime() {
+        return lastLoginTime;
+    }
+    public void setLastLoginTime(LocalDateTime lastLoginTime) {
+        this.lastLoginTime = lastLoginTime;
     }
 
     public List<LitemallTrader> getManagedTraders() {
