@@ -212,6 +212,7 @@ public class WxAuthController {
     public Object login(@RequestBody String body, HttpServletRequest request) {
         String username = JacksonUtil.parseString(body, "username");
         String password = JacksonUtil.parseString(body, "password");
+        String clientType = JacksonUtil.parseString(body, "client");
         String token = "";
         LitemallUser user = null;
         if (!StringUtils.isEmpty(password)) {
@@ -265,7 +266,13 @@ public class WxAuthController {
 
         // token
         if (StringUtils.isEmpty(token)) {
-            token = UserTokenManager.generateToken(user.getId());
+            // token有效期,App 24小时, 普通登录 2小时
+            // TODO：短寿命 Access Token + 长寿命 Refresh Token
+            if ("app".equals(clientType)) {
+                token = UserTokenManager.generateToken(user.getId(), 24);
+            } else {
+                token = UserTokenManager.generateToken(user.getId());
+            }
         }
 
         Map<Object, Object> result = new HashMap<Object, Object>();
