@@ -54,6 +54,14 @@ litemall:
     # 商户证书文件路径
     # 请参考“商户证书”一节 https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=4_3
     key-path: xxxxx
+    # 微信支付 V3 API 密钥 (32位字符串)
+    api-v3-key: xxxxxx
+    # 商户 API 证书序列号
+    cert-serial-no: xxxxx
+    # 商户 API 证书私钥（apiclient_key.pem）路径
+    private-key-path: xxxxx
+    # 商户 API 证书（apiclient_cert.pem）路径
+    private-cert-path: xxxxx    
 
   #通知相关配置
   notify:
@@ -75,7 +83,6 @@ litemall:
       # 如果是阿里云短信，则设置active的值aliyun
       active: aliyun
       sign: litemall
-      template:
       template:
         - name: submitOrder
           templateId: SMS_000000000

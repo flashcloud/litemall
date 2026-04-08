@@ -1,16 +1,16 @@
 package org.linlinjava.litemall.wx.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.binarywang.wxpay.bean.notify.SignatureHeader;
 import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
-import com.github.binarywang.wxpay.bean.notify.WxPayOrderNotifyResult;
-import com.github.binarywang.wxpay.bean.order.WxPayMpOrderResult;
-import com.github.binarywang.wxpay.bean.order.WxPayMwebOrderResult;
-import com.github.binarywang.wxpay.bean.request.WxPayUnifiedOrderRequest;
-import com.github.binarywang.wxpay.bean.result.BaseWxPayResult;
-import com.github.binarywang.wxpay.constant.WxPayConstants;
+import com.github.binarywang.wxpay.bean.notify.WxPayOrderNotifyV3Result;
+import com.github.binarywang.wxpay.bean.result.WxPayUnifiedOrderV3Result;
+import com.github.binarywang.wxpay.bean.result.WxPayUnifiedOrderV3Result.AppResult;
+import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryV3Result;
+import com.github.binarywang.wxpay.bean.request.WxPayUnifiedOrderV3Request;
+import com.github.binarywang.wxpay.bean.result.enums.TradeTypeEnum;
 import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.linlinjava.litemall.core.express.ExpressService;
@@ -25,6 +25,7 @@ import org.linlinjava.litemall.core.util.JacksonUtil;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.db.domain.*;
+import org.linlinjava.litemall.db.domain.LitemallOrder.PayTypeEnum;
 import org.linlinjava.litemall.db.exception.DataStatusException;
 import org.linlinjava.litemall.db.exception.MaxTwoMemberOrderException;
 import org.linlinjava.litemall.db.exception.MemberOrderDataException;
@@ -48,6 +49,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -680,7 +682,7 @@ public class WxOrderService {
             if (payType == null || payType == LitemallOrder.PayTypeEnum.UNKNOWN) {
                 transactionManager.rollback(status);
                 return ResponseUtil.fail(-1, "非法的参数payType值");
-            } else {
+            } else if (payType == LitemallOrder.PayTypeEnum.WEIXIN_JSAPI) {
                 //发起预支付
                 Map<String, String> prepayParams = JacksonUtil.toMap(body);
                 prepayParams.put("orderId", orderId.toString());
@@ -750,6 +752,12 @@ public class WxOrderService {
             throw new RuntimeException("更新数据已失效");
         }
 
+        cancelOrPayFail(orderId);
+
+        return ResponseUtil.ok();
+    }
+
+    private void cancelOrPayFail(Integer orderId) {
         // 商品货品数量增加
         List<LitemallOrderGoods> orderGoodsList = orderGoodsService.queryByOid(orderId);
         for (LitemallOrderGoods orderGoods : orderGoodsList) {
@@ -762,8 +770,6 @@ public class WxOrderService {
 
         // 返还优惠券
         releaseCoupon(orderId);
-
-        return ResponseUtil.ok();
     }
 
     /**
@@ -844,26 +850,49 @@ public class WxOrderService {
         }
 
         String openid = user.getWeixinOpenid();
-        if (openid == null) {
+        if (payType == LitemallOrder.PayTypeEnum.WEIXIN_JSAPI && (openid == null || openid.isEmpty())) {
             return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
         }
 
-        if (payType == LitemallOrder.PayTypeEnum.WEIXIN) {
-            WxPayMpOrderResult result = null;
+        if (LitemallOrder.PayTypeEnum.isWEIXIN(payType)) {
+            AppResult appResult = null;
+            //WxPayUnifiedOrderV3Result result = null;
+            Object result = null;
             try {
-                WxPayUnifiedOrderRequest orderRequest = new WxPayUnifiedOrderRequest();
+                WxPayUnifiedOrderV3Request orderRequest = new WxPayUnifiedOrderV3Request();
+                orderRequest.setAppid(wxPayService.getConfig().getAppId());
+                orderRequest.setMchid(wxPayService.getConfig().getMchId());
+                orderRequest.setDescription("订单：" + order.getOrderSn());
                 orderRequest.setOutTradeNo(order.getOrderSn());
-                orderRequest.setOpenid(openid);
-                orderRequest.setBody("订单：" + order.getOrderSn());
-                // 元转成分
-                int fee = 0;
-                BigDecimal actualPrice = order.getActualPrice();
-                fee = actualPrice.multiply(new BigDecimal(100)).intValue();
-                orderRequest.setTotalFee(fee);
-                orderRequest.setSpbillCreateIp(IpUtil.getIpAddr(request));
+                orderRequest.setNotifyUrl(wxPayService.getConfig().getNotifyUrl());
 
-                result = wxPayService.createOrder(orderRequest);
+                WxPayUnifiedOrderV3Request.Payer payer = new WxPayUnifiedOrderV3Request.Payer();
+                if (payType == LitemallOrder.PayTypeEnum.WEIXIN_JSAPI) {
+                    payer.setOpenid(openid);
+                }
+                orderRequest.setPayer(payer);
+
+                // 元转成分
+                BigDecimal actualPrice = order.getActualPrice();
+                int fee = actualPrice.movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValue();
+                WxPayUnifiedOrderV3Request.Amount amount = new WxPayUnifiedOrderV3Request.Amount();
+                amount.setTotal(fee);
+                amount.setCurrency("CNY");
+                orderRequest.setAmount(amount);
+
+                logger.info("微信支付V3 " + payType.typeEn() + "下单, orderSn=" + order.getOrderSn()
+                    + ", feeFen=" + fee
+                    + ", notifyUrl=" + wxPayService.getConfig().getNotifyUrl()
+                    + ", openid=" + maskValue(openid));
+
+                result = wxPayService.createOrderV3(toWeiXinTradeType(payType), orderRequest);
+                if (payType == LitemallOrder.PayTypeEnum.WEIXIN_APP) {
+                    appResult = (AppResult) result;
+                }
             } catch (Exception e) {
+                logger.error("微信支付V3 " + payType.typeEn() + "下单失败, orderSn=" + order.getOrderSn()
+                    + ", openid=" + maskValue(openid)
+                    + ", message=" + e.getMessage(), e);
                 e.printStackTrace();
                 return ResponseUtil.fail(ORDER_PAY_FAIL, "订单使用微信支付失败");
             }
@@ -871,10 +900,157 @@ public class WxOrderService {
             if (orderService.updateWithOptimisticLocker(order) == 0) {
                 return ResponseUtil.updatedDateExpired();
             }
+            if (payType == LitemallOrder.PayTypeEnum.WEIXIN_APP) {
+                String sign = generateWeiXinV3SignString(order, appResult);
+                Map<String, Object> data = new HashMap<>();
+                data.put("appId", appResult.getAppid());
+                data.put("partnerId", appResult.getPartnerid());
+                data.put("prepayId", appResult.getPrepayid());
+                data.put("packageValue", appResult.getPackageValue());
+                data.put("nonceStr", appResult.getNoncestr());
+                data.put("timeStamp", appResult.getTimestamp());
+                data.put("sign", sign);
+                return ResponseUtil.ok(data);
+            }
             return ResponseUtil.ok(result);
         } else {
             return ResponseUtil.ok();
         }
+    }
+
+    public  TradeTypeEnum toWeiXinTradeType(PayTypeEnum payType) {
+        if (payType == null) {
+            return null;
+        }
+        if (payType == PayTypeEnum.WEIXIN_APP) {
+            return TradeTypeEnum.APP;
+        }
+        if (payType == PayTypeEnum.WEIXIN_JSAPI) {
+            return TradeTypeEnum.JSAPI;
+        }
+        return null;
+    }
+
+    /**
+     * 查询微信支付状态（用于前端轮询）
+     *
+     * @param userId 用户ID
+     * @param body   订单信息，{ orderId：xxx }
+     * @return 查询结果
+     */
+    public Object queryWeChatPayStatus(Integer userId, String body) {
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+        Integer orderId = JacksonUtil.parseInteger(body, "orderId");
+        if (orderId == null) {
+            return ResponseUtil.badArgument();
+        }
+
+        LitemallOrder order = orderService.findById(userId, orderId);
+        if (order == null) {
+            return ResponseUtil.badArgumentValue();
+        }
+        if (!order.getUserId().equals(userId)) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderId", order.getId());
+        result.put("orderSn", order.getOrderSn());
+        result.put("orderStatus", order.getOrderStatus());
+        result.put("paid", OrderUtil.hasPayed(order));
+        result.put("canRetryPay", OrderUtil.STATUS_CREATE.equals(order.getOrderStatus()));
+
+        if (OrderUtil.hasPayed(order)) {
+            result.put("tradeState", "SUCCESS");
+            result.put("tradeStateDesc", "订单已支付");
+            result.put("payId", order.getPayId());
+            return ResponseUtil.ok(result);
+        }
+
+        // 未进入微信支付流程时，直接返回待支付。
+        if (LitemallOrder.PayTypeEnum.isWEIXIN(order.getPayTypeEnum())) {
+            result.put("tradeState", "NOTPAY");
+            result.put("tradeStateDesc", "订单待支付");
+            return ResponseUtil.ok(result);
+        }
+
+        try {
+            WxPayOrderQueryV3Result wxResult = wxPayService.queryOrderV3(null, order.getOrderSn());
+            String tradeState = wxResult == null ? null : wxResult.getTradeState();
+            result.put("tradeState", tradeState == null ? "UNKNOWN" : tradeState);
+            result.put("tradeStateDesc", wxResult == null ? "微信查询无返回" : wxResult.getTradeStateDesc());
+            result.put("transactionId", wxResult == null ? null : wxResult.getTransactionId());
+
+            boolean paid = "SUCCESS".equals(tradeState) || "REFUND".equals(tradeState);
+            result.put("paid", paid);
+            result.put("canRetryPay", !paid && OrderUtil.STATUS_CREATE.equals(order.getOrderStatus()));
+            return ResponseUtil.ok(result);
+        } catch (WxPayException e) {
+            logger.error("微信支付状态查询失败, orderSn=" + order.getOrderSn()
+                    + ", message=" + e.getMessage(), e);
+            result.put("tradeState", "QUERY_FAILED");
+            result.put("tradeStateDesc", "微信支付状态查询失败");
+            result.put("canRetryPay", OrderUtil.STATUS_CREATE.equals(order.getOrderStatus()));
+            return ResponseUtil.ok(result);
+        }
+    }
+
+    /**
+     * 微信支付取消或失败后，回退订单为未支付状态
+     *
+     * @param userId 用户ID
+     * @param body   订单信息，{ orderId：xxx }
+     * @return 操作结果
+     */
+    @Transactional
+    public Object payFail(Integer userId, String body) {
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+        Integer orderId = JacksonUtil.parseInteger(body, "orderId");
+        if (orderId == null) {
+            return ResponseUtil.badArgument();
+        }
+
+        LitemallOrder order = orderService.findById(userId, orderId);
+        if (order == null) {
+            return ResponseUtil.badArgumentValue();
+        }
+        if (!order.getUserId().equals(userId)) {
+            return ResponseUtil.badArgumentValue();
+        }
+
+        // 如果订单已产生支付流水或支付时间，说明支付已成功处理，不能回退。
+        if ((order.getPayId() != null && !order.getPayId().isEmpty()) || order.getPayTime() != null) {
+            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单已支付，不能回退为待支付状态");
+        }
+
+        Short orderStatus = order.getOrderStatus();
+        if (!(OrderUtil.STATUS_CREATE.equals(orderStatus) || OrderUtil.STATUS_PAY.equals(orderStatus))) {
+            return ResponseUtil.fail(ORDER_INVALID_OPERATION, "当前订单状态不支持回退为待支付");
+        }
+
+        boolean needUpdate = false;
+        if (!OrderUtil.STATUS_CREATE.equals(orderStatus)) {
+            order.setOrderStatus(OrderUtil.STATUS_CREATE);
+            needUpdate = true;
+        }
+        if (LitemallOrder.PayTypeEnum.isWEIXIN(order.getPayTypeEnum())) {
+            order.setPayType(LitemallOrder.PayTypeEnum.UNKNOWN.typeEn());
+            needUpdate = true;
+        }
+
+        if (needUpdate) {
+            if (orderService.updateWithOptimisticLocker(order) == 0) {
+                return ResponseUtil.updatedDateExpired();
+            }
+        }
+
+        cancelOrPayFail(orderId);        
+
+        return ResponseUtil.ok();
     }
 
     /**
@@ -909,30 +1085,48 @@ public class WxOrderService {
             return ResponseUtil.fail(ORDER_INVALID_OPERATION, "订单不能支付");
         }
 
-        LitemallUser user = userService.findById(userId);
-        String openid = user.getWeixinOpenid();
-        if (openid == null) {
-            return ResponseUtil.fail(AUTH_OPENID_UNACCESS, "请使用微信扫码登录后，再支付本订单");
-        }
+        order.setPayType(LitemallOrder.PayTypeEnum.WEIXIN_JSAPI.typeEn());
 
-        WxPayMwebOrderResult result = null;
+        String result;
         try {
-            WxPayUnifiedOrderRequest orderRequest = new WxPayUnifiedOrderRequest();
+            WxPayUnifiedOrderV3Request orderRequest = new WxPayUnifiedOrderV3Request();
+            orderRequest.setAppid(wxPayService.getConfig().getAppId());
+            orderRequest.setMchid(wxPayService.getConfig().getMchId());
+            orderRequest.setDescription("订单：" + order.getOrderSn());
             orderRequest.setOutTradeNo(order.getOrderSn());
-            orderRequest.setOpenid(openid);
-            orderRequest.setTradeType("MWEB");
-            orderRequest.setBody("订单：" + order.getOrderSn());
-            // 元转成分
-            int fee = 0;
-            BigDecimal actualPrice = order.getActualPrice();
-            fee = actualPrice.multiply(new BigDecimal(100)).intValue();
-            orderRequest.setTotalFee(fee);
-            orderRequest.setSpbillCreateIp(IpUtil.getIpAddr(request));
+            orderRequest.setNotifyUrl(wxPayService.getConfig().getNotifyUrl());
 
-            result = wxPayService.createOrder(orderRequest);
+            // 元转成分
+            BigDecimal actualPrice = order.getActualPrice();
+            int fee = actualPrice.movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValue();
+            WxPayUnifiedOrderV3Request.Amount amount = new WxPayUnifiedOrderV3Request.Amount();
+            amount.setTotal(fee);
+            amount.setCurrency("CNY");
+            orderRequest.setAmount(amount);
+
+            WxPayUnifiedOrderV3Request.SceneInfo sceneInfo = new WxPayUnifiedOrderV3Request.SceneInfo();
+            sceneInfo.setPayerClientIp(IpUtil.getIpAddr(request));
+            WxPayUnifiedOrderV3Request.H5Info h5Info = new WxPayUnifiedOrderV3Request.H5Info();
+            h5Info.setType("Wap");
+            sceneInfo.setH5Info(h5Info);
+            orderRequest.setSceneInfo(sceneInfo);
+
+            logger.info("微信支付V3 H5下单, orderSn=" + order.getOrderSn()
+                    + ", feeFen=" + fee
+                    + ", clientIp=" + sceneInfo.getPayerClientIp()
+                    + ", notifyUrl=" + wxPayService.getConfig().getNotifyUrl());
+
+            result = wxPayService.unifiedOrderV3(TradeTypeEnum.H5, orderRequest).getH5Url();
+
+            if (orderService.updateWithOptimisticLocker(order) == 0) {
+                return ResponseUtil.updatedDateExpired();
+            }
 
         } catch (Exception e) {
+            logger.error("微信支付V3 H5下单失败, orderSn=" + order.getOrderSn()
+                    + ", message=" + e.getMessage(), e);
             e.printStackTrace();
+            return ResponseUtil.fail(ORDER_PAY_FAIL, "订单使用微信支付失败");
         }
 
         return ResponseUtil.ok(result);
@@ -954,59 +1148,85 @@ public class WxOrderService {
         DefaultTransactionDefinition def = new DefaultTransactionDefinition();
         TransactionStatus status = transactionManager.getTransaction(def);
 
-        String xmlResult = null;
+        String jsonResult;
         try {
-            xmlResult = IOUtils.toString(request.getInputStream(), request.getCharacterEncoding());
+            jsonResult = request.getReader().lines().reduce("", (a, b) -> a + b);
         } catch (IOException e) {
+            logger.error("读取微信支付V3回调失败, message=" + e.getMessage(), e);
             e.printStackTrace();
-            return WxPayNotifyResponse.fail(e.getMessage());
+            return wxPayNotifyV3Fail(response, e.getMessage());
         }
 
-        WxPayOrderNotifyResult result = null;
-        try {
-            result = wxPayService.parseOrderNotifyResult(xmlResult);
+        WxPayOrderNotifyV3Result result;
+        SignatureHeader signatureHeader = new SignatureHeader();
+        signatureHeader.setTimeStamp(request.getHeader("Wechatpay-Timestamp"));
+        signatureHeader.setNonce(request.getHeader("Wechatpay-Nonce"));
+        signatureHeader.setSignature(request.getHeader("Wechatpay-Signature"));
+        signatureHeader.setSerial(request.getHeader("Wechatpay-Serial"));
 
-            if(!WxPayConstants.ResultCode.SUCCESS.equals(result.getResultCode())){
-                logger.error(xmlResult);
-                throw new WxPayException("微信通知支付失败！");
-            }
-            if(!WxPayConstants.ResultCode.SUCCESS.equals(result.getReturnCode())){
-                logger.error(xmlResult);
+        logger.info("收到微信支付V3回调, timestamp=" + signatureHeader.getTimeStamp()
+                + ", serial=" + signatureHeader.getSerial()
+            + ", nonce=" + signatureHeader.getNonce());
+
+        try {
+            result = wxPayService.parseOrderNotifyV3Result(jsonResult, signatureHeader);
+
+            if (!"SUCCESS".equals(result.getResult().getTradeState())) {
+                logger.error("微信支付V3回调交易状态非SUCCESS, orderSn=" + result.getResult().getOutTradeNo()
+                        + ", tradeState=" + result.getResult().getTradeState()
+                        + ", tradeStateDesc=" + result.getResult().getTradeStateDesc());
                 throw new WxPayException("微信通知支付失败！");
             }
         } catch (WxPayException e) {
+            logger.error("微信支付V3回调验签或解密失败, serial=" + signatureHeader.getSerial()
+                    + ", timestamp=" + signatureHeader.getTimeStamp()
+                    + ", body=" + abbreviateForLog(jsonResult)
+                    + ", message=" + e.getMessage(), e);
             e.printStackTrace();
-            return WxPayNotifyResponse.fail(e.getMessage());
+            return wxPayNotifyV3Fail(response, e.getMessage());
         }
 
-        logger.info("处理腾讯支付平台的订单支付");
-        logger.info(result);
-
-        String orderSn = result.getOutTradeNo();
-        String payId = result.getTransactionId();
+        String orderSn = result.getResult().getOutTradeNo();
+        String payId = result.getResult().getTransactionId();
+        logger.info("处理微信支付V3回调, orderSn=" + orderSn
+                + ", payId=" + payId
+                + ", tradeState=" + result.getResult().getTradeState());
 
         // 分转化成元
-        String totalFee = BaseWxPayResult.fenToYuan(result.getTotalFee());
+        BigDecimal totalFee = new BigDecimal(result.getResult().getAmount().getTotal()).movePointLeft(2);
         LitemallOrder order = orderService.findBySn(orderSn);
         if (order == null) {
-            return WxPayNotifyResponse.fail("订单不存在 sn=" + orderSn);
+            logger.error("微信支付V3回调对应订单不存在, orderSn=" + orderSn + ", payId=" + payId);
+            return wxPayNotifyV3Fail(response, "订单不存在 sn=" + orderSn);
         }
 
         // 检查这个订单是否已经处理过
         if (OrderUtil.hasPayed(order)) {
-            return WxPayNotifyResponse.success("订单已经处理成功!");
+            logger.info("微信支付V3回调重复通知, orderSn=" + orderSn + ", payId=" + payId);
+            return wxPayNotifyV3Success(response, "订单已经处理成功!");
         }
 
         // 检查支付订单金额
-        if (!totalFee.equals(order.getActualPrice().toString())) {
-            return WxPayNotifyResponse.fail(order.getOrderSn() + " : 支付金额不符合 totalFee=" + totalFee);
+        if (totalFee.compareTo(order.getActualPrice()) != 0) {
+            logger.error("微信支付V3回调金额不一致, orderSn=" + orderSn
+                    + ", callbackAmount=" + totalFee
+                    + ", orderAmount=" + order.getActualPrice()
+                    + ", payId=" + payId);
+            return wxPayNotifyV3Fail(response, order.getOrderSn() + " : 支付金额不符合 totalFee=" + totalFee);
         }
 
         order.setPayId(payId);
         order.setPayTime(LocalDateTime.now());
         order.setOrderStatus(OrderUtil.STATUS_PAY);
         if (orderService.updateWithOptimisticLocker(order) == 0) {
-            return WxPayNotifyResponse.fail("更新数据已失效");
+            return wxPayNotifyV3Fail(response, "更新数据已失效");
+        }
+
+        // 更新用户的微信openid
+        LitemallUser user = userService.findById(order.getUserId());
+        if (user != null && user.getWeixinOpenid() == null) {
+            user.setWeixinOpenid(result.getResult().getPayer().getOpenid());
+            userService.updateById(user);
         }
 
         //如果是购买会员，则进入会员订单及用户的会员到期日逻辑
@@ -1015,7 +1235,10 @@ public class WxOrderService {
             isMemberOrder = memberService.updateUserMemberStatus(order);
         } catch (IllegalArgumentException | MemberOrderDataException | MaxTwoMemberOrderException e) {
             transactionManager.rollback(status);
-            return ResponseUtil.fail(ORDER_CHECKOUT_MEMBER_FAIL, e.getMessage());
+            logger.error("微信支付V3回调处理会员订单失败, orderSn=" + orderSn
+                    + ", payId=" + payId
+                    + ", message=" + e.getMessage(), e);
+            return wxPayNotifyV3Fail(response, e.getMessage());
         }
         
 
@@ -1031,7 +1254,7 @@ public class WxOrderService {
             }
             groupon.setStatus(GrouponConstant.STATUS_ON);
             if (grouponService.updateById(groupon) == 0) {
-                return WxPayNotifyResponse.fail("更新数据已失效");
+                return wxPayNotifyV3Fail(response, "更新数据已失效");
             }
 
 
@@ -1055,7 +1278,7 @@ public class WxOrderService {
         // 取消订单超时未支付任务
         taskService.removeTask(new OrderUnpaidTask(order.getId()));
 
-        return WxPayNotifyResponse.success("处理成功!");
+        return wxPayNotifyV3Success(response, "处理成功!");
     }
 
     /**
@@ -1498,5 +1721,76 @@ public class WxOrderService {
         }
 
         return ResponseUtil.ok();
+    }
+
+    private String maskValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        if (value.length() <= 6) {
+            return "***";
+        }
+        return value.substring(0, 3) + "***" + value.substring(value.length() - 3);
+    }
+
+    private String abbreviateForLog(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value.replaceAll("\\s+", " ").trim();
+        int maxLength = 600;
+        if (sanitized.length() <= maxLength) {
+            return sanitized;
+        }
+        return sanitized.substring(0, maxLength) + "...";
+    }
+
+/*
+     * 生成微信支付签名
+     */
+    private String generateWeiXinV3SignString(LitemallOrder order, AppResult appResult) {
+        String appId = appResult.getAppid();
+        String prepayId = appResult.getPrepayid();
+        String nonceStr = appResult.getNoncestr();
+        String timestamp = appResult.getTimestamp();
+        
+        // 构建待签名字符串（APP调起支付签名规则：appId\ntimeStamp\nnonceStr\nprepay_id\n）
+        String signMessage = appId + "\n" +
+                                timestamp + "\n" +
+                                nonceStr + "\n" +
+                                prepayId + "\n";
+        
+        try {
+            // 使用商户API证书私钥进行SHA256withRSA签名
+            java.security.PrivateKey privateKey = wxPayService.getConfig().getPrivateKey();
+            java.security.Signature signature = java.security.Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(signMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String result = java.util.Base64.getEncoder().encodeToString(signature.sign());
+            return result;
+        } catch (Exception e) {
+            logger.error("生成微信支付签名失败, orderSn=" + order.getOrderSn()
+                    + ", message=" + e.getMessage(), e);
+            throw new RuntimeException("生成微信支付签名失败", e);
+        }
+    }
+
+    private String wxPayNotifyV3Success(HttpServletResponse response, String message) {
+        return wxPayNotifyV3Response(response, "SUCCESS", message);
+    }
+
+    private String wxPayNotifyV3Fail(HttpServletResponse response, String message) {
+        return wxPayNotifyV3Response(response, "FAIL", message);
+    }
+
+    private String wxPayNotifyV3Response(HttpServletResponse response, String code, String message) {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+
+        Map<String, String> result = new LinkedHashMap<>();
+        result.put("code", code);
+        result.put("message", message == null ? "" : message);
+        return JacksonUtil.toJson(result);
     }
 }

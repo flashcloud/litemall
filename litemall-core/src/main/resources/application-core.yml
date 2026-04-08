@@ -1,4 +1,13 @@
 litemall:
+  core:
+    soft-dev-info:
+        name: XXX有限公司
+        tax-id: 91510100679691257B
+        address: 深圳市南山区深南大道10000号XXX大厦1001室
+        phone: 0755-88888888
+        website: www.example.com
+        version: 3.8.0
+        copyright: © 2020-2021 litemall. All Rights Reserved.
   # 开发者应该设置成自己的wx相关信息
   wx:
     app-id: wxa5b486c6b918ecfb
@@ -10,7 +19,15 @@ litemall:
     redirect-uri:
     # 商户证书文件路径
     # 请参考“商户证书”一节 https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=4_3
-    key-path: xxxxx
+    key-path: apiclient_cert.p12
+    # 微信支付 V3 API 密钥 (32位字符串)
+    api-v3-key: xxx
+    # 商户 API 证书序列号
+    cert-serial-no: xxx
+    # 商户 API 证书私钥（apiclient_key.pem）路径
+    private-key-path: apiclient_key.pem
+    # 商户 API 证书（apiclient_cert.pem）路径
+    private-cert-path: apiclient_cert.pem
     # 消息推送配置token
     token:
     # 消息推送配置AesKey

@@ -10,7 +10,7 @@ import org.linlinjava.litemall.db.util.OrderUtil;
 public class LitemallOrder {
 
     public enum PayTypeEnum {
-        UNKNOWN((byte) 0, "未知", "unknown"), ALIPAY((byte) 1, "支付宝", "ali"), WEIXIN((byte) 2, "微信", "wx"), OFFLINE((byte) 3, "线下", "offline");
+        UNKNOWN((byte) 0, "未知", "unknown"), ALIPAY((byte) 1, "支付宝", "ali"), WEIXIN_JSAPI((byte) 2, "微信", "wx_jsapi"), WEIXIN_APP((byte) 4, "微信", "wx_app"), OFFLINE((byte) 3, "线下", "offline");
 
         private final Byte value;
         private final String typeName;
@@ -20,6 +20,16 @@ public class LitemallOrder {
             this.value = value;
             this.typeName = typeName;
             this.typeEn = typeEn;
+        }
+
+        public static boolean isWEIXIN(PayTypeEnum value) {
+            if (value == null) {
+                return false;
+            }
+            if (value == WEIXIN_APP || value == WEIXIN_JSAPI) {
+                return true;
+            }
+            return false;
         }
 
         public byte value() {
@@ -41,8 +51,10 @@ public class LitemallOrder {
             switch (typeEn) {
                 case "ali":
                     return PayTypeEnum.ALIPAY;
-                case "wx":
-                    return PayTypeEnum.WEIXIN;
+                case "wx_jsapi":
+                    return PayTypeEnum.WEIXIN_JSAPI;
+                case "wx_app":
+                    return PayTypeEnum.WEIXIN_APP;
                 case "offline":
                     return PayTypeEnum.OFFLINE;
                 default:
@@ -58,8 +70,11 @@ public class LitemallOrder {
         if (this.payType == PayTypeEnum.ALIPAY.value()) {
             return PayTypeEnum.ALIPAY;
         }
-        if (this.payType == PayTypeEnum.WEIXIN.value()) {
-            return PayTypeEnum.WEIXIN;
+        if (this.payType == PayTypeEnum.WEIXIN_JSAPI.value()) {
+            return PayTypeEnum.WEIXIN_JSAPI;
+        }
+        if (this.payType == PayTypeEnum.WEIXIN_APP.value()) {
+            return PayTypeEnum.WEIXIN_APP;
         }
         if (this.payType == PayTypeEnum.OFFLINE.value()) {
             return PayTypeEnum.OFFLINE;

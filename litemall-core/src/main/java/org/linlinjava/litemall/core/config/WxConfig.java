@@ -44,11 +44,19 @@ public class WxConfig {
         WxPayConfig payConfig = new WxPayConfig();
         payConfig.setAppId(properties.getAppId());
         payConfig.setMchId(properties.getMchId());
-        payConfig.setMchKey(properties.getMchKey());
         payConfig.setNotifyUrl(properties.getNotifyUrl());
-        payConfig.setKeyPath(properties.getKeyPath());
         payConfig.setTradeType("JSAPI");
-        payConfig.setSignType("MD5");
+        payConfig.setSignType("RSA");
+
+        // 保留 V2 兼容配置（退款等仍可能依赖）
+        payConfig.setMchKey(properties.getMchKey());
+        payConfig.setKeyPath(properties.getKeyPath());
+
+        // V3 必需配置
+        payConfig.setPrivateKeyPath(properties.getPrivateKeyPath());
+        payConfig.setPrivateCertPath(properties.getPrivateCertPath());
+        payConfig.setApiV3Key(properties.getApiV3Key());
+        payConfig.setCertSerialNo(properties.getCertSerialNo());
         return payConfig;
     }
 

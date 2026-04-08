@@ -27,7 +27,7 @@
             <template slot="title">
               <img src="../../../assets/images/wx_pay.png" alt="微信支付" width="113" height="23">
             </template>            
-            <van-radio name="wx"/>
+            <van-radio name="wx_jsapi"/>
           </van-cell>
           <van-cell>
             <template slot="title">
@@ -65,12 +65,14 @@ import _ from 'lodash';
 import { getLocalStorage, setLocalStorage } from '@/utils/local-storage';
 import OfflinePaymentModal from '@/components/offline-pay/index.vue';
 
+const defaultPayWay = 'wx_jsapi';
+
 export default {
   name: 'payment',
 
   data() {
     return {
-      payWay: 'wx',
+      payWay: defaultPayWay,
       order: {
         orderInfo: {},
         orderGoods: []
@@ -109,7 +111,7 @@ export default {
     },
     handleOfflineModalClose() {
       if (this.payWay === 'offline' && this.payVoucherUrl === '') {
-        this.payWay = 'wx';
+        this.payWay = defaultPayWay;
       }
     },
     getOrder(orderId) {
@@ -144,7 +146,7 @@ export default {
 
          this.payVoucherUrl = '';
       
-        if (this.payWay === 'wx') {
+        if (this.payWay === defaultPayWay) {
           let ua = navigator.userAgent.toLowerCase();
           let isWeixin = ua.indexOf('micromessenger') != -1;
           if (isWeixin) {

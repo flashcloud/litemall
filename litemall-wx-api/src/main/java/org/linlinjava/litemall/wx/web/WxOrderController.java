@@ -251,6 +251,30 @@ public class WxOrderController {
     }
 
     /**
+     * 查询微信支付状态（用于前端轮询）
+     *
+     * @param userId 用户ID
+     * @param body   订单信息，{ orderId：xxx }
+     * @return 查询结果
+     */
+    @PostMapping("queryWeChatPayStatus")
+    public Object queryWeChatPayStatus(@LoginUser Integer userId, @RequestBody String body) {
+        return wxOrderService.queryWeChatPayStatus(userId, body);
+    }
+
+    /**
+     * 微信支付取消或失败后，将订单回退为待支付
+     *
+     * @param userId 用户ID
+     * @param body   订单信息，{ orderId：xxx }
+     * @return 操作结果
+     */
+    @PostMapping("pay-fail")
+    public Object payFail(@LoginUser Integer userId, @RequestBody String body) {
+        return wxOrderService.payFail(userId, body);
+    }
+
+    /**
      * 微信H5支付
      * @param userId
      * @param body

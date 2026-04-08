@@ -19,6 +19,14 @@ public class WxProperties {
 
     private String keyPath;
 
+    private String privateKeyPath;
+
+    private String privateCertPath;
+
+    private String apiV3Key;
+
+    private String certSerialNo;
+
     private String token;
 
     private String aesKey;
@@ -85,5 +93,37 @@ public class WxProperties {
 
     public void setKeyPath(String keyPath) {
         this.keyPath = keyPath;
+    }
+
+    public String getPrivateKeyPath() {
+        return privateKeyPath;
+    }
+
+    public void setPrivateKeyPath(String privateKeyPath) {
+        this.privateKeyPath = privateKeyPath;
+    }
+
+    public String getPrivateCertPath() {
+        return privateCertPath;
+    }
+
+    public void setPrivateCertPath(String privateCertPath) {
+        this.privateCertPath = privateCertPath;
+    }
+
+    public String getApiV3Key() {
+        return apiV3Key;
+    }
+
+    public void setApiV3Key(String apiV3Key) {
+        this.apiV3Key = apiV3Key;
+    }
+
+    public String getCertSerialNo() {
+        return certSerialNo;
+    }
+
+    public void setCertSerialNo(String certSerialNo) {
+        this.certSerialNo = certSerialNo;
     }
 }
