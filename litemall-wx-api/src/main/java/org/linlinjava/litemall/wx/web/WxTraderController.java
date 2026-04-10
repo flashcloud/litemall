@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
+
 /**
  * 用户收货地址服务
  */
@@ -294,6 +295,15 @@ public class WxTraderController {
             return ResponseUtil.fail();
         }
     }    
+
+    @GetMapping("getSoftDeveloper")
+    public Object getSoftDeveloper(@LoginUser Integer userId) {
+        if (userId == null) {
+            return ResponseUtil.unlogin();
+        }
+        return ResponseUtil.ok(traderService.getSoftwareDevTrader());
+    }
+    
 
     private Object validate(LitemallTrader trader) {
         if (!traderService.validate(trader)) return ResponseUtil.badArgument();
