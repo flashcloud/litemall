@@ -48,6 +48,20 @@ public class LitemallOrderGoodsService {
         return (short) count;
     }
 
+    public String getFirstOrderedGoodsInfo(Integer orderId) {
+        if (orderId == null) {
+            return "";
+        }
+        List<LitemallOrderGoods> orderGoodsList = queryByOid(orderId);
+        if (orderGoodsList.size() > 0) {
+            LitemallOrderGoods orderGoods = orderGoodsList.get(0);
+            String specifications = orderGoods.getSpecifications() != null ? "-" +  String.join(", ", orderGoods.getSpecifications()) : "";
+            String result = orderGoods.getGoodsName() + specifications;
+            return result;
+        }
+        return "";
+    }
+
     public boolean checkExist(Integer goodsId) {
         LitemallOrderGoodsExample example = new LitemallOrderGoodsExample();
         example.or().andGoodsIdEqualTo(goodsId).andDeletedEqualTo(false);

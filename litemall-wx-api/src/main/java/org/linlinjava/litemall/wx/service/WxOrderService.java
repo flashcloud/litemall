@@ -859,10 +859,16 @@ public class WxOrderService {
             //WxPayUnifiedOrderV3Result result = null;
             Object result = null;
             try {
+                // 订单描述
+                String des = orderGoodsService.getFirstOrderedGoodsInfo(orderId);
+                if (des == null || des.isEmpty()) {
+                    des = "订单：" + order.getOrderSn();
+                }
+                
                 WxPayUnifiedOrderV3Request orderRequest = new WxPayUnifiedOrderV3Request();
                 orderRequest.setAppid(wxPayService.getConfig().getAppId());
                 orderRequest.setMchid(wxPayService.getConfig().getMchId());
-                orderRequest.setDescription("订单：" + order.getOrderSn());
+                orderRequest.setDescription(des);
                 orderRequest.setOutTradeNo(order.getOrderSn());
                 orderRequest.setNotifyUrl(wxPayService.getConfig().getNotifyUrl());
 
