@@ -13,6 +13,7 @@ import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.linlinjava.litemall.core.config.WxProperties;
 import org.linlinjava.litemall.core.express.ExpressService;
 import org.linlinjava.litemall.core.express.dao.ExpressInfo;
 import org.linlinjava.litemall.core.notify.CommonNotifyService;
@@ -84,6 +85,9 @@ public class WxOrderService {
     private final Log logger = LogFactory.getLog(WxOrderService.class);
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private WxProperties wxProperties;
 
     @Autowired
     private LitemallAdminService litemallAdminService;
@@ -866,7 +870,12 @@ public class WxOrderService {
                 }
                 
                 WxPayUnifiedOrderV3Request orderRequest = new WxPayUnifiedOrderV3Request();
-                orderRequest.setAppid(wxPayService.getConfig().getAppId());
+                if (payType == LitemallOrder.PayTypeEnum.WEIXIN_APP) {
+                    orderRequest.setAppid(wxPayService.getConfig().getAppId());
+                }
+                if (payType == LitemallOrder.PayTypeEnum.WEIXIN_JSAPI) {
+                    orderRequest.setAppid(wxProperties.getAppId());
+                }
                 orderRequest.setMchid(wxPayService.getConfig().getMchId());
                 orderRequest.setDescription(des);
                 orderRequest.setOutTradeNo(order.getOrderSn());

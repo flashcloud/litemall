@@ -42,7 +42,8 @@ public class WxConfig {
     @Bean
     public WxPayConfig wxPayConfig() {
         WxPayConfig payConfig = new WxPayConfig();
-        payConfig.setAppId(properties.getAppId());
+        // 使用专用的支付appid，如果未配置则使用默认的appId
+        payConfig.setAppId(properties.getPayAppId());
         payConfig.setMchId(properties.getMchId());
         payConfig.setNotifyUrl(properties.getNotifyUrl());
         payConfig.setTradeType("JSAPI");

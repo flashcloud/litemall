@@ -104,3 +104,5 @@ litemall-vue/public/resources/img/click-hear-color.png
 litemall-vue/public/resources/img/click-hear.png
 out/litemall-db/uml/uml-class-diagram/uml-class-diagram.png
 定制litemal.pdf
+*.svn-base
+deploy/litemall/application-onlie.yml

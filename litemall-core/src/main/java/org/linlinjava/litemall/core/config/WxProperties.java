@@ -11,6 +11,10 @@ public class WxProperties {
 
     private String appSecret;
 
+    // 微信支付专用的appid（如果与小程序/公众号appid不同）
+    private String payAppId;
+    private String payAppSecret;
+
     private String mchId;
 
     private String mchKey;
@@ -70,6 +74,27 @@ public class WxProperties {
     public void setAppId(String appId) {
         this.appId = appId;
     }
+
+    /**
+     * 获取微信支付使用的appid
+     * 如果配置了payAppId则使用payAppId，否则使用appId
+     * @return 微信支付appid
+     */
+    public String getPayAppId() {
+        return this.payAppId != null && !this.payAppId.isEmpty() ? this.payAppId : this.appId;
+    }
+
+    public void setPayAppId(String payAppId) {
+        this.payAppId = payAppId;
+    }
+
+    public String getPayAppSecret() {
+        return this.payAppSecret != null && !this.payAppSecret.isEmpty() ? this.payAppSecret : this.appSecret;
+    }
+
+    public void setPayAppSecret(String payAppSecret) {
+        this.payAppSecret = appSecret;
+    }    
 
     public String getAppSecret() {
         return appSecret;
