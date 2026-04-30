@@ -3,7 +3,13 @@
     <!-- 头部标题 -->
     <div class="header">
       <h1 class="title">绑定手机号</h1>
-      <p class="subtitle">为保证您的账户安全，请及时绑定手机号</p>
+      <!-- <p class="subtitle">为保证您的账户安全，请及时绑定手机号</p> -->
+      
+      <!-- 微信环境提示 -->
+      <div v-if="isWeChatEnv" class="wechat-tip">
+        <van-icon name="info-o" />
+        <span>温馨提示：为保证您的账户安全，请及时绑定手机号</span>
+      </div>
     </div>
 
     <!-- 表单区域 -->
@@ -97,7 +103,7 @@
 </template>
 
 <script>
-import {getWeChatCode, authCaptcha, manualBindPhone } from '@/api/api';
+import {getWeChatCode, authCaptcha, manualBindPhone, authInfo } from '@/api/api';
 import { getLocalStorage } from '@/utils/local-storage';
 import { Toast } from 'vant';
 import CustomInput from '@/components/cust-form/CustomInput';
@@ -127,7 +133,9 @@ export default {
       agreeTerms: false,
       isCountingDown: false,
       countDown: 60,
-      timer: null
+      timer: null,
+      userInfo: {}, // 存储用户信息
+      isWeChatEnv: false // 是否在微信环境中
     }
   },
 
@@ -141,6 +149,12 @@ export default {
         'memberExpire'
       );
       this.token = infoData.Authorization;
+      
+      // 检测是否在微信环境
+      this.isWeChatEnv = isWeChatBrowser();
+      
+      // 尝试从后端获取用户完整信息，看是否有历史绑定的手机号
+      this.loadUserInfo();
   },
 
   computed: {
@@ -161,9 +175,29 @@ export default {
       return this.isPhoneValid && 
              this.verifyCode.length === 6 && 
              this.agreeTerms
+    },
+    isWeChatEnv() {
+      return isWeChatBrowser();
     }
   },
   methods: {
+    // 加载用户信息
+    loadUserInfo() {
+      authInfo().then(res => {
+        this.userInfo = res.data.data || {};
+        // 如果用户已有手机号，自动填充
+        if (this.userInfo.mobile) {
+          this.phoneNumber = this.userInfo.mobile;
+          Toast({
+            message: '检测到您已绑定手机号，如需修改请重新输入',
+            duration: 2000
+          });
+        }
+      }).catch(error => {
+        console.error('获取用户信息失败:', error);
+      });
+    },
+
     async getVerifyCode() {
       if (!this.isPhoneValid) {
         this.$message.warning('请输入正确的手机号')
@@ -291,6 +325,32 @@ export default {
   color: #999;
   margin: 0;
   line-height: 1.5;
+}
+
+.wechat-tip {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+  border-left: 4px solid #ffc107;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #856404;
+  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+}
+
+.wechat-tip i {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 16px;
+  color: #ffc107;
+}
+
+.wechat-tip span {
+  flex: 1;
 }
 
 .form-container {
