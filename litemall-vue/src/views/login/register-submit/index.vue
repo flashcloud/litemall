@@ -5,7 +5,7 @@
 				<countdown v-if="counting" :time="60000" @end="countDownEnd">
 				  <template slot-scope="props">{{ +props.seconds || 60 }}秒后获取</template>
 				</countdown>
-				<span v-else>获取验证码</span>
+				<span v-else>获取</span>
 			</div>
 		</md-field>
 		<md-field v-model="username" icon="username" placeholder="请输入手机号" disabled/>

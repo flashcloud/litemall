@@ -148,7 +148,7 @@ export default {
       return /^1[3-9]\d{9}$/.test(this.phoneNumber)
     },
     countDownText() {
-      return this.isCountingDown ? `${this.countDown}s` : '获取验证码'
+      return this.isCountingDown ? `${this.countDown}s` : '获取'
     },
     canSubmit() {
       // 如果需要密码，则必须填写密码

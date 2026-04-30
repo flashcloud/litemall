@@ -27,7 +27,7 @@
 					<countdown v-if="counting" :time="60000" @end="countdownend">
 					  <template slot-scope="props">{{ +props.seconds || 60 }}秒后获取</template>
 					</countdown>
-					<span v-else>获取验证码</span>
+					<span v-else>获取</span>
 				</span>
 			</van-field> -->
 
@@ -44,7 +44,7 @@
 					<countdown v-if="counting" :time="60000" @end="countdownend">
 					  <template slot-scope="props">{{ +props.seconds || 60 }}秒后获取</template>
 					</countdown>
-					<span v-else>获取验证码</span>
+					<span v-else>获取</span>
 				</span>
 			</van-field>            
 		</van-cell-group>

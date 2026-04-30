@@ -4,7 +4,7 @@
     <div class="user_avatar">
       <img :src="avatar" alt="头像" width="60" height="60">
     </div>
-    <div>{{nickName}} <van-tag type="success">{{memberType}}</van-tag></div>
+    <div>{{nickName}}</div>
   </div>
 </template>
 
