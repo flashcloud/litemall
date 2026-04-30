@@ -480,6 +480,8 @@ public class WxAuthController {
         String token = JacksonUtil.parseString(body, "token");
         String phone = JacksonUtil.parseString(body, "phone");
         String code = JacksonUtil.parseString(body, "code");
+        String password = JacksonUtil.parseString(body, "password"); // 新增：已注册用户的密码
+        
         if (StringUtils.isEmpty(token) || StringUtils.isEmpty(phone)) {
             return ResponseUtil.badArgument();
         }
@@ -493,7 +495,7 @@ public class WxAuthController {
             return ResponseUtil.fail(AUTH_CAPTCHA_UNMATCH, "验证码错误");
         }
 
-        return loginThenCheckAndUpdatePhone(token, phone);
+        return loginThenCheckAndUpdatePhone(token, phone, password);
     }
     
 
@@ -527,35 +529,71 @@ public class WxAuthController {
         return ResponseUtil.ok(bindedTrader);
     }
 
-    private Object loginThenCheckAndUpdatePhone(String token, String phone) {
+    private Object loginThenCheckAndUpdatePhone(String token, String phone, String password) {
         Integer userId = UserTokenManager.getUserId(token);
         if (userId == null) {
             return ResponseEntity.status(501).build(); // 未登录
         }
 
-        LitemallUser user = userService.findById(userId);
-        if (user == null) {
+        LitemallUser wxUser = userService.findById(userId);
+        if (wxUser == null) {
             return ResponseEntity.status(404).build(); // 用户不存在
         }
 
-        if (user.getMobile() != null && user.getMobile().length() > 0) {
-            return ResponseUtil.fail(AUTH_USERS_PHONE_BIND, "已绑定手机号 " + user.getMobile());
+        if (wxUser.getMobile() != null && wxUser.getMobile().length() > 0) {
+            return ResponseUtil.fail(AUTH_USERS_PHONE_BIND, "已绑定手机号 " + wxUser.getMobile());
         }
 
-        Object validate = validatePhone(user, phone);
-        if (validate != null) {
-            return validate;
+        // 检查该手机号是否已被注册为用户名
+        List<LitemallUser> userList = userService.queryByUsername(phone);
+        if (userList.size() > 0) {
+            // 手机号已被注册为用户名，需要验证密码
+            LitemallUser existUser = userList.get(0);
+            
+            // 如果没有提供密码，返回错误提示要求输入密码
+            if (StringUtils.isEmpty(password)) {
+                Map<Object, Object> data = new HashMap<>();
+                data.put("needPassword", true);
+                data.put("message", "此手机号已被注册为用户，请输入该用户的密码以完成绑定");
+                return ResponseUtil.fail(AUTH_NAME_REGISTERED, "此手机号已被注册为用户", data);
+            }
+            
+            // 验证密码
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            if (!encoder.matches(password, existUser.getPassword())) {
+                return ResponseUtil.fail(AUTH_INVALID_PASSWORD, "密码不正确");
+            }
+            
+            // 密码验证成功，将微信用户的 openid 和 sessionKey 转移到已存在的账户
+            try {
+                Integer newUserId = userService.mergeWxUserToExistUser(existUser, wxUser, phone);
+                
+                // 返回成功，并携带新用户ID以便前端更新token
+                Map<Object, Object> result = new HashMap<>();
+                result.put("newUserId", newUserId);
+                result.put("message", "绑定成功");
+                return ResponseUtil.ok(result);
+            } catch (Exception e) {
+                return ResponseUtil.updatedDataFailed();
+            }
         }
 
-        user.setMobile(phone);
-        if(user.getWeixinOpenid() != null && user.getWeixinOpenid().length() > 0) {
-            user.setUsername(phone); // 微信用户需要将手机号作为用户名
+        // 检查该手机号是否已被绑定到其他账户
+        userList = userService.queryByMobile(phone);
+        if (userList.size() > 0) {
+            return ResponseUtil.fail(AUTH_NAME_REGISTERED, "该手机号已被绑定到其他账户");
+        }
+
+        // 正常绑定流程：手机号未被注册或绑定
+        wxUser.setMobile(phone);
+        if(wxUser.getWeixinOpenid() != null && wxUser.getWeixinOpenid().length() > 0) {
+            wxUser.setUsername(phone); // 微信用户需要将手机号作为用户名
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
             //获取手机后6位作为密码
             String encodedPassword = encoder.encode(phone.substring(phone.length() - 6));
-            user.setPassword(encodedPassword);
+            wxUser.setPassword(encodedPassword);
         }
-        if (userService.updateById(user) == 0) {
+        if (userService.updateById(wxUser) == 0) {
             return ResponseUtil.updatedDataFailed();
         }        
         return ResponseUtil.ok();

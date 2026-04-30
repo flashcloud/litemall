@@ -232,4 +232,45 @@ public class LitemallUserService {
         }
         return tel.substring(0, 3) + sb.toString() + tel.substring(len - 4);
     }
+
+    /**
+     * 合并微信用户到已有账户
+     * 将微信用户的openid、sessionKey等信息转移到已有账户，并删除微信用户
+     * 
+     * @param existUser 已存在的用户账户
+     * @param wxUser 新创建的微信用户
+     * @param phone 手机号
+     * @return 合并后的用户ID
+     */
+    @Transactional
+    public Integer mergeWxUserToExistUser(LitemallUser existUser, LitemallUser wxUser, String phone) {
+        // 将微信用户的 openid 和 sessionKey 转移到已存在的账户
+        existUser.setWeixinOpenid(wxUser.getWeixinOpenid());
+        existUser.setSessionKey(wxUser.getSessionKey());
+        existUser.setNickname(wxUser.getNickname());
+        existUser.setAvatar(wxUser.getAvatar());
+        
+        // 如果已存在用户没有手机号，则设置手机号
+        if (existUser.getMobile() == null || existUser.getMobile().isEmpty()) {
+            existUser.setMobile(phone);
+        }
+        
+        // 更新已有用户
+        if (updateById(existUser) == 0) {
+            throw new RuntimeException("更新用户信息失败");
+        }
+        
+        // 清空微信用户的敏感信息
+        wxUser.setWeixinOpenid("");
+        wxUser.setSessionKey("");
+        wxUser.setStatus((byte)1);
+        if (updateById(wxUser) == 0) {
+            throw new RuntimeException("更新用户的过渡状态失败");
+        }
+        
+        // 删除新创建的微信用户（逻辑删除）
+        deleteById(wxUser.getId());
+        
+        return existUser.getId();
+    }
 }

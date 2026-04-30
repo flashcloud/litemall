@@ -32,6 +32,16 @@
         @button-click="getVerifyCode"
         />
       
+      <!-- 密码输入框（当手机号已注册时显示） -->
+      <custom-input
+        v-if="needPassword"
+        v-model="password"
+        type="password"
+        placeholder="请输入该手机号用户的密码"
+        icon="lock"
+        icon-class="lock-icon"
+      />
+      
       <!-- 协议同意 -->
       <div class="agreement-section">
         <label class="agreement-label">
@@ -112,6 +122,8 @@ export default {
       token: '',
       phoneNumber: '',
       verifyCode: '',
+      password: '', // 新增：密码字段
+      needPassword: false, // 新增：是否需要输入密码
       agreeTerms: false,
       isCountingDown: false,
       countDown: 60,
@@ -139,6 +151,13 @@ export default {
       return this.isCountingDown ? `${this.countDown}s` : '获取验证码'
     },
     canSubmit() {
+      // 如果需要密码，则必须填写密码
+      if (this.needPassword) {
+        return this.isPhoneValid && 
+               this.verifyCode.length === 6 && 
+               this.password.length > 0 &&
+               this.agreeTerms
+      }
       return this.isPhoneValid && 
              this.verifyCode.length === 6 && 
              this.agreeTerms
@@ -189,17 +208,49 @@ export default {
       if (!this.canSubmit) return
       
       try {
-        manualBindPhone({
+        const params = {
             phone: this.phoneNumber,
             code: this.verifyCode,
             token: this.token
-        }).then(res => {
-            this.$router.push({ name: 'user' })
-            this.$dialog.alert({ message: '手机绑定成功。您也可以在App中使用手机号登录，初始密码是手机号后6位。强烈建议登录后修改该密码' }).then(() => {
-
-            });
+        }
+        
+        // 如果需要密码，则添加密码参数
+        if (this.needPassword && this.password) {
+            params.password = this.password
+        }
+        
+        manualBindPhone(params).then(res => {
+            // 检查是否需要重新登录（用户ID变更）
+            if (res.data.data && res.data.data.newUserId) {
+                // 需要更新token，跳转到登录页重新登录
+                this.$dialog.alert({ 
+                    message: '绑定成功！请使用手机号和密码重新登录' 
+                }).then(() => {
+                    // 清除本地存储
+                    localStorage.clear()
+                    // 跳转到登录页
+                    this.$router.push({ name: 'login' })
+                })
+            } else {
+                // 正常绑定，跳转到用户中心
+                this.$router.push({ name: 'user' })
+                this.$dialog.alert({ message: '手机绑定成功。您也可以在App中使用手机号登录，初始密码是手机号后6位。强烈建议登录后修改该密码' }).then(() => {
+                });
+            }
         }).catch(error => {
-            Toast.fail('绑定失败: ' + error.data.errmsg)
+            // 检查是否是手机号已注册的错误
+            if (error.data && error.data.errno === 704) { // AUTH_NAME_REGISTERED
+                const data = error.data.data
+                if (data && data.needPassword) {
+                    // 显示密码输入框
+                    this.needPassword = true
+                    Toast.fail(data.message || '此手机号已被注册为用户，请输入密码')
+                } else {
+                    Toast.fail(error.data.errmsg || '绑定失败')
+                }
+            } else {
+                Toast.fail('绑定失败: ' + (error.data ? error.data.errmsg : '未知错误'))
+            }
         });
       } catch (error) {
         Toast.fail('绑定失败，请检查验证码是否正确')
