@@ -470,6 +470,8 @@ public class WxAuthController {
         result.put("weAccessToken", wxLoginInfo.getUserInfo().getAccessToken());
         result.put("token", token);
         result.put("userInfo", userInfo);
+        // 如果用户手机号为空，标记需要绑定手机号
+        result.put("needBindPhone", user.getMobile() == null || user.getMobile().isEmpty());
         return ResponseUtil.ok(result);
     }
 

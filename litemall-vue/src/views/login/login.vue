@@ -76,9 +76,15 @@ function after_login(self, loginFunc, loginData) {
           memberPlan: self.userInfo.memberPlan,
           memberExpire: self.userInfo.memberExpire
         });
-        if (!self.userInfo.mobile || self.userInfo.mobile == '') {
+        
+        // 强制检查：如果后端标记需要绑定手机号，或者用户手机号为空，必须跳转到绑定手机页面
+        const needBindPhone = res.data.data.needBindPhone || !self.userInfo.mobile || self.userInfo.mobile === '';
+        if (needBindPhone) {
           self.$router.push({ name: 'bindPhone' });
-        } else if (self.userInfo.traders.length == 0) {
+          return;
+        }
+        
+        if (self.userInfo.traders.length == 0) {
           self.$router.push({ name: 'bindTrader' });
         } else {
           self.routerRedirect();
@@ -101,7 +107,7 @@ export default {
   },
 
   created() {
-    //用微信扫本登录页面网址二维码，在微信内浏览器用微信登录
+    //扫一扫登录页面网址二维码，在微信内浏览器用微信登录
     if (isWeChatBrowser()) {
       const href = window.location.href;
       if (href.indexOf('?code=') > -1 && href.endsWith('#/login')) {
