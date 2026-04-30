@@ -23,7 +23,7 @@
     </van-panel>
 
     <van-panel>
-      <van-row gutter v-for="(newGood, index) in shopInfos.newGoodsList" :key="index">
+      <van-row class="products-list" gutter v-for="(newGood, index) in shopInfos.newGoodsList" :key="index">
         <van-col span="12"
                  v-for="(product ,index) in newGood.products"
                  :key="index">
@@ -32,8 +32,8 @@
                  style="width:180px;height:127px;" :style="{'margin-left': index % 2 == 0 ? '10px' : '0','padding-right': index % 2 == 0 ? '10px' : '0'}">
           </router-link>
           <span style="display: block; padding-left: 20px;color: rgb(123, 116, 116);white-space: nowrap;">{{newGood.name}}</span>
-          <span style="display: block; padding-left: 60px;color: rgb(123, 116, 116);white-space: nowrap;">{{ product.specifications[0] }}</span>
-          <span style="display: block; padding-left: 65px;color:#ab956d">￥ {{product.price}}</span>
+          <span class="product-specs">{{ product.specifications[0] }}</span>
+          <span class="product-price">￥ {{product.price}}</span>
         </van-col>
       </van-row>
       <div slot='header'>
@@ -340,5 +340,25 @@ export default {
 .van-coupon-item--disabled p,
 .van-coupon-item--disabled span {
   color: #969799;
+}
+.products-list .van-col{
+    margin-bottom: 10px;
+}
+.product-specs {
+    color: #017065;
+    font-weight: bold;
+    font-size: 101%;
+
+    // color: rgb(123, 116, 116);
+    display: block; 
+    padding-left: 60px;
+    white-space: nowrap;
+}
+.product-price {
+    display: block; 
+    padding-left: 65px;
+    font-weight: bold;
+    font-size: 102%;
+    color:#ab956d;
 }
 </style>
